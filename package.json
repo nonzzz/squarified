@@ -1,0 +1,36 @@
+{
+  "name": "squarifed",
+  "version": "0.0.0",
+  "description": "squarifed tree map",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./primitive": {
+      "import": "./dist/primitive/index.mjs",
+      "require": "./dist/primitive/index.js",
+      "types": "./dist/primitive/index.d.ts"
+    }
+  },
+  "scripts": {
+    "dev": "rollup --config rollup.config.mts --configPlugin swc3 --watch",
+    "build": "rollup --config rollup.config.mts --configPlugin swc3"
+  },
+  "keywords": ["squarifed", "tree-map"],
+  "author": "Kanno",
+  "license": "MIT",
+  "devDependencies": {
+    "dprint": "^0.47.2",
+    "eslint": "8",
+    "eslint-config-kagura": "^2.2.1",
+    "rollup": "^4.24.0",
+    "rollup-plugin-dts": "^6.1.1",
+    "rollup-plugin-swc3": "^0.11.2",
+    "typescript": "^5.6.2"
+  }
+}

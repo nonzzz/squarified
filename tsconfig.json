@@ -1,0 +1,19 @@
+{
+    "compilerOptions": {
+      "allowJs": true,
+      "baseUrl": ".",
+      "outDir": "dist",
+      "noImplicitThis": true,
+      "esModuleInterop": true,
+      "skipLibCheck": true,
+      "target": "ESNext",
+      "lib": ["esnext", "DOM", "DOM.Iterable"],
+      "resolveJsonModule": true,
+      "module": "ESNext",
+      "moduleResolution": "node",
+      "allowImportingTsExtensions": true,
+      "noEmit": true,
+      "strict": true
+    }
+  }
+  

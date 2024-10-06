@@ -1,2 +1,4 @@
-# tree-map
-squarify tree map
+# Squarifed
+
+- Low level Squarifed algorithm.
+- A minimalist @foamtree like component. 

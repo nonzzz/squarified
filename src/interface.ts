@@ -1,6 +1,10 @@
-import type { SquarifedModule } from './primitives'
+/* eslint-disable no-use-before-define */
+import type { Rect, SquarifedModule } from './primitives'
+
+export type PaintRect = Rect
 
 export interface TreemapContext {
+  zoom: Treemap['zoom']
 }
 
 export interface PaintEvent<E> {
@@ -21,12 +25,6 @@ export interface Treemap {
   init: (element: HTMLDivElement) => Treemap
   dispose: () => void
   setOptions: (options?: TreemapOptions) => void
-  // zoom: () => void
-  // resize: () => void
-  // setOptions: (options: any) => void
-}
-
-export interface PaintRect {
-  w: number
-  h: number
+  zoom: () => void
+  resize: () => void
 }

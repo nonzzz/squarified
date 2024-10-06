@@ -10,3 +10,8 @@ export type SquarifedModuleWithLayout = Omit<SquarifedModule, 'groups'> & {
   layout: [number, number, number, number]
   children: SquarifedModuleWithLayout[]
 }
+
+export interface Rect {
+  w: number
+  h: number
+}

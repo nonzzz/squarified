@@ -1,9 +1,19 @@
-import type { Module, SquarifedModule } from './interface'
+import type { Module, Rect, SquarifedModule, SquarifedModuleWithLayout } from './interface'
 
 // Steps:
 // 1. pass a sorted array of SquarifedModule
-export function squarify(data: SquarifedModule[]) {
-  //   const { sort = true } = options
+export function squarify(data: SquarifedModule[], rect: Rect) {
+  const { w, h } = rect
+
+  const result: SquarifedModuleWithLayout[] = []
+
+  if (!data.length) return result
+
+  const recursion = () => {}
+
+  recursion()
+
+  return result
 }
 
 function perferNumeric(s: string | number) {
@@ -17,8 +27,8 @@ export function sortChildrenByKey<T extends Module, K extends keyof T = 'weight'
       const v = a[key]
       const v2 = b[key]
       if (perferNumeric(v) && perferNumeric(v2)) {
-        if (v > v2) return 1
-        if (v < v2) return -1
+        if (v2 > v) return 1
+        if (v2 < v) return -1
         continue
       }
       // Not numeric, compare as string

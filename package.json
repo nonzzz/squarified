@@ -17,11 +17,10 @@
       "types": "./dist/primitive/index.d.ts"
     }
   },
-  "scripts": {
-    "dev": "rollup --config rollup.config.mts --configPlugin swc3 --watch",
-    "build": "rollup --config rollup.config.mts --configPlugin swc3"
-  },
-  "keywords": ["squarifed", "tree-map"],
+  "keywords": [
+    "squarifed",
+    "tree-map"
+  ],
   "author": "Kanno",
   "license": "MIT",
   "devDependencies": {

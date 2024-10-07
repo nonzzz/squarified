@@ -1,5 +1,5 @@
 /* eslint-disable no-use-before-define */
-import type { Rect, SquarifedModule } from './primitives'
+import type { Rect, SquarifiedModule } from './primitives'
 
 export type PaintRect = Rect
 
@@ -16,9 +16,37 @@ export interface PaintEventMap {
   mousemove: (this: TreemapContext, event: PaintEvent<MouseEvent>) => void
 }
 
+export interface RGBColor {
+  r: number
+  g: number
+  b: number
+  a?: number
+}
+
+export interface HLSColor {
+  h: number
+  l: number
+  s: number
+  a?: number
+}
+
+export type ColorMode = 'rgb' | 'hsl'
+
+export interface ColorDecoratorResult {
+  mode: ColorMode
+  desc: RGBColor | HLSColor
+}
+
+// unlike the fomatree
+// we provide a simple colorDecorator method
+export interface PaintView {
+  colorDecorator: (module: SquarifiedModule) => ColorDecoratorResult
+}
+
 export interface TreemapOptions {
-  data: SquarifedModule[]
+  data: SquarifiedModule[]
   evt?: Partial<PaintEventMap>
+  view?: Partial<PaintView>
 }
 
 export interface Treemap {

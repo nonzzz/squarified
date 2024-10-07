@@ -1,7 +1,7 @@
 {
-  "name": "squarifed",
+  "name": "squarified",
   "version": "0.0.0",
-  "description": "squarifed tree map",
+  "description": "squarified tree map",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
@@ -18,12 +18,13 @@
     }
   },
   "keywords": [
-    "squarifed",
+    "squarified",
     "tree-map"
   ],
   "author": "Kanno",
   "license": "MIT",
   "devDependencies": {
+    "@types/node": "^22.7.4",
     "dprint": "^0.47.2",
     "eslint": "8",
     "eslint-config-kagura": "^2.2.1",

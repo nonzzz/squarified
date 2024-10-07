@@ -1,6 +1,6 @@
-import type { PaintEventMap, PaintRect, Treemap, TreemapContext, TreemapOptions } from './interface'
-import type { SquarifedModule } from './primitives'
-import { Iter } from './shared'
+import type { PaintEventMap, PaintRect, PaintView, Treemap, TreemapContext, TreemapOptions } from './interface'
+import type { SquarifiedModule, SquarifiedModuleWithLayout } from './primitives'
+import { Iter, isObject } from './shared'
 import { squarify } from './primitives'
 
 type PrimitivePaintEventMapUnion = keyof PaintEventMap | (string & {})
@@ -15,20 +15,28 @@ function createPaintEventHandler(canvas: HTMLCanvasElement, eventType: Primitive
   return { handler }
 }
 
+function handleColorMappings(data: SquarifiedModule[], decorator?: PaintView['colorDecorator']) {
+  return {}
+}
+
 class Paint implements Treemap {
   private mountedNode: HTMLDivElement | null
   private _canvas: HTMLCanvasElement | null
   private _context: CanvasRenderingContext2D | null
   private rect: PaintRect
-  private data: SquarifedModule[]
+  private data: SquarifiedModule[]
+  private layoutNodes: SquarifiedModuleWithLayout[]
   private eventCollections: EventCollection[]
+  private colorsMappings: Record<string, string>
   constructor() {
     this.mountedNode = null
     this._canvas = null
     this._context = null
     this.rect = { w: 0, h: 0 }
     this.data = []
+    this.layoutNodes = []
     this.eventCollections = []
+    this.colorsMappings = {}
   }
 
   private bindEvent(type: PrimitivePaintEventMapUnion, evt: Event, userHandler: PaintEventMap[keyof PaintEventMap]) {
@@ -63,6 +71,8 @@ class Paint implements Treemap {
     this._canvas = null
     this._context = null
     this.data = []
+    this.layoutNodes = []
+    this.colorsMappings = {}
     this.rect = { w: 0, h: 0 }
   }
 
@@ -114,14 +124,14 @@ class Paint implements Treemap {
     this.canvas.style.cssText = `width: ${width}px; height: ${height}px`
     this.ctx.scale(pixelRatio, pixelRatio)
     if (previousRect.w !== width || previousRect.h !== height) {
-      squarify(this.data, this.rect)
+      this.layoutNodes = squarify(this.data, this.rect)
     }
     this.draw()
   }
 
   setOptions(options?: TreemapOptions) {
     if (!options) return
-    const { evt: userEvent, data } = options
+    const { evt: userEvent, data, view } = options
     this.data = data
     const unReady = !this.data.length
     if (unReady) {
@@ -142,6 +152,9 @@ class Paint implements Treemap {
         const nativeEventName = 'on' + key
         this.eventCollections.push({ name: nativeEventName, handler })
       }
+    }
+    if (view && isObject(view)) {
+      this.colorsMappings = handleColorMappings(this.data, view.colorDecorator)
     }
     this.resize()
   }

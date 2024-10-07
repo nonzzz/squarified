@@ -1,11 +1,11 @@
-import type { Module, Rect, SquarifedModule, SquarifedModuleWithLayout } from './interface'
+import type { Module, Rect, SquarifiedModule, SquarifiedModuleWithLayout } from './interface'
 
 // Steps:
-// 1. pass a sorted array of SquarifedModule
-export function squarify(data: SquarifedModule[], rect: Rect) {
+// 1. pass a sorted array of SquarifiedModule
+export function squarify(data: SquarifiedModule[], rect: Rect) {
   const { w, h } = rect
 
-  const result: SquarifedModuleWithLayout[] = []
+  const result: SquarifiedModuleWithLayout[] = []
 
   if (!data.length) return result
 

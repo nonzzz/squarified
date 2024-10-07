@@ -1,4 +1,3 @@
-# Squarifed
+# Squarified
 
-- Low level Squarifed algorithm.
-- A minimalist @foamtree like component. 
+WIP now.

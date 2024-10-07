@@ -18,3 +18,7 @@ export class Iter<T extends Record<string, unknown>> {
       }
     }
 }
+
+export function isObject(data: NonNullable<Record<string, any>>): data is object {
+  return Object.prototype.toString.call(data) === '[object Object]'
+}

@@ -1,3 +1,4 @@
+import { perferNumeric } from '../shared'
 import type { Module, Rect, SquarifiedModule, SquarifiedModuleWithLayout } from './interface'
 
 // Steps:
@@ -14,11 +15,6 @@ export function squarify(data: SquarifiedModule[], rect: Rect) {
   recursion()
 
   return result
-}
-
-function perferNumeric(s: string | number) {
-  if (typeof s === 'number') return true
-  return s.charCodeAt(0) >= 48 && s.charCodeAt(0) <= 57
 }
 
 export function sortChildrenByKey<T extends Module, K extends keyof T = 'weight'>(data: T[], ...keys: K[]) {

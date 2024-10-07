@@ -32,10 +32,17 @@ export interface HLSColor {
 
 export type ColorMode = 'rgb' | 'hsl'
 
-export interface ColorDecoratorResult {
-  mode: ColorMode
-  desc: RGBColor | HLSColor
+export interface ColorDecoratorResultHLS {
+  mode: 'hsl'
+  desc: HLSColor
 }
+
+export interface ColorDecoratorResultRGB {
+  mode: 'rgb'
+  desc: RGBColor
+}
+
+export type ColorDecoratorResult = ColorDecoratorResultHLS | ColorDecoratorResultRGB
 
 // unlike the fomatree
 // we provide a simple colorDecorator method

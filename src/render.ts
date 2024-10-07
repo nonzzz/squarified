@@ -1,7 +1,8 @@
-import type { PaintEventMap, PaintRect, PaintView, Treemap, TreemapContext, TreemapOptions } from './interface'
+import type { PaintEventMap, PaintRect, Treemap, TreemapContext, TreemapOptions } from './interface'
 import type { SquarifiedModule, SquarifiedModuleWithLayout } from './primitives'
-import { Iter, isObject } from './shared'
+import { Iter } from './shared'
 import { squarify } from './primitives'
+import { handleColorMappings } from './colors'
 
 type PrimitivePaintEventMapUnion = keyof PaintEventMap | (string & {})
 
@@ -13,10 +14,6 @@ interface EventCollection {
 function createPaintEventHandler(canvas: HTMLCanvasElement, eventType: PrimitivePaintEventMapUnion, handler: EventListener) {
   canvas.addEventListener(eventType, handler)
   return { handler }
-}
-
-function handleColorMappings(data: SquarifiedModule[], decorator?: PaintView['colorDecorator']) {
-  return {}
 }
 
 class Paint implements Treemap {
@@ -76,7 +73,22 @@ class Paint implements Treemap {
     this.rect = { w: 0, h: 0 }
   }
 
-  private draw() {}
+  private drawNodeBackground() {
+    //
+  }
+
+  private drawNodeForeground() {
+  }
+
+  private draw() {
+    this.ctx.clearRect(0, 0, this.rect.w, this.rect.h)
+    for (const node of this.layoutNodes) {
+      this.drawNodeBackground()
+    }
+    for (const node of this.layoutNodes) {
+      this.drawNodeForeground()
+    }
+  }
 
   private get canvas() {
     if (!this._canvas) throw new Error('Canvas not initialized')
@@ -153,9 +165,7 @@ class Paint implements Treemap {
         this.eventCollections.push({ name: nativeEventName, handler })
       }
     }
-    if (view && isObject(view)) {
-      this.colorsMappings = handleColorMappings(this.data, view.colorDecorator)
-    }
+    this.colorsMappings = handleColorMappings(this.data, view?.colorDecorator)
     this.resize()
   }
 }

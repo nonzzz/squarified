@@ -1,4 +1,5 @@
 export type Module = Record<string, any> & {
+  label: string
   groups: Module[]
 }
 

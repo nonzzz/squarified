@@ -33,6 +33,7 @@ export function hashCode(str: string) {
   return hash
 }
 
+// For strings we only check the first character to determine if it's a number (I think it's enough)
 export function perferNumeric(s: string | number) {
   if (typeof s === 'number') return true
   return s.charCodeAt(0) >= 48 && s.charCodeAt(0) <= 57

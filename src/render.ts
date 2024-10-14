@@ -41,7 +41,7 @@ class Paint implements Treemap {
       case 'mousemove':
         break
     }
-    userHandler.call(this.context, {
+    userHandler.call(this.API, {
       // @ts-expect-error
       nativeEvent: evt,
       module: {}
@@ -95,15 +95,12 @@ class Paint implements Treemap {
     return this._canvas
   }
 
-  //   notice the difference in the following two snippets
-  //   ctx is the canvas context
-  //   context is a special paint context
   private get ctx() {
     if (!this._context) throw new Error('Context not initialized')
     return this._context
   }
 
-  private get context() {
+  private get API() {
     return {
       zoom: this.zoom
     } satisfies TreemapContext

@@ -1,26 +1,18 @@
 import { createTreemap } from '../dist/index.mjs'
 import { c2m, sortChildrenByKey } from '../dist/primitives/index.mjs'
-
-let treemap
+import data from './data.json' assert { type: 'json' }
 
 const root = document.querySelector('#app')
 
-function bindTreemapEvent() {
-  return {
-    mouseevent: () => {
-      //
-    }
-  }
-}
+const treemap = createTreemap()
 
-function main(data) {
-  treemap = createTreemap()
+function main() {
   treemap.init(root)
-  data = sortChildrenByKey(
+  const sortedData = sortChildrenByKey(
     data.map((item) => c2m({ ...item, groups: item.stats }, 'statSize')),
     'weight'
   )
-  treemap.setOptions({ data, evt: bindTreemapEvent() })
+  treemap.setOptions({ data: sortedData })
 }
 
-fetch('./data.json').then(r => r.json()).then((data) => main(data))
+main()

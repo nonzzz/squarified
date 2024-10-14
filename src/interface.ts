@@ -1,5 +1,5 @@
 /* eslint-disable no-use-before-define */
-import type { Rect, SquarifiedModule } from './primitives'
+import type { Module, Rect, SquarifiedModule } from './primitives'
 
 export type PaintRect = Rect
 
@@ -47,7 +47,7 @@ export type ColorDecoratorResult = ColorDecoratorResultHLS | ColorDecoratorResul
 // unlike the fomatree
 // we provide a simple colorDecorator method
 export interface PaintView {
-  colorDecorator: (module: SquarifiedModule) => ColorDecoratorResult
+  colorDecorator: (module: Module, parent: Module | null) => ColorDecoratorResult
 }
 
 export interface TreemapOptions {

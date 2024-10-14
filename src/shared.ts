@@ -38,3 +38,5 @@ export function perferNumeric(s: string | number) {
   if (typeof s === 'number') return true
   return s.charCodeAt(0) >= 48 && s.charCodeAt(0) <= 57
 }
+
+export function noop() {}

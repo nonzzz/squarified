@@ -1,6 +1,7 @@
-import type { ColorDecoratorResult, ColorDecoratorResultHLS, HLSColor, PaintView, RGBColor } from './interface'
+import type { ColorDecoratorResult, HLSColor, PaintView, RGBColor } from './interface'
 import type { Module } from './primitives'
-import { hashCode, perferNumeric } from './shared'
+
+export type ColorMappings = Record<string, string>
 
 function decodeHLS(meta: HLSColor): string {
   const { h, l, s, a } = meta
@@ -22,51 +23,35 @@ function decodeColor(meta: ColorDecoratorResult) {
   return meta.mode === 'rgb' ? decodeRGB(meta.desc) : decodeHLS(meta.desc)
 }
 
-function assignColor(module: Module, hue: number, depth: number) {
-  const colorMappings = {
-    [module.label]: decodeColor(hueAngleToColor(hue, depth))
-  }
-  if (module.groups) {
-    for (const m of module.groups) {
-      Object.assign(colorMappings, assignColor(m, hue, depth + 1))
-    }
-    return colorMappings
-  }
-  return colorMappings
-}
-
-function assignHue(module: Module) {
-  const { label } = module
-  const arc = Math.PI * 2
-  const hash = perferNumeric(label) ? (parseInt(label) / 1000) * arc : hashCode(label)
-  return Math.round(Math.abs(hash) % arc)
-}
-
-function hueAngleToColor(hue: number, depth: number): ColorDecoratorResultHLS {
-  const saturation = 60 - depth * 5
-  const lightness = 50 + depth * 5
+export function defaultColorDecorator(module: Module, parent: Module | null): ColorDecoratorResult {
   return {
     mode: 'hsl',
-    desc: {
-      h: hue,
-      s: Math.max(saturation, 30),
-      l: Math.min(lightness, 70),
-      a: 0.9
-    }
+    desc: {}
   }
 }
 
-function defaultColorMapping(data: Module[]) {
-  const colorMappings = {}
-  for (const m of data) {
-    Object.assign(colorMappings, assignColor(m, assignHue(m), 0))
+function evaluateColorMappingByModule(module: Module, parent: Module | null, colorDecorator: PaintView['colorDecorator']) {
+  const colorMappings = <ColorMappings> {}
+
+  if (module.groups && module.groups.length) {
+    for (const child of module.groups) {
+      Object.assign(colorMappings, evaluateColorMappingByModule(child, module, colorDecorator))
+    }
   }
+
+  const colorMapping = colorDecorator(module, parent)
+
+  if (module.id && colorMapping) {
+    colorMappings[module.id] = decodeColor(colorMapping)
+  }
+
   return colorMappings
 }
 
-export function handleColorMappings(data: Module[], decorator?: PaintView['colorDecorator']) {
-  if (!decorator) {
-    return defaultColorMapping(data)
+export function handleColorMappings(data: Module[], colorDecorator: PaintView['colorDecorator']) {
+  const colorMappings = <ColorMappings> {}
+  for (const module of data) {
+    Object.assign(colorMappings, evaluateColorMappingByModule(module, null, colorDecorator))
   }
-  return {}
+  return colorMappings
 }

@@ -97,11 +97,13 @@ export function sortChildrenByKey<T extends Module, K extends keyof T = 'weight'
   })
 }
 
-export function c2m<T extends Module, K extends keyof T>(data: T, key: K) {
+export function c2m<T extends Module, K extends keyof T>(data: T, key: K, modifier?: (data: T) => T) {
   if (Array.isArray(data.groups)) {
-    data.groups = sortChildrenByKey(data.groups.map(d => c2m(d, key as string)), 'weight')
+    data.groups = sortChildrenByKey(data.groups.map(d => c2m(d as T, key as string, modifier)), 'weight')
   }
-  return { ...data, weight: data[key] }
+  const obj = { ...data, weight: data[key] }
+  if (modifier) return modifier(obj)
+  return obj
 }
 
 export function flatten<T extends Module>(data: T[]) {

@@ -1,4 +1,4 @@
-import type { ColorDecoratorResult, HLSColor, PaintView, RGBColor } from './interface'
+import type { ColorDecoratorResult, HLSColor, PaintView, RGBColor, TreemapContext } from './interface'
 import type { Module } from './primitives'
 
 export type ColorMappings = Record<string, string>
@@ -23,7 +23,8 @@ function decodeColor(meta: ColorDecoratorResult) {
   return meta.mode === 'rgb' ? decodeRGB(meta.desc) : decodeHLS(meta.desc)
 }
 
-export function defaultColorDecorator(module: Module, parent: Module | null): ColorDecoratorResult {
+// The default color decorator is based on hsla. (Graient Color)
+export function defaultColorDecorator(this: TreemapContext, module: Module, parent: Module | null): ColorDecoratorResult {
   return {
     mode: 'hsl',
     desc: {}
@@ -48,10 +49,10 @@ function evaluateColorMappingByModule(module: Module, parent: Module | null, col
   return colorMappings
 }
 
-export function handleColorMappings(data: Module[], colorDecorator: PaintView['colorDecorator']) {
+export function handleColorMappings(this: TreemapContext, data: Module[], colorDecorator: PaintView['colorDecorator']) {
   const colorMappings = <ColorMappings> {}
   for (const module of data) {
-    Object.assign(colorMappings, evaluateColorMappingByModule(module, null, colorDecorator))
+    Object.assign(colorMappings, evaluateColorMappingByModule(module, null, colorDecorator.bind(this)))
   }
   return colorMappings
 }

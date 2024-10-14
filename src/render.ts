@@ -106,12 +106,17 @@ class Paint implements Treemap {
 
   private get API() {
     return {
-      zoom: this.zoom
+      zoom: this.zoom,
+      get: this.get
     } satisfies TreemapContext
   }
 
-  zoom() {
+  private zoom() {
   }
+
+  private get() {}
+
+  findParent() {}
 
   init(element: HTMLDivElement) {
     this.deinit(true)
@@ -169,7 +174,7 @@ class Paint implements Treemap {
     }
     const view = { ...defaultViewOptions, ...userView }
     // assign color mappings
-    this.colorsMappings = handleColorMappings(this.data, view.colorDecorator)
+    this.colorsMappings = handleColorMappings.call(this.API, this.data, view.colorDecorator)
     this.resize()
   }
 }

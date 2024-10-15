@@ -24,23 +24,29 @@ function decodeColor(meta: ColorDecoratorResult) {
 }
 
 // The default color decorator is based on hsla. (Graient Color)
-export function defaultColorDecorator(this: TreemapContext, module: Module, parent: Module | null): ColorDecoratorResult {
+export function defaultColorDecorator(this: TreemapContext, module: Module): ColorDecoratorResult {
+  const depth = this.get('depth', module)
   return {
     mode: 'hsl',
-    desc: {}
+    desc: {
+      h: depth ? (depth * 35) % 360 : 0,
+      s: 70,
+      l: 50,
+      a: 0.9
+    }
   }
 }
 
-function evaluateColorMappingByModule(module: Module, parent: Module | null, colorDecorator: PaintView['colorDecorator']) {
+function evaluateColorMappingByModule(module: Module, colorDecorator: PaintView['colorDecorator']) {
   const colorMappings = <ColorMappings> {}
 
   if (module.groups && module.groups.length) {
     for (const child of module.groups) {
-      Object.assign(colorMappings, evaluateColorMappingByModule(child, module, colorDecorator))
+      Object.assign(colorMappings, evaluateColorMappingByModule(child, colorDecorator))
     }
   }
 
-  const colorMapping = colorDecorator(module, parent)
+  const colorMapping = colorDecorator(module)
 
   if (module.id && colorMapping) {
     colorMappings[module.id] = decodeColor(colorMapping)
@@ -52,7 +58,7 @@ function evaluateColorMappingByModule(module: Module, parent: Module | null, col
 export function handleColorMappings(this: TreemapContext, data: Module[], colorDecorator: PaintView['colorDecorator']) {
   const colorMappings = <ColorMappings> {}
   for (const module of data) {
-    Object.assign(colorMappings, evaluateColorMappingByModule(module, null, colorDecorator.bind(this)))
+    Object.assign(colorMappings, evaluateColorMappingByModule(module, colorDecorator.bind(this)))
   }
   return colorMappings
 }

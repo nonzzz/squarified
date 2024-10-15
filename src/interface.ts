@@ -1,10 +1,12 @@
-import type { Module, Rect, SquarifiedModule } from './primitives'
+import type { Module, Rect } from './primitives'
 
 export type PaintRect = Rect
 
+export type GetAction = 'depth' | 'parent'
+
 export interface TreemapContext {
   zoom: () => void
-  get: () => void
+  get: (action: GetAction, payload?: any) => any
 }
 
 export interface PaintEvent<E> {
@@ -44,14 +46,21 @@ export interface ColorDecoratorResultRGB {
 
 export type ColorDecoratorResult = ColorDecoratorResultHLS | ColorDecoratorResultRGB
 
+export interface GroupDecorator {
+  borderWidth: number
+  borderRadius: number
+  borderGap: number
+}
+
 // unlike the fomatree
 // we provide a simple colorDecorator method
 export interface PaintView {
-  colorDecorator: (module: Module, parent: Module | null) => ColorDecoratorResult
+  colorDecorator: (module: Module) => ColorDecoratorResult
+  groupDecorator: GroupDecorator
 }
 
 export interface TreemapOptions {
-  data: SquarifiedModule[]
+  data: Module[]
   evt?: Partial<PaintEventMap>
   view?: Partial<PaintView>
 }

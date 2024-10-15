@@ -1,4 +1,4 @@
-import type { PaintEventMap, PaintRect, PaintView, Treemap, TreemapContext, TreemapOptions } from './interface'
+import type { GetAction, GroupDecorator, PaintEventMap, PaintRect, PaintView, Treemap, TreemapContext, TreemapOptions } from './interface'
 import type { SquarifiedModule, SquarifiedModuleWithLayout } from './primitives'
 import { Iter } from './shared'
 import { squarify } from './primitives'
@@ -16,12 +16,39 @@ function createPaintEventHandler(canvas: HTMLCanvasElement, eventType: Primitive
   return { handler }
 }
 
+function formatData(nodes: SquarifiedModule[], parent?: SquarifiedModule) {
+  return nodes.map(node => {
+    const next = { ...node }
+    next.parent = parent
+    if (node.groups && Array.isArray(node.groups)) {
+      next.groups = formatData(node.groups, next)
+    }
+    return next
+  })
+}
+
+function getDepth(node: SquarifiedModule) {
+  let depth = 0
+  while (node.parent) {
+    node = node.parent
+    depth++
+  }
+  return depth
+}
+
+const defaultGroupDecorator = {
+  borderWidth: 4,
+  borderRadius: 0.15,
+  borderGap: 1
+} satisfies GroupDecorator
+
 const defaultViewOptions = {
-  colorDecorator: defaultColorDecorator
+  colorDecorator: defaultColorDecorator,
+  groupDecorator: defaultGroupDecorator
 } satisfies PaintView
 
 class Paint implements Treemap {
-  private mountedNode: HTMLDivElement | null
+  private mountedNode: Element | null
   private _canvas: HTMLCanvasElement | null
   private _context: CanvasRenderingContext2D | null
   private rect: PaintRect
@@ -29,6 +56,7 @@ class Paint implements Treemap {
   private layoutNodes: SquarifiedModuleWithLayout[]
   private eventCollections: EventCollection[]
   private colorsMappings: Record<string, string>
+  private viewConfig: Omit<PaintView, 'colorDecorator'> | null
   constructor() {
     this.mountedNode = null
     this._canvas = null
@@ -38,6 +66,7 @@ class Paint implements Treemap {
     this.layoutNodes = []
     this.eventCollections = []
     this.colorsMappings = {}
+    this.viewConfig = null
   }
 
   private bindEvent(type: PrimitivePaintEventMapUnion, evt: Event, userHandler: PaintEventMap[keyof PaintEventMap]) {
@@ -71,6 +100,7 @@ class Paint implements Treemap {
     }
     this._canvas = null
     this._context = null
+    this.viewConfig = null
     this.data = []
     this.layoutNodes = []
     this.colorsMappings = {}
@@ -114,11 +144,18 @@ class Paint implements Treemap {
   private zoom() {
   }
 
-  private get() {}
+  private get(action: GetAction, payload?: any) {
+    switch (action) {
+      case 'depth':
+        return getDepth(payload)
+      case 'parent':
+        return payload.parent
+    }
+  }
 
   findParent() {}
 
-  init(element: HTMLDivElement) {
+  init(element: Element) {
     this.deinit(true)
     this.mountedNode = element
     this._canvas = document.createElement('canvas')
@@ -143,7 +180,6 @@ class Paint implements Treemap {
     this.ctx.scale(pixelRatio, pixelRatio)
     if (previousRect.w !== width || previousRect.h !== height) {
       this.layoutNodes = squarify(this.data, this.rect)
-      console.log(this.layoutNodes)
     }
     this.draw()
   }
@@ -151,7 +187,7 @@ class Paint implements Treemap {
   setOptions(options?: TreemapOptions) {
     if (!options) return
     const { evt: userEvent, data, view: userView } = options
-    this.data = data
+    this.data = formatData(data)
     const unReady = !this.data.length
     if (unReady) {
       if (this.mountedNode && this.canvas) {
@@ -172,9 +208,11 @@ class Paint implements Treemap {
         this.eventCollections.push({ name: nativeEventName, handler })
       }
     }
-    const view = { ...defaultViewOptions, ...userView }
+    const { colorDecorator, ...view } = { ...defaultViewOptions, ...userView }
     // assign color mappings
-    this.colorsMappings = handleColorMappings.call(this.API, this.data, view.colorDecorator)
+    this.colorsMappings = handleColorMappings.call(this.API, this.data, colorDecorator)
+    this.viewConfig = view
+    console.log(this.colorsMappings)
     this.resize()
   }
 }

@@ -16,6 +16,27 @@ function createPaintEventHandler(canvas: HTMLCanvasElement, eventType: Primitive
   return { handler }
 }
 
+export function charCodeWidth(c: CanvasRenderingContext2D, ch: number) {
+  return c.measureText(String.fromCharCode(ch)).width
+}
+
+export function textOverflowEllipsis(c: CanvasRenderingContext2D, text: string, width: number, ellipsisWidth: number): [string, number] {
+  if (width < ellipsisWidth) {
+    return ['', 0]
+  }
+  let textWidth = 0
+  let i = 0
+  while (i < text.length) {
+    const charWidth = charCodeWidth(c, text.charCodeAt(i))
+    if (width < textWidth + charWidth + ellipsisWidth) {
+      return [text.slice(0, i) + '...', textWidth + ellipsisWidth]
+    }
+    textWidth += charWidth
+    i++
+  }
+  return [text, textWidth]
+}
+
 function formatData(nodes: SquarifiedModule[], parent?: SquarifiedModule) {
   return nodes.map(node => {
     const next = { ...node }
@@ -34,6 +55,15 @@ function getDepth(node: SquarifiedModule) {
     depth++
   }
   return depth
+}
+
+const STYLES = {
+  PADDING: 5,
+  HEAD_HEIGHT: 20,
+  INSET_X: 10,
+  INSET_Y: 20 + 5,
+  DOT_CHAR_CODE: 46,
+  ANIMATION_DURATION: 300
 }
 
 const defaultGroupDecorator = {
@@ -55,8 +85,9 @@ class Paint implements Treemap {
   private data: SquarifiedModule[]
   private layoutNodes: SquarifiedModuleWithLayout[]
   private eventCollections: EventCollection[]
-  private colorsMappings: Record<string, string>
+  private colorMappings: Record<string, string>
   private viewConfig: Omit<PaintView, 'colorDecorator'> | null
+  private arena: Record<string, any>
   constructor() {
     this.mountedNode = null
     this._canvas = null
@@ -65,7 +96,8 @@ class Paint implements Treemap {
     this.data = []
     this.layoutNodes = []
     this.eventCollections = []
-    this.colorsMappings = {}
+    this.colorMappings = {}
+    this.arena = {}
     this.viewConfig = null
   }
 
@@ -103,24 +135,64 @@ class Paint implements Treemap {
     this.viewConfig = null
     this.data = []
     this.layoutNodes = []
-    this.colorsMappings = {}
+    this.arena = {}
+    this.colorMappings = {}
     this.rect = { w: 0, h: 0 }
   }
 
-  private drawNodeBackground() {
-    //
+  private drawNodeBackground(node: SquarifiedModuleWithLayout) {
+    const [x, y, w, h] = node.layout
+    for (const child of node.children) {
+      this.drawNodeBackground(child)
+    }
+    this.ctx.fillStyle = this.colorMappings[node.node.id]
+    if (node.children.length) {
+      this.ctx.fillRect(x, y, w, STYLES.HEAD_HEIGHT)
+      this.ctx.fillRect(x, y + h - STYLES.PADDING, w, STYLES.PADDING)
+      this.ctx.fillRect(x, y + STYLES.HEAD_HEIGHT, STYLES.PADDING, h - STYLES.INSET_Y)
+      this.ctx.fillRect(x + w - STYLES.PADDING, y + STYLES.HEAD_HEIGHT, STYLES.PADDING, h - STYLES.INSET_Y)
+    } else {
+      this.ctx.fillRect(x, y, w, h)
+    }
   }
 
-  private drawNodeForeground() {
+  private drawNodeForeground(node: SquarifiedModuleWithLayout) {
+    const [x, y, w, h] = node.layout
+    this.ctx.strokeStyle = '#222'
+    this.ctx.strokeRect(x + 0.5, y + 0.5, w, h)
+
+    if (h > STYLES.HEAD_HEIGHT) {
+      this.ctx.fillStyle = '#000'
+      const maxWidth = w - STYLES.INSET_X
+      const textY = y + Math.round(STYLES.INSET_Y / 2) + 1
+      const ellipsisWidth = 3 * charCodeWidth(this.ctx, STYLES.DOT_CHAR_CODE)
+      const [text, width] = textOverflowEllipsis(this.ctx, node.node.label, maxWidth, ellipsisWidth)
+      const textX = x + Math.round((w - width) / 2)
+      if (text) {
+        this.ctx.font = '12px sans-serif'
+        this.ctx.globalAlpha = 0.5
+        if (node.children.length) {
+          this.ctx.fillText(text, textX, textY)
+        } else {
+          const textY = y + Math.round(h / 2)
+          this.ctx.fillText(text, textX, textY)
+        }
+        this.ctx.globalAlpha = 1
+      }
+
+      for (const child of node.children) {
+        this.drawNodeForeground(child)
+      }
+    }
   }
 
   private draw() {
     this.ctx.clearRect(0, 0, this.rect.w, this.rect.h)
     for (const node of this.layoutNodes) {
-      this.drawNodeBackground()
+      this.drawNodeBackground(node)
     }
     for (const node of this.layoutNodes) {
-      this.drawNodeForeground()
+      this.drawNodeForeground(node)
     }
   }
 
@@ -137,7 +209,13 @@ class Paint implements Treemap {
   private get API() {
     return {
       zoom: this.zoom,
-      get: this.get
+      get: this.get,
+      state: {
+        get: (key) => this.arena[key],
+        set: (key, value) => {
+          this.arena[key] = value
+        }
+      }
     } satisfies TreemapContext
   }
 
@@ -210,9 +288,8 @@ class Paint implements Treemap {
     }
     const { colorDecorator, ...view } = { ...defaultViewOptions, ...userView }
     // assign color mappings
-    this.colorsMappings = handleColorMappings.call(this.API, this.data, colorDecorator)
+    this.colorMappings = handleColorMappings.call(this.API, this.data, colorDecorator)
     this.viewConfig = view
-    console.log(this.colorsMappings)
     this.resize()
   }
 }

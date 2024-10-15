@@ -6,9 +6,9 @@ export type ColorMappings = Record<string, string>
 function decodeHLS(meta: HLSColor): string {
   const { h, l, s, a } = meta
   if ('a' in meta) {
-    return `hsla(${h}, ${s}%, ${l}%, ${a})`
+    return `hsla(${h}deg, ${s}%, ${l}%, ${a})`
   }
-  return `hsl(${h}, ${s}%, ${l}%)`
+  return `hsl(${h}deg, ${s}%, ${l}%)`
 }
 
 function decodeRGB(meta: RGBColor): string {
@@ -25,13 +25,40 @@ function decodeColor(meta: ColorDecoratorResult) {
 
 // The default color decorator is based on hsla. (Graient Color)
 export function defaultColorDecorator(this: TreemapContext, module: Module): ColorDecoratorResult {
+  const parent = this.get('parent', module)
   const depth = this.get('depth', module)
+  const { weight } = module
+
+  const totalHueRange = 360
+
+  let baseHue = 0
+  let sweepAngle = Math.PI * 2
+
+  if (parent) {
+    const parentHue = this.state.get('hue') || 0
+    const parentWeight = parent.weight
+
+    sweepAngle = (weight / parentWeight) * Math.PI * 2
+
+    baseHue = parentHue + (sweepAngle / Math.PI * 180)
+  }
+
+  baseHue += sweepAngle
+
+  const depthHueOffset = depth * (totalHueRange / 10)
+  const finalHue = baseHue + depthHueOffset / 2
+
+  const saturation = 0.6 + 0.4 * Math.max(0, Math.cos(finalHue))
+  const lightness = 0.5 + 0.2 * Math.max(0, Math.cos(finalHue + Math.PI * 2 / 3))
+
+  this.state.set('hue', baseHue)
+
   return {
     mode: 'hsl',
     desc: {
-      h: depth ? (depth * 35) % 360 : 0,
-      s: 70,
-      l: 50,
+      h: finalHue,
+      s: Math.round(saturation * 100),
+      l: Math.round(lightness * 100),
       a: 0.9
     }
   }

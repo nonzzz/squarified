@@ -4,9 +4,15 @@ export type PaintRect = Rect
 
 export type GetAction = 'depth' | 'parent'
 
+export interface StateAction {
+  set: (action: string, payload: any) => void
+  get: (action: string) => any
+}
+
 export interface TreemapContext {
   zoom: () => void
   get: (action: GetAction, payload?: any) => any
+  state: StateAction
 }
 
 export interface PaintEvent<E> {

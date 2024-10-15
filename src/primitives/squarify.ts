@@ -3,6 +3,15 @@ import type { Module, Rect, SquarifiedModuleWithLayout } from './interface'
 
 type LayoutRect = Rect & Partial<{ x: number; y: number }>
 
+const STYLES = {
+  PADDING: 5,
+  HEAD_HEIGHT: 20,
+  INSET_X: 10,
+  INSET_Y: 20 + 5,
+  DOT_CHAR_CODE: 46,
+  ANIMATION_DURATION: 300
+}
+
 // This is a classical squarify algorithm implementation
 // No  DSS (Depth-First Search Squarify) algorithm
 // https://www.win.tue.nl/~vanwijk/stm.pdf (Page 5)
@@ -53,12 +62,19 @@ export function squarify(data: Module[], userRect: LayoutRect) {
         const lower = Math.round(shortestSide * areaInLayout / areaInRun)
         const upper = Math.round(shortestSide * (areaInLayout + area) / areaInRun)
         const [x, y, w, h] = rect.w >= rect.h
-          ? [rect.x, rect.y + lower, rect.w, upper - lower]
-          : [rect.x + lower, rect.y, upper - lower, rect.h]
+          ? [rect.x, rect.y + lower, splited, upper - lower]
+          : [rect.x + lower, rect.y, upper - lower, splited]
         result.push({
           layout: [x, y, w, h],
           node: children,
-          children: squarify(children?.groups || [], { x, y, w, h })
+          children: w > STYLES.INSET_X && h > STYLES.INSET_Y
+            ? squarify(children?.groups || [], {
+              x: x + STYLES.PADDING,
+              y: y + STYLES.HEAD_HEIGHT,
+              w: w - STYLES.INSET_X,
+              h: h - STYLES.INSET_Y
+            })
+            : []
         })
         areaInLayout += area
       }

@@ -53,15 +53,16 @@ export interface ColorDecoratorResultRGB {
 export type ColorDecoratorResult = ColorDecoratorResultHLS | ColorDecoratorResultRGB
 
 export interface GroupDecorator {
+  gap: number
   borderWidth: number
   borderRadius: number
-  borderGap: number
+  barHeight: number
 }
 
 // unlike the fomatree
 // we provide a simple colorDecorator method
 export interface PaintView {
-  colorDecorator: (module: Module) => ColorDecoratorResult
+  colorDecorator: (this: TreemapContext, module: Module) => ColorDecoratorResult
   groupDecorator: GroupDecorator
 }
 

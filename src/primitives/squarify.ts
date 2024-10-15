@@ -1,22 +1,14 @@
+import type { GroupDecorator } from '../interface'
 import { perferNumeric } from '../shared'
 import type { Module, Rect, SquarifiedModuleWithLayout } from './interface'
 
 type LayoutRect = Rect & Partial<{ x: number; y: number }>
 
-const STYLES = {
-  PADDING: 5,
-  HEAD_HEIGHT: 20,
-  INSET_X: 10,
-  INSET_Y: 20 + 5,
-  DOT_CHAR_CODE: 46,
-  ANIMATION_DURATION: 300
-}
-
 // This is a classical squarify algorithm implementation
 // No  DSS (Depth-First Search Squarify) algorithm
 // https://www.win.tue.nl/~vanwijk/stm.pdf (Page 5)
 // Accept a sorted data (SquariiedModule) and rect (no need x, y)
-export function squarify(data: Module[], userRect: LayoutRect) {
+export function squarify(data: Module[], userRect: LayoutRect, groupDecorator: GroupDecorator) {
   const rect = { x: 0, y: 0, ...userRect }
 
   const result: SquarifiedModuleWithLayout[] = []
@@ -67,14 +59,14 @@ export function squarify(data: Module[], userRect: LayoutRect) {
         result.push({
           layout: [x, y, w, h],
           node: children,
-          children: w > STYLES.INSET_X && h > STYLES.INSET_Y
-            ? squarify(children?.groups || [], {
-              x: x + STYLES.PADDING,
-              y: y + STYLES.HEAD_HEIGHT,
-              w: w - STYLES.INSET_X,
-              h: h - STYLES.INSET_Y
-            })
-            : []
+          children: w > groupDecorator.gap * 2 && h > (groupDecorator.barHeight + groupDecorator.gap)
+          ? squarify(children.groups || [], {
+            x: x + groupDecorator.gap,
+            y: y + groupDecorator.barHeight,
+            w: w - 2 * groupDecorator.gap,
+            h: h - groupDecorator.barHeight - groupDecorator.gap
+          }, groupDecorator)
+          : []
         })
         areaInLayout += area
       }

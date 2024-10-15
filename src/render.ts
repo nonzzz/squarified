@@ -57,19 +57,11 @@ function getDepth(node: SquarifiedModule) {
   return depth
 }
 
-const STYLES = {
-  PADDING: 5,
-  HEAD_HEIGHT: 20,
-  INSET_X: 10,
-  INSET_Y: 20 + 5,
-  DOT_CHAR_CODE: 46,
-  ANIMATION_DURATION: 300
-}
-
 const defaultGroupDecorator = {
-  borderWidth: 4,
-  borderRadius: 0.15,
-  borderGap: 1
+  gap: 5,
+  borderWidth: 1.5,
+  borderRadius: 0.5,
+  barHeight: 20
 } satisfies GroupDecorator
 
 const defaultViewOptions = {
@@ -140,32 +132,62 @@ class Paint implements Treemap {
     this.rect = { w: 0, h: 0 }
   }
 
-  private drawNodeBackground(node: SquarifiedModuleWithLayout) {
+  private drawNodeBackground(node: SquarifiedModuleWithLayout, offsetX = 0, offsetY = 0) {
     const [x, y, w, h] = node.layout
+    const { gap, barHeight, borderRadius, borderWidth } = this.groupDecorator
+    const adjustedX = x + offsetX
+    const adjustedY = y + offsetY
+
     for (const child of node.children) {
       this.drawNodeBackground(child)
     }
+    this.ctx.lineWidth = borderWidth
     this.ctx.fillStyle = this.colorMappings[node.node.id]
+    this.ctx.strokeStyle = '#222'
     if (node.children.length) {
-      this.ctx.fillRect(x, y, w, STYLES.HEAD_HEIGHT)
-      this.ctx.fillRect(x, y + h - STYLES.PADDING, w, STYLES.PADDING)
-      this.ctx.fillRect(x, y + STYLES.HEAD_HEIGHT, STYLES.PADDING, h - STYLES.INSET_Y)
-      this.ctx.fillRect(x + w - STYLES.PADDING, y + STYLES.HEAD_HEIGHT, STYLES.PADDING, h - STYLES.INSET_Y)
+      // Draw top bar with border radius
+      this.drawRoundedRect(adjustedX, y, w, barHeight, borderRadius)
+      // Draw bottom bar with border radius
+      this.drawRoundedRect(adjustedX, y + h - gap, w, gap, borderRadius)
+      // Draw left bar with border radius
+      this.drawRoundedRect(adjustedX, y + barHeight, gap, h - barHeight - gap, borderRadius)
+      // Draw right bar with border radius
+      this.drawRoundedRect(adjustedX + w - gap, y + barHeight, gap, h - barHeight - gap, borderRadius)
     } else {
-      this.ctx.fillRect(x, y, w, h)
+      this.drawRoundedRect(adjustedX, adjustedY, w, h, borderRadius)
     }
+  }
+
+  private drawRoundedRect(x: number, y: number, w: number, h: number, r: number) {
+    this.ctx.beginPath()
+    this.ctx.moveTo(x + r, y)
+    this.ctx.lineTo(x + w - r, y)
+    this.ctx.quadraticCurveTo(x + w, y, x + w, y + r)
+    this.ctx.lineTo(x + w, y + h - r)
+    this.ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h)
+    this.ctx.lineTo(x + r, y + h)
+    this.ctx.quadraticCurveTo(x, y + h, x, y + h - r)
+    this.ctx.lineTo(x, y + r)
+    this.ctx.quadraticCurveTo(x, y, x + r, y)
+    this.ctx.closePath()
+    this.ctx.fill()
+    // if (this.ctx.lineWidth > 0) {
+    //   this.ctx.stroke()
+    // }
   }
 
   private drawNodeForeground(node: SquarifiedModuleWithLayout) {
     const [x, y, w, h] = node.layout
     this.ctx.strokeStyle = '#222'
+    this.ctx.lineWidth = this.groupDecorator.borderWidth
+    const { gap, barHeight } = this.groupDecorator
     this.ctx.strokeRect(x + 0.5, y + 0.5, w, h)
 
-    if (h > STYLES.HEAD_HEIGHT) {
+    if (h > barHeight) {
       this.ctx.fillStyle = '#000'
-      const maxWidth = w - STYLES.INSET_X
-      const textY = y + Math.round(STYLES.INSET_Y / 2) + 1
-      const ellipsisWidth = 3 * charCodeWidth(this.ctx, STYLES.DOT_CHAR_CODE)
+      const maxWidth = w - (gap * 2)
+      const textY = y + Math.round((gap + barHeight) / 2) + 1
+      const ellipsisWidth = 3 * charCodeWidth(this.ctx, 46)
       const [text, width] = textOverflowEllipsis(this.ctx, node.node.label, maxWidth, ellipsisWidth)
       const textX = x + Math.round((w - width) / 2)
       if (text) {
@@ -204,6 +226,11 @@ class Paint implements Treemap {
   private get ctx() {
     if (!this._context) throw new Error('Context not initialized')
     return this._context
+  }
+
+  private get groupDecorator() {
+    if (!this.viewConfig) throw new Error('GroupDecorator not initialized')
+    return this.viewConfig.groupDecorator
   }
 
   private get API() {
@@ -257,8 +284,9 @@ class Paint implements Treemap {
     this.canvas.style.cssText = `width: ${width}px; height: ${height}px`
     this.ctx.scale(pixelRatio, pixelRatio)
     if (previousRect.w !== width || previousRect.h !== height) {
-      this.layoutNodes = squarify(this.data, this.rect)
+      this.layoutNodes = squarify(this.data, this.rect, this.groupDecorator)
     }
+    console.log(this.layoutNodes)
     this.draw()
   }
 

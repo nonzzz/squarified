@@ -15,4 +15,6 @@ function main() {
   treemap.setOptions({ data: sortedData })
 }
 
+new ResizeObserver(() => treemap.resize()).observe(root)
+
 main()

@@ -1,7 +1,16 @@
-import type { GetAction, GroupDecorator, PaintEventMap, PaintRect, PaintView, Treemap, TreemapContext, TreemapOptions } from './interface'
-import type { SquarifiedModule, SquarifiedModuleWithLayout } from './primitives'
+import type {
+  GetAction,
+  GroupBarHeight,
+  GroupDecorator,
+  PaintEventMap,
+  PaintRect,
+  PaintView,
+  Treemap,
+  TreemapContext,
+  TreemapOptions
+} from './interface'
+import { type Module, type SquarifiedModule, type SquarifiedModuleWithLayout, squarify } from './primitives'
 import { Iter } from './shared'
-import { squarify } from './primitives'
 import { defaultColorDecorator, handleColorMappings } from './colors'
 
 type PrimitivePaintEventMapUnion = keyof PaintEventMap | (string & {})
@@ -37,7 +46,7 @@ export function textOverflowEllipsis(c: CanvasRenderingContext2D, text: string, 
   return [text, textWidth]
 }
 
-function formatData(nodes: SquarifiedModule[], parent?: SquarifiedModule) {
+function formatData(nodes: Module[], parent?: Module) {
   return nodes.map(node => {
     const next = { ...node }
     next.parent = parent
@@ -45,7 +54,7 @@ function formatData(nodes: SquarifiedModule[], parent?: SquarifiedModule) {
       next.groups = formatData(node.groups, next)
     }
     return next
-  })
+  }) as SquarifiedModule[]
 }
 
 function getDepth(node: SquarifiedModule) {
@@ -57,11 +66,16 @@ function getDepth(node: SquarifiedModule) {
   return depth
 }
 
+const defaultGroupBarHeight = {
+  max: 80,
+  min: 20
+} satisfies GroupBarHeight
+
 const defaultGroupDecorator = {
   gap: 5,
   borderWidth: 1.5,
   borderRadius: 0.5,
-  barHeight: 20
+  barHeight: defaultGroupBarHeight
 } satisfies GroupDecorator
 
 const defaultViewOptions = {
@@ -132,11 +146,11 @@ class Paint implements Treemap {
     this.rect = { w: 0, h: 0 }
   }
 
-  private drawNodeBackground(node: SquarifiedModuleWithLayout, offsetX = 0, offsetY = 0) {
+  private drawNodeBackground(node: SquarifiedModuleWithLayout) {
     const [x, y, w, h] = node.layout
-    const { gap, barHeight, borderRadius, borderWidth } = this.groupDecorator
-    const adjustedX = x + offsetX
-    const adjustedY = y + offsetY
+    const { gap, barHeight, borderRadius, borderWidth } = this.groupDecorator(node.node)
+    const adjustedX = x
+    const adjustedY = y
 
     for (const child of node.children) {
       this.drawNodeBackground(child)
@@ -179,8 +193,9 @@ class Paint implements Treemap {
   private drawNodeForeground(node: SquarifiedModuleWithLayout) {
     const [x, y, w, h] = node.layout
     this.ctx.strokeStyle = '#222'
-    this.ctx.lineWidth = this.groupDecorator.borderWidth
-    const { gap, barHeight } = this.groupDecorator
+    const groupDecorator = this.groupDecorator(node.node)
+    this.ctx.lineWidth = groupDecorator.borderWidth
+    const { gap, barHeight } = groupDecorator
     this.ctx.strokeRect(x + 0.5, y + 0.5, w, h)
 
     if (h > barHeight) {
@@ -228,9 +243,16 @@ class Paint implements Treemap {
     return this._context
   }
 
-  private get groupDecorator() {
+  groupDecorator(node: SquarifiedModule) {
     if (!this.viewConfig) throw new Error('GroupDecorator not initialized')
-    return this.viewConfig.groupDecorator
+    const depth = this.get('depth', node) || 1
+    const { barHeight, ...rest } = this.viewConfig.groupDecorator
+    const { max, min } = barHeight
+    const diff = max / depth
+    return {
+      ...rest,
+      barHeight: diff < min ? min : diff
+    }
   }
 
   private get API() {
@@ -284,9 +306,8 @@ class Paint implements Treemap {
     this.canvas.style.cssText = `width: ${width}px; height: ${height}px`
     this.ctx.scale(pixelRatio, pixelRatio)
     if (previousRect.w !== width || previousRect.h !== height) {
-      this.layoutNodes = squarify(this.data, this.rect, this.groupDecorator)
+      this.layoutNodes = squarify(this.data, this.rect, this.groupDecorator.bind(this))
     }
-    console.log(this.layoutNodes)
     this.draw()
   }
 

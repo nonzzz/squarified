@@ -29,7 +29,7 @@ export function defaultColorDecorator(this: TreemapContext, module: Module): Col
   const depth = this.get('depth', module)
   const { weight } = module
 
-  const totalHueRange = 360
+  const totalHueRange = Math.PI
 
   let baseHue = 0
   let sweepAngle = Math.PI * 2
@@ -45,7 +45,7 @@ export function defaultColorDecorator(this: TreemapContext, module: Module): Col
 
   baseHue += sweepAngle
 
-  const depthHueOffset = depth * (totalHueRange / 10)
+  const depthHueOffset = depth + (totalHueRange / 10)
   const finalHue = baseHue + depthHueOffset / 2
 
   const saturation = 0.6 + 0.4 * Math.max(0, Math.cos(finalHue))
@@ -64,7 +64,7 @@ export function defaultColorDecorator(this: TreemapContext, module: Module): Col
   }
 }
 
-function evaluateColorMappingByModule(module: Module, colorDecorator: PaintView['colorDecorator']) {
+function evaluateColorMappingByModule(module: Module, colorDecorator: OmitThisParameter<PaintView['colorDecorator']>): ColorMappings {
   const colorMappings = <ColorMappings> {}
 
   if (module.groups && module.groups.length) {
@@ -82,7 +82,12 @@ function evaluateColorMappingByModule(module: Module, colorDecorator: PaintView[
   return colorMappings
 }
 
-export function handleColorMappings(this: TreemapContext, data: Module[], colorDecorator: PaintView['colorDecorator']) {
+// PaintView['colorDecorator']
+export function handleColorMappings(
+  this: TreemapContext,
+  data: Module[],
+  colorDecorator: PaintView['colorDecorator']
+): ColorMappings {
   const colorMappings = <ColorMappings> {}
   for (const module of data) {
     Object.assign(colorMappings, evaluateColorMappingByModule(module, colorDecorator.bind(this)))

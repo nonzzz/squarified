@@ -10,11 +10,6 @@
       "import": "./dist/index.mjs",
       "require": "./dist/index.js",
       "types": "./dist/index.d.ts"
-    },
-    "./primitive": {
-      "import": "./dist/primitive/index.mjs",
-      "require": "./dist/primitive/index.js",
-      "types": "./dist/primitive/index.d.ts"
     }
   },
   "keywords": [

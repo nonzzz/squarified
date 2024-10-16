@@ -52,11 +52,16 @@ export interface ColorDecoratorResultRGB {
 
 export type ColorDecoratorResult = ColorDecoratorResultHLS | ColorDecoratorResultRGB
 
+export interface GroupBarHeight {
+  max: number
+  min: number
+}
+
 export interface GroupDecorator {
   gap: number
   borderWidth: number
   borderRadius: number
-  barHeight: number
+  barHeight: GroupBarHeight
 }
 
 // unlike the fomatree

@@ -1,6 +1,6 @@
 import type { GroupDecorator } from '../interface'
 import { perferNumeric } from '../shared'
-import type { Module, Rect, SquarifiedModuleWithLayout } from './interface'
+import type { Module, Rect, SquarifiedModule, SquarifiedModuleWithLayout } from './interface'
 
 type LayoutRect = Rect & Partial<{ x: number; y: number }>
 
@@ -8,7 +8,7 @@ type LayoutRect = Rect & Partial<{ x: number; y: number }>
 // No  DSS (Depth-First Search Squarify) algorithm
 // https://www.win.tue.nl/~vanwijk/stm.pdf (Page 5)
 // Accept a sorted data (SquariiedModule) and rect (no need x, y)
-export function squarify(data: Module[], userRect: LayoutRect, groupDecorator: GroupDecorator) {
+export function squarify(data: SquarifiedModule[], userRect: LayoutRect, decorator: (node: SquarifiedModule) => GroupDecorator) {
   const rect = { x: 0, y: 0, ...userRect }
 
   const result: SquarifiedModuleWithLayout[] = []
@@ -56,17 +56,18 @@ export function squarify(data: Module[], userRect: LayoutRect, groupDecorator: G
         const [x, y, w, h] = rect.w >= rect.h
           ? [rect.x, rect.y + lower, splited, upper - lower]
           : [rect.x + lower, rect.y, upper - lower, splited]
+        const groupDecorator = decorator(children)
         result.push({
           layout: [x, y, w, h],
           node: children,
           children: w > groupDecorator.gap * 2 && h > (groupDecorator.barHeight + groupDecorator.gap)
-          ? squarify(children.groups || [], {
-            x: x + groupDecorator.gap,
-            y: y + groupDecorator.barHeight,
-            w: w - 2 * groupDecorator.gap,
-            h: h - groupDecorator.barHeight - groupDecorator.gap
-          }, groupDecorator)
-          : []
+            ? squarify(children.groups || [], {
+              x: x + groupDecorator.gap,
+              y: y + groupDecorator.barHeight,
+              w: w - 2 * groupDecorator.gap,
+              h: h - groupDecorator.barHeight - groupDecorator.gap
+            }, decorator)
+            : []
         })
         areaInLayout += area
       }

@@ -4,11 +4,19 @@ import type { Module, Rect, SquarifiedModule, SquarifiedModuleWithLayout } from 
 
 type LayoutRect = Rect & Partial<{ x: number; y: number }>
 
+type Decorator = Omit<GroupDecorator, 'barHeight'> & {
+  barHeight: number
+}
+
 // This is a classical squarify algorithm implementation
 // No  DSS (Depth-First Search Squarify) algorithm
 // https://www.win.tue.nl/~vanwijk/stm.pdf (Page 5)
 // Accept a sorted data (SquariiedModule) and rect (no need x, y)
-export function squarify(data: SquarifiedModule[], userRect: LayoutRect, decorator: (node: SquarifiedModule) => GroupDecorator) {
+export function squarify(
+  data: SquarifiedModule[],
+  userRect: LayoutRect,
+  decorator: (node: SquarifiedModule) => Decorator
+) {
   const rect = { x: 0, y: 0, ...userRect }
 
   const result: SquarifiedModuleWithLayout[] = []

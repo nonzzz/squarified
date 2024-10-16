@@ -1,10 +1,11 @@
 import type {
   GetAction,
-  GroupBarHeight,
   GroupDecorator,
   PaintEventMap,
   PaintRect,
   PaintView,
+  Range,
+  TextDecorator,
   Treemap,
   TreemapContext,
   TreemapOptions
@@ -29,21 +30,47 @@ export function charCodeWidth(c: CanvasRenderingContext2D, ch: number) {
   return c.measureText(String.fromCharCode(ch)).width
 }
 
-export function textOverflowEllipsis(c: CanvasRenderingContext2D, text: string, width: number, ellipsisWidth: number): [string, number] {
+function evaluateOptimalFontSize(
+  c: CanvasRenderingContext2D,
+  text: string,
+  width: number,
+  fontRange: Range<number>,
+  fontFamily: string,
+  height: number
+) {
+  height = Math.floor(height)
+  let optimalFontSize = fontRange.min
+  let textWidth = 0
+  let textHeight = 0
+  for (let fontSize = fontRange.min; fontSize <= fontRange.max; fontSize++) {
+    c.font = `${fontSize}px ${fontFamily}`
+    textWidth = c.measureText(text).width
+    textHeight = fontSize
+    if (textWidth >= width || textHeight >= height) {
+      optimalFontSize -= 1
+      break
+    }
+    optimalFontSize = fontSize
+  }
+  return optimalFontSize
+}
+
+function getSafeText(c: CanvasRenderingContext2D, text: string, width: number) {
+  const ellipsisWidth = 3 * charCodeWidth(c, 46)
   if (width < ellipsisWidth) {
-    return ['', 0]
+    return false
   }
   let textWidth = 0
   let i = 0
   while (i < text.length) {
-    const charWidth = charCodeWidth(c, text.charCodeAt(i))
-    if (width < textWidth + charWidth + ellipsisWidth) {
-      return [text.slice(0, i) + '...', textWidth + ellipsisWidth]
-    }
-    textWidth += charWidth
+    const codePointWidth = charCodeWidth(c, text.charCodeAt(i))
+    textWidth += codePointWidth
     i++
   }
-  return [text, textWidth]
+  if (textWidth < width) {
+    return { text, width: textWidth }
+  }
+  return { text: '...', width: ellipsisWidth }
 }
 
 function formatData(nodes: Module[], parent?: Module) {
@@ -66,10 +93,10 @@ function getDepth(node: SquarifiedModule) {
   return depth
 }
 
-const defaultGroupBarHeight = {
+const defaultGroupBarHeight: Range<number> = {
   max: 80,
   min: 20
-} satisfies GroupBarHeight
+}
 
 const defaultGroupDecorator = {
   gap: 5,
@@ -78,9 +105,21 @@ const defaultGroupDecorator = {
   barHeight: defaultGroupBarHeight
 } satisfies GroupDecorator
 
+const defaultFontSizes: Range<number> = {
+  max: 38,
+  min: 7
+}
+
+const defaultTextDecorator = {
+  color: '#000',
+  fontSize: defaultFontSizes,
+  fontFamily: 'sans-serif'
+} satisfies TextDecorator
+
 const defaultViewOptions = {
   colorDecorator: defaultColorDecorator,
-  groupDecorator: defaultGroupDecorator
+  groupDecorator: defaultGroupDecorator,
+  textDecorator: defaultTextDecorator
 } satisfies PaintView
 
 class Paint implements Treemap {
@@ -149,6 +188,7 @@ class Paint implements Treemap {
   private drawNodeBackground(node: SquarifiedModuleWithLayout) {
     const [x, y, w, h] = node.layout
     const { gap, barHeight, borderRadius, borderWidth } = this.groupDecorator(node.node)
+
     const adjustedX = x
     const adjustedY = y
 
@@ -194,32 +234,45 @@ class Paint implements Treemap {
     const [x, y, w, h] = node.layout
     this.ctx.strokeStyle = '#222'
     const groupDecorator = this.groupDecorator(node.node)
+    const { fontSize, fontFamily, color } = this.textDecorator
     this.ctx.lineWidth = groupDecorator.borderWidth
     const { gap, barHeight } = groupDecorator
     this.ctx.strokeRect(x + 0.5, y + 0.5, w, h)
-
+    this.ctx.fillStyle = color
+    this.ctx.textBaseline = 'middle'
+    const optimalFontSize = evaluateOptimalFontSize(
+      this.ctx,
+      node.node.label,
+      w - (gap * 2),
+      fontSize,
+      fontFamily,
+      node.children.length ? Math.round(barHeight / 2) + gap : h
+    )
+    this.ctx.font = `${optimalFontSize}px ${fontFamily}`
     if (h > barHeight) {
-      this.ctx.fillStyle = '#000'
-      const maxWidth = w - (gap * 2)
-      const textY = y + Math.round((gap + barHeight) / 2) + 1
-      const ellipsisWidth = 3 * charCodeWidth(this.ctx, 46)
-      const [text, width] = textOverflowEllipsis(this.ctx, node.node.label, maxWidth, ellipsisWidth)
+      const result = getSafeText(this.ctx, node.node.label, w - (gap * 2))
+      if (!result) return
+      const { text, width } = result
       const textX = x + Math.round((w - width) / 2)
-      if (text) {
-        this.ctx.font = '12px sans-serif'
-        this.ctx.globalAlpha = 0.5
-        if (node.children.length) {
-          this.ctx.fillText(text, textX, textY)
-        } else {
-          const textY = y + Math.round(h / 2)
-          this.ctx.fillText(text, textX, textY)
+      if (node.children.length) {
+        const textY = y + Math.round(barHeight / 2)
+        this.ctx.fillText(text, textX, textY)
+      } else {
+        if (node.node.filename.includes('treemap/shared.ts')) {
+          console.log(textX, y + Math.round(h / 2))
+          this.ctx.fillText(text, textX, y + Math.round(h / 2))
+          return
         }
-        this.ctx.globalAlpha = 1
+        const textY = y + Math.round(h / 2)
+        this.ctx.fillText(text, textX, textY)
       }
-
-      for (const child of node.children) {
-        this.drawNodeForeground(child)
-      }
+    } else {
+      const ellipsisWidth = 3 * charCodeWidth(this.ctx, 46)
+      const textX = x + Math.round((w - ellipsisWidth) / 2)
+      this.ctx.fillText('...', textX, y + Math.round(h / 2))
+    }
+    for (const child of node.children) {
+      this.drawNodeForeground(child)
     }
   }
 
@@ -243,7 +296,7 @@ class Paint implements Treemap {
     return this._context
   }
 
-  groupDecorator(node: SquarifiedModule) {
+  private groupDecorator(node: SquarifiedModule) {
     if (!this.viewConfig) throw new Error('GroupDecorator not initialized')
     const depth = this.get('depth', node) || 1
     const { barHeight, ...rest } = this.viewConfig.groupDecorator
@@ -253,6 +306,11 @@ class Paint implements Treemap {
       ...rest,
       barHeight: diff < min ? min : diff
     }
+  }
+
+  private get textDecorator() {
+    if (!this.viewConfig) throw new Error('TextDecorator not initialized')
+    return this.viewConfig.textDecorator
   }
 
   private get API() {
@@ -307,6 +365,7 @@ class Paint implements Treemap {
     this.ctx.scale(pixelRatio, pixelRatio)
     if (previousRect.w !== width || previousRect.h !== height) {
       this.layoutNodes = squarify(this.data, this.rect, this.groupDecorator.bind(this))
+      console.log(this.layoutNodes)
     }
     this.draw()
   }

@@ -52,16 +52,22 @@ export interface ColorDecoratorResultRGB {
 
 export type ColorDecoratorResult = ColorDecoratorResultHLS | ColorDecoratorResultRGB
 
-export interface GroupBarHeight {
-  max: number
-  min: number
+export interface Range<T> {
+  max: T
+  min: T
 }
 
 export interface GroupDecorator {
   gap: number
   borderWidth: number
   borderRadius: number
-  barHeight: GroupBarHeight
+  barHeight: Range<number>
+}
+
+export interface TextDecorator {
+  fontFamily: string
+  fontSize: Range<number>
+  color: string
 }
 
 // unlike the fomatree
@@ -69,6 +75,7 @@ export interface GroupDecorator {
 export interface PaintView {
   colorDecorator: (this: TreemapContext, module: Module) => ColorDecoratorResult
   groupDecorator: GroupDecorator
+  textDecorator: TextDecorator
 }
 
 export interface TreemapOptions {

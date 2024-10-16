@@ -6,6 +6,7 @@ export type Module = Record<string, any> & {
 export type SquarifiedModule = Module & {
   weight: number
   groups: SquarifiedModule[]
+  label: string
   parent?: SquarifiedModule
 }
 

@@ -10,9 +10,12 @@ import type {
   TreemapContext,
   TreemapOptions
 } from './interface'
-import { type Module, type SquarifiedModule, type SquarifiedModuleWithLayout, squarify } from './primitives'
-import { Iter } from './shared'
+import type { Module, SquarifiedModule, SquarifiedModuleWithLayout } from './primitives'
+import { squarify } from './primitives'
+import { Iter, noop, replaceString } from './shared'
 import { defaultColorDecorator, handleColorMappings } from './colors'
+import { primitiveEvents } from './events'
+import type { PrimitiveHandler } from './events'
 
 type PrimitivePaintEventMapUnion = keyof PaintEventMap | (string & {})
 
@@ -40,14 +43,28 @@ function evaluateOptimalFontSize(
 ) {
   height = Math.floor(height)
   let optimalFontSize = fontRange.min
-  let textWidth = 0
-  let textHeight = 0
   for (let fontSize = fontRange.min; fontSize <= fontRange.max; fontSize++) {
     c.font = `${fontSize}px ${fontFamily}`
-    textWidth = c.measureText(text).width
-    textHeight = fontSize
-    if (textWidth >= width || textHeight >= height) {
-      optimalFontSize -= 1
+    let textWidth = 0
+    const textHeight = fontSize
+    let i = 0
+    while (i < text.length) {
+      const codePointWidth = charCodeWidth(c, text.charCodeAt(i))
+      textWidth += codePointWidth
+      i++
+    }
+    if (textWidth >= width) {
+      const overflow = textWidth - width
+      const ratio = overflow / textWidth
+      const newFontSize = Math.abs(Math.floor(fontSize - fontSize * ratio))
+      optimalFontSize = newFontSize || fontRange.min
+      break
+    }
+    if (textHeight >= height) {
+      const overflow = textHeight - height
+      const ratio = overflow / textHeight
+      const newFontSize = Math.abs(Math.floor(fontSize - fontSize * ratio))
+      optimalFontSize = newFontSize || fontRange.min
       break
     }
     optimalFontSize = fontSize
@@ -56,7 +73,7 @@ function evaluateOptimalFontSize(
 }
 
 function getSafeText(c: CanvasRenderingContext2D, text: string, width: number) {
-  const ellipsisWidth = 3 * charCodeWidth(c, 46)
+  const ellipsisWidth = c.measureText('...').width
   if (width < ellipsisWidth) {
     return false
   }
@@ -146,14 +163,10 @@ class Paint implements Treemap {
     this.viewConfig = null
   }
 
-  private bindEvent(type: PrimitivePaintEventMapUnion, evt: Event, userHandler: PaintEventMap[keyof PaintEventMap]) {
-    switch (type) {
-      case 'mousemove':
-        break
-    }
+  private bindEvent(evt: Event, primitiveHandler: PrimitiveHandler, userHandler: PaintEventMap[keyof PaintEventMap]) {
+    primitiveHandler.call(this.API, evt)
     userHandler.call(this.API, {
-      // @ts-expect-error
-      nativeEvent: evt,
+      nativeEvent: evt as any,
       module: {}
     })
   }
@@ -225,9 +238,6 @@ class Paint implements Treemap {
     this.ctx.quadraticCurveTo(x, y, x + r, y)
     this.ctx.closePath()
     this.ctx.fill()
-    // if (this.ctx.lineWidth > 0) {
-    //   this.ctx.stroke()
-    // }
   }
 
   private drawNodeForeground(node: SquarifiedModuleWithLayout) {
@@ -258,18 +268,14 @@ class Paint implements Treemap {
         const textY = y + Math.round(barHeight / 2)
         this.ctx.fillText(text, textX, textY)
       } else {
-        if (node.node.filename.includes('treemap/shared.ts')) {
-          console.log(textX, y + Math.round(h / 2))
-          this.ctx.fillText(text, textX, y + Math.round(h / 2))
-          return
-        }
         const textY = y + Math.round(h / 2)
         this.ctx.fillText(text, textX, textY)
       }
     } else {
       const ellipsisWidth = 3 * charCodeWidth(this.ctx, 46)
       const textX = x + Math.round((w - ellipsisWidth) / 2)
-      this.ctx.fillText('...', textX, y + Math.round(h / 2))
+      const textY = y + Math.round(h / 2)
+      this.ctx.fillText('...', textX, textY)
     }
     for (const child of node.children) {
       this.drawNodeForeground(child)
@@ -385,14 +391,13 @@ class Paint implements Treemap {
       this.init(this.mountedNode!)
     }
     this.deinitEventCollections()
-    if (userEvent) {
-      for (const { key, value } of new Iter(userEvent)) {
-        const { handler } = createPaintEventHandler(this.canvas, key, (e) => {
-          this.bindEvent(key, e, value!)
-        })
-        const nativeEventName = 'on' + key
-        this.eventCollections.push({ name: nativeEventName, handler })
-      }
+    for (const { key, value } of new Iter(primitiveEvents)) {
+      const { handler } = createPaintEventHandler(this.canvas, key, (e) => {
+        const userHandler = userEvent?.[replaceString(key, 'on', '')] || noop
+        this.bindEvent(e, value, userHandler)
+      })
+
+      this.eventCollections.push({ name: key, handler })
     }
     const { colorDecorator, ...view } = { ...defaultViewOptions, ...userView }
     // assign color mappings

@@ -1,5 +1,5 @@
 export class Iter<T extends Record<string, unknown>> {
-  private keys: string[]
+  private keys: (keyof T)[]
   private data: T
   constructor(data: T) {
     this.data = data
@@ -40,3 +40,8 @@ export function perferNumeric(s: string | number) {
 }
 
 export function noop() {}
+
+export function replaceString<S extends string, From extends string, To extends string>(str: S, searchValue: From, replaceValue: To) {
+  return str.replace(searchValue, replaceValue) as S extends `${infer L}${From extends '' ? never : From}${infer R}` ? `${L}${To}${R}`
+    : S
+}

@@ -1,4 +1,5 @@
-import { c2m, createTreemap, sortChildrenByKey } from '../src'
+import { c2m, createTreemap, sortChildrenByKey } from '../v2'
+import * as preset from '../v2/plugins'
 import data from './data.json' assert { type: 'json' }
 
 const root = document.querySelector('#app')!
@@ -11,10 +12,17 @@ function main() {
     data.map((item) => c2m({ ...item, groups: item.stats }, 'statSize', (d) => ({ ...d, id: d.filename }))),
     'weight'
   )
+
   treemap.setOptions({
-    data: sortedData,
-    view: {}
+    data: sortedData
   })
+  // treemap.setOptions({
+  //   data: sortedData,
+  //   view: {}
+  // })
+  // treemap.use()
+  treemap.use(preset.color)
+  treemap.use(preset.layout)
 }
 
 new ResizeObserver(() => treemap.resize()).observe(root)

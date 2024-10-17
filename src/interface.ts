@@ -1,3 +1,4 @@
+import type { PaintEventMap } from './events'
 import type { Module, Rect } from './primitives'
 
 export type PaintRect = Rect
@@ -18,10 +19,6 @@ export interface TreemapContext {
 export interface PaintEvent<E> {
   nativeEvent: E
   module: any
-}
-
-export interface PaintEventMap {
-  mousemove: (this: TreemapContext, event: PaintEvent<MouseEvent>) => void
 }
 
 export interface RGBColor {

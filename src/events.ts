@@ -1,13 +1,24 @@
-import type { TreemapContext } from './interface'
+import type { PaintEvent, TreemapContext } from './interface'
 
-function onwheel() {}
+export interface EventHandlersEventMap {
+  mousemove: MouseEvent
+  click: Event
+  wheel: WheelEvent
+}
 
-function onmousemove(this: TreemapContext, event: Event) {
+function onwheel(this: TreemapContext, event: WheelEvent) {}
+
+function onmousemove(this: TreemapContext, event: MouseEvent) {
+}
+
+function onclick(this: TreemapContext, event: Event) {
+  console.log(event)
 }
 
 export const primitiveEvents = {
-  // onwheel,
-  onmousemove
+  onclick,
+  onmousemove,
+  onwheel
 }
 
 export type PrimitiveEventType = keyof typeof primitiveEvents
@@ -17,3 +28,10 @@ export type EventType = keyof typeof primitiveEvents extends `on${infer R}` ? R 
 export type PrimitiveEventMap = typeof primitiveEvents
 
 export type PrimitiveHandler = PrimitiveEventMap[keyof PrimitiveEventMap]
+
+export type PaintEventMap<K extends EventType = EventType> = Record<
+  K,
+  (this: TreemapContext, evetn: PaintEvent<EventHandlersEventMap[K]>) => void
+>
+
+export type EventKind = EventHandlersEventMap[EventType]

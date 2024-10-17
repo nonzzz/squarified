@@ -1,7 +1,6 @@
 import type {
   GetAction,
   GroupDecorator,
-  PaintEventMap,
   PaintRect,
   PaintView,
   Range,
@@ -15,16 +14,14 @@ import { squarify } from './primitives'
 import { Iter, noop, replaceString } from './shared'
 import { defaultColorDecorator, handleColorMappings } from './colors'
 import { primitiveEvents } from './events'
-import type { PrimitiveHandler } from './events'
-
-type PrimitivePaintEventMapUnion = keyof PaintEventMap | (string & {})
+import type { EventType, PrimitiveHandler } from './events'
 
 interface EventCollection {
   name: string
   handler: EventListener
 }
 
-function createPaintEventHandler(canvas: HTMLCanvasElement, eventType: PrimitivePaintEventMapUnion, handler: EventListener) {
+function createPaintEventHandler(canvas: HTMLCanvasElement, eventType: EventType, handler: EventListener) {
   canvas.addEventListener(eventType, handler)
   return { handler }
 }
@@ -163,12 +160,14 @@ class Paint implements Treemap {
     this.viewConfig = null
   }
 
-  private bindEvent(evt: Event, primitiveHandler: PrimitiveHandler, userHandler: PaintEventMap[keyof PaintEventMap]) {
-    primitiveHandler.call(this.API, evt)
-    userHandler.call(this.API, {
-      nativeEvent: evt as any,
-      module: {}
-    })
+  private bindEvent(evt: Event, primitiveHandler: PrimitiveHandler, userHandler: any) {
+    // primitiveHandler.call(this.API, evt)
+    // userHandler.call(this.API, {
+    //   nativeEvent: evt as any,
+    //   module: {}
+    // })
+    // primitiveHandler()
+    primitiveHandler.call(this.API, evt as any)
   }
 
   private deinitEventCollections() {
@@ -392,8 +391,9 @@ class Paint implements Treemap {
     }
     this.deinitEventCollections()
     for (const { key, value } of new Iter(primitiveEvents)) {
-      const { handler } = createPaintEventHandler(this.canvas, key, (e) => {
-        const userHandler = userEvent?.[replaceString(key, 'on', '')] || noop
+      const nativeEventname = replaceString(key, 'on', '')
+      const { handler } = createPaintEventHandler(this.canvas, nativeEventname, (e) => {
+        const userHandler = userEvent?.[nativeEventname] || noop
         this.bindEvent(e, value, userHandler)
       })
 

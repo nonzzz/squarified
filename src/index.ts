@@ -1,7 +1,7 @@
-export * from './render'
+import { App } from './primitives'
 
-export { c2m, flattenModule, sortChildrenByKey } from './primitives'
+export function createTreemap() {
+  return new App()
+}
 
-export type * from './interface'
-
-export type { Module, SquarifiedModule, SquarifiedModuleWithLayout } from './primitives'
+export { c2m, flatten as flattenModule, sortChildrenByKey } from './primitives/struct'

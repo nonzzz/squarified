@@ -1,26 +1,22 @@
-import type { GroupDecorator } from '../interface'
-import { perferNumeric } from '../shared'
-import type { Module, Rect, SquarifiedModule, SquarifiedModuleWithLayout } from './interface'
+import type { RenderLayout } from './render'
+import type { NativeModule } from './struct'
+import { getNodeDepth } from './struct'
 
-type LayoutRect = Rect & Partial<{ x: number; y: number }>
+type Rect = { w: number; h: number; x: number; y: number }
 
-type Decorator = Omit<GroupDecorator, 'barHeight'> & {
-  barHeight: number
+export type LayoutModule = Partial<NativeModule> & {
+  layout: [number, number, number, number]
+  children: LayoutModule[]
+  decorator: {
+    titleHeight: number
+    rectBorderRadius: number
+    rectGap: number
+    rectBorderWidth: number
+  }
 }
 
-// This is a classical squarify algorithm implementation
-// No  DSS (Depth-First Search Squarify) algorithm
-// https://www.win.tue.nl/~vanwijk/stm.pdf (Page 5)
-// Accept a sorted data (SquariiedModule) and rect (no need x, y)
-export function squarify(
-  data: SquarifiedModule[],
-  userRect: LayoutRect,
-  decorator: (node: SquarifiedModule) => Decorator
-) {
-  const rect = { x: 0, y: 0, ...userRect }
-
-  const result: SquarifiedModuleWithLayout[] = []
-
+export function squarify(data: NativeModule[], rect: Rect, layoutDecorator: RenderLayout) {
+  const result: LayoutModule[] = []
   if (!data.length) return result
 
   const worst = (start: number, end: number, shortestSide: number, totalWeight: number, aspectRatio: number) => {
@@ -32,7 +28,7 @@ export function squarify(
     )
   }
 
-  const recursion = (start: number, rect: Required<LayoutRect>) => {
+  const recursion = (start: number, rect: Rect) => {
     while (start < data.length) {
       let totalWeight = 0
       for (let i = start; i < data.length; i++) {
@@ -64,17 +60,24 @@ export function squarify(
         const [x, y, w, h] = rect.w >= rect.h
           ? [rect.x, rect.y + lower, splited, upper - lower]
           : [rect.x + lower, rect.y, upper - lower, splited]
-        const groupDecorator = decorator(children)
+        const depth = getNodeDepth(children) || 1
+        const { titleAreaHeight, rectGap } = layoutDecorator
+        const diff = titleAreaHeight.max / depth
+        const hh = diff < titleAreaHeight.min ? titleAreaHeight.min : diff
         result.push({
           layout: [x, y, w, h],
           node: children,
-          children: w > groupDecorator.gap * 2 && h > (groupDecorator.barHeight + groupDecorator.gap)
+          decorator: {
+            ...layoutDecorator,
+            titleHeight: hh
+          },
+          children: w > rectGap * 2 && h > (hh + rectGap)
             ? squarify(children.groups || [], {
-              x: x + groupDecorator.gap,
-              y: y + groupDecorator.barHeight,
-              w: w - 2 * groupDecorator.gap,
-              h: h - groupDecorator.barHeight - groupDecorator.gap
-            }, decorator)
+              x: x + rectGap,
+              y: y + hh,
+              w: w - rectGap * 2,
+              h: h - hh - rectGap
+            }, layoutDecorator)
             : []
         })
         areaInLayout += area
@@ -93,45 +96,5 @@ export function squarify(
 
   recursion(0, rect)
 
-  return result
-}
-
-export function sortChildrenByKey<T extends Module, K extends keyof T = 'weight'>(data: T[], ...keys: K[]) {
-  return data.sort((a, b) => {
-    for (const key of keys) {
-      const v = a[key]
-      const v2 = b[key]
-      if (perferNumeric(v) && perferNumeric(v2)) {
-        if (v2 > v) return 1
-        if (v2 < v) return -1
-        continue
-      }
-      // Not numeric, compare as string
-      const comparison = ('' + v).localeCompare('' + v2)
-      if (comparison !== 0) return comparison
-    }
-    return 0
-  })
-}
-
-export function c2m<T extends Module, K extends keyof T>(data: T, key: K, modifier?: (data: T) => T) {
-  if (Array.isArray(data.groups)) {
-    data.groups = sortChildrenByKey(data.groups.map(d => c2m(d as T, key as string, modifier)), 'weight')
-  }
-  const obj = { ...data, weight: data[key] }
-  if (modifier) return modifier(obj)
-  return obj
-}
-
-export function flatten<T extends Module>(data: T[]) {
-  const result: Omit<T, 'groups'>[] = []
-  for (let i = 0; i < data.length; i++) {
-    const { groups, ...rest } = data[i]
-    result.push(rest)
-    if (groups) {
-      // @ts-expect-error
-      result.push(...flatten(groups))
-    }
-  }
   return result
 }

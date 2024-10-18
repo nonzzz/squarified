@@ -2,15 +2,29 @@ import type { ColorMappings, NativeModule, Plugin, PluginContext } from '../prim
 import { getNodeDepth } from '../primitives'
 import { decodeHLS } from '../shared'
 
-function colorDecorator(node: NativeModule, hue: number) {
+interface HueState {
+  hue: number
+}
+
+function colorDecorator(node: NativeModule, state: HueState) {
   const depth = getNodeDepth(node)
+  let baseHue = 0
+  let sweepAngle = Math.PI * 2
   const totalHueRange = Math.PI
+  if (node.parent) {
+    sweepAngle = node.weight / node.parent.weight * sweepAngle
+    baseHue = state.hue + (sweepAngle / Math.PI * 180)
+  }
+
+  baseHue += sweepAngle
 
   const depthHueOffset = depth + (totalHueRange / 10)
-  const finalHue = hue + depthHueOffset / 2
+  const finalHue = baseHue + depthHueOffset / 2
 
   const saturation = 0.6 + 0.4 * Math.max(0, Math.cos(finalHue))
   const lightness = 0.5 + 0.2 * Math.max(0, Math.cos(finalHue + Math.PI * 2 / 3))
+
+  state.hue = baseHue
 
   return {
     mode: 'hsl',
@@ -23,15 +37,16 @@ function colorDecorator(node: NativeModule, hue: number) {
   }
 }
 
-function evaluateColorMappingByNode(node: NativeModule, startAngle: number, sweepAngle: number) {
+function evaluateColorMappingByNode(node: NativeModule, state: HueState) {
   const colorMappings: ColorMappings = {}
-  colorMappings[node.id] = decodeHLS(colorDecorator(node, startAngle + sweepAngle / 2).desc)
   if (node.groups && Array.isArray(node.groups)) {
     for (const child of node.groups) {
-      const childSweepAngle = child.weight / node.weight * sweepAngle
-      Object.assign(colorMappings, evaluateColorMappingByNode(child, startAngle, childSweepAngle))
-      startAngle += childSweepAngle
+      Object.assign(colorMappings, evaluateColorMappingByNode(child, state))
     }
+  }
+
+  if (node.id) {
+    colorMappings[node.id] = decodeHLS(colorDecorator(node, state).desc)
   }
 
   return colorMappings
@@ -39,14 +54,18 @@ function evaluateColorMappingByNode(node: NativeModule, startAngle: number, swee
 
 function colorMappings(app: PluginContext) {
   const colorMappings: ColorMappings = {}
+  const state: HueState = {
+    hue: 0
+  }
   for (const node of app.render.data) {
-    Object.assign(colorMappings, evaluateColorMappingByNode(node, 0, Math.PI * 2))
+    Object.assign(colorMappings, evaluateColorMappingByNode(node, state))
   }
   app.setRenderDecorator({ color: { mappings: colorMappings } })
 }
 
 export const color: Plugin = {
   name: 'preset:colorMappings',
+  order: 'post',
   install(app) {
     colorMappings(app)
   }

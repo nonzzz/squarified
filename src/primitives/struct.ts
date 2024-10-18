@@ -1,4 +1,4 @@
-import { perferNumeric } from '../../v1/shared'
+import { perferNumeric } from '../shared'
 
 type AnyObject = Record<keyof any, any>
 

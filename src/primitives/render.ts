@@ -2,7 +2,7 @@
 // So i decided to create a plug-in architecture for the treemap component.
 
 import { charCodeWidth, evaluateOptimalFontSize, getSafeText } from '../plugins/layout'
-import { isObject } from '../../v1/shared'
+import { isObject } from '../shared'
 import type { Plugin, PluginContext } from './interface'
 import { type LayoutModule, squarify } from './squarify'
 import { bindParentForModule } from './struct'

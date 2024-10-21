@@ -2,7 +2,7 @@ type EventCallback<P = any[]> = P extends any[] ? (...args: P) => any : never
 
 export type DefaultEventDefinition = Record<string, EventCallback>
 
-type BindThisParameter<T, C = unknown> = T extends (...args: infer P) => infer R ? (this: C, ...args: P) => R
+export type BindThisParameter<T, C = unknown> = T extends (...args: infer P) => infer R ? (this: C, ...args: P) => R
   : never
 
 export interface EventCollectionData<EvtDefinition extends DefaultEventDefinition, C = unknown> {
@@ -54,5 +54,11 @@ export class Event<EvtDefinition extends DefaultEventDefinition = DefaultEventDe
         d.handler.call(d.ctx, ...args)
       })
     }
+  }
+
+  bindWithContext<C>(
+    c: C
+  ) {
+    return (evt: keyof EvtDefinition, handler: BindThisParameter<EvtDefinition[keyof EvtDefinition]>) => this.on(evt, handler, c)
   }
 }

@@ -1,4 +1,5 @@
 import { perferNumeric } from '../shared'
+import type { LayoutModule } from './squarify'
 
 type AnyObject = Record<keyof any, any>
 
@@ -71,4 +72,32 @@ export function getNodeDepth(node: NativeModule) {
     depth++
   }
   return depth
+}
+
+function visit<T extends AnyObject>(data: T[], fn: (data: T) => boolean | void): T | null {
+  if (!data) return null
+  for (const d of data) {
+    if (d.children) {
+      const result = visit(d.children, fn)
+      if (result) return result
+    }
+    const stop = fn(d)
+    if (stop) return d
+  }
+  return null
+}
+
+export function findRelativeNode(c: HTMLCanvasElement, pos: { x: number; y: number }, layoutNodes: LayoutModule[]) {
+  const p = { ...pos }
+  for (let el: HTMLElement | null = c; el; el = el.offsetParent as HTMLElement | null) {
+    p.x -= el.offsetLeft
+    p.y -= el.offsetTop
+  }
+
+  return visit(layoutNodes, (node) => {
+    const [x, y, w, h] = node.layout
+    if (p.x >= x && p.y >= y && p.x < x + w && p.y < y + h) {
+      return true
+    }
+  })
 }

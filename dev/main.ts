@@ -25,6 +25,6 @@ main()
 new ResizeObserver(() => treemap.resize()).observe(root)
 
 // @ts-expect-error
-treemap.on('click', (e) => {
-  console.log(e)
+treemap.on('click', function(a) {
+  console.log(a)
 })

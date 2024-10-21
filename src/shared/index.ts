@@ -47,6 +47,3 @@ export function replaceString<S extends string, From extends string, To extends 
   return str.replace(searchValue, replaceValue) as S extends `${infer L}${From extends '' ? never : From}${infer R}` ? `${L}${To}${R}`
     : S
 }
-
-export function extend() {
-}

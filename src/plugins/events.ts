@@ -1,6 +1,6 @@
 /* eslint-disable dot-notation */
 import { Event, findRelativeNode } from '../primitives'
-import type { App, BindThisParameter, NativeModule, Plugin, PluginContext } from '../primitives'
+import type { App, BindThisParameter, NativeModule, Plugin, PluginContext, Render } from '../primitives'
 
 const primitiveEvents = ['click', 'mousedown', 'mousemove', 'mouseup', 'mouseover', 'mouseout'] as const
 
@@ -13,7 +13,7 @@ export interface PrimitiveEventMetadata<T extends keyof HTMLElementEventMap> {
 
 export type PrimitiveEventCallback<T extends PrimitiveEvent> = (metadata: PrimitiveEventMetadata<T>) => void
 
-export type PrimitiveEventDefinition = Record<PrimitiveEvent, BindThisParameter<PrimitiveEvent, App['render']>>
+export type PrimitiveEventDefinition = Record<PrimitiveEvent, BindThisParameter<PrimitiveEvent, Render>>
 
 function bindPrimitiveEvent(c: HTMLCanvasElement, instance: App) {
   for (let i = 0; i < primitiveEvents.length; i++) {
@@ -61,7 +61,6 @@ function installEventForApplication(app: PluginContext) {
 
   // bind event to app
   const canvas = instance['canvas']!
-  const ctx = instance['ctx']!
   bindPrimitiveEvent(canvas, instance)
 }
 

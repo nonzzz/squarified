@@ -1,8 +1,5 @@
-// When i finished the v1 version. I notice that we can't do any tree shake on the code.
-// So i decided to create a plug-in architecture for the treemap component.
-
 import { charCodeWidth, evaluateOptimalFontSize, getSafeText } from '../plugins/layout'
-import { isObject } from '../shared'
+import { isObject, noop } from '../shared'
 import type { Plugin, PluginContext } from './interface'
 import { type LayoutModule, squarify } from './squarify'
 import { bindParentForModule } from './struct'
@@ -42,6 +39,13 @@ export interface RenderDecorator {
   color: RenderColor
   layout: RenderLayout
   font: RenderFont
+}
+
+// For some reasons i think it's make sense to impl zoom or other wheel event in App.
+export interface Render {
+  data: NativeModule[]
+  zoom: () => void
+  [key: string]: any
 }
 
 // TODO: implement a render engine
@@ -240,8 +244,9 @@ export class App {
       /**
        * @internal for plugin use only
        */
-      instance: this
-    }
+      instance: this,
+      zoom: noop
+    } satisfies Render
   }
 
   get pluginContext() {

@@ -4,6 +4,10 @@ import type { Plugin, PluginContext } from './interface'
 import { type LayoutModule, squarify } from './squarify'
 import { bindParentForModule } from './struct'
 import type { Module, NativeModule } from './struct'
+import { Event } from './events'
+import { mouseWheel } from './zoomable'
+
+type AppOwnEvents = Record<string, EventListener>
 
 export interface AppOptions {
   data: Module[]
@@ -60,6 +64,7 @@ export class App {
   protected data: NativeModule[]
   private layoutNodes: LayoutModule[]
   private rect: Rect
+  private event: Event
 
   constructor() {
     this.mountNode = null
@@ -71,6 +76,7 @@ export class App {
     this.layoutNodes = []
     this._processedPlugins = Object.create(null)
     this.plugins = new Map()
+    this.event = new Event<AppOwnEvents>()
   }
 
   private drawRoundedRect(x: number, y: number, w: number, h: number, r: number) {
@@ -157,7 +163,6 @@ export class App {
 
   private draw() {
     this.ctx!.clearRect(0, 0, this.rect.w, this.rect.h)
-    // console.log(this.layoutNodes)
     for (const node of this.layoutNodes) {
       this.drawBackgroundNode(node)
       this.drawForegroundNode(node)
@@ -206,10 +211,11 @@ export class App {
   dispose() {
     this.deinit(true)
     this.renderDecorator = Object.create(null)
+    this.event.off('mousewheel')
   }
 
   init(element: Element) {
-    this.deinit(true)
+    this.dispose()
     this.mountNode = element
     this.canvas = document.createElement('canvas')
     this.ctx = this.canvas.getContext('2d')
@@ -219,6 +225,10 @@ export class App {
         plugin()
       }
     }
+    this.event.on('mousewheel', mouseWheel)
+    this.canvas.addEventListener('mousewheel', (e) => {
+      this.event.emit('mousewheel', this, e)
+    })
   }
 
   resize() {
@@ -238,7 +248,7 @@ export class App {
     this.draw()
   }
 
-  get render() {
+  get render(): Render {
     return {
       data: this.data,
       /**
@@ -246,15 +256,15 @@ export class App {
        */
       instance: this,
       zoom: noop
-    } satisfies Render
+    }
   }
 
-  get pluginContext() {
+  get pluginContext(): PluginContext {
     const c = this
     return {
       render: this.render,
       setRenderDecorator: this.setRenderDecorator.bind(c)
-    } satisfies PluginContext
+    }
   }
 
   get processedPlugins() {

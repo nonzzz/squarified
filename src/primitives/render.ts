@@ -153,7 +153,7 @@ export class App {
 
   private draw() {
     this.ctx!.clearRect(0, 0, this.rect.w, this.rect.h)
-    console.log(this.layoutNodes)
+    // console.log(this.layoutNodes)
     for (const node of this.layoutNodes) {
       this.drawBackgroundNode(node)
       this.drawForegroundNode(node)
@@ -205,16 +205,16 @@ export class App {
   }
 
   init(element: Element) {
-    if (this.processedPlugins.pre) {
-      for (const plugin of this.processedPlugins.pre) {
-        plugin()
-      }
-    }
     this.deinit(true)
     this.mountNode = element
     this.canvas = document.createElement('canvas')
     this.ctx = this.canvas.getContext('2d')
     this.mountNode.appendChild(this.canvas)
+    if (this.processedPlugins.pre) {
+      for (const plugin of this.processedPlugins.pre) {
+        plugin()
+      }
+    }
   }
 
   resize() {
@@ -236,7 +236,11 @@ export class App {
 
   get render() {
     return {
-      data: this.data
+      data: this.data,
+      /**
+       * @internal for plugin use only
+       */
+      instance: this
     }
   }
 

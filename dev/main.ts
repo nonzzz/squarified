@@ -6,7 +6,7 @@ const root = document.querySelector('#app')!
 
 const treemap = createTreemap()
 
-treemap.use(preset.layout).use(preset.color).use(preset.fps)
+treemap.use(preset.events).use(preset.layout).use(preset.color).use(preset.fps)
 
 function main() {
   treemap.init(root)
@@ -18,13 +18,13 @@ function main() {
   treemap.setOptions({
     data: sortedData
   })
-  // treemap.setOptions({
-  //   data: sortedData,
-  //   view: {}
-  // })
-  // treemap.use()
 }
+
+main()
 
 new ResizeObserver(() => treemap.resize()).observe(root)
 
-main()
+// @ts-expect-error
+treemap.on('click', (e) => {
+  console.log(e)
+})

@@ -14,10 +14,10 @@ export default defineConfig([
     ]
   },
   {
-    input: 'src/primitives/index.ts',
+    input: 'src/plugins/index.ts',
     output: [
-      { file: 'dist/primitives/index.mjs', format: 'esm', exports: 'named' },
-      { file: 'dist/primitives/index.js', format: 'cjs', exports: 'named' }
+      { file: 'dist/plugins/index.mjs', format: 'esm', exports: 'named' },
+      { file: 'dist/plugins/index.js', format: 'cjs', exports: 'named' }
     ],
     plugins: [
       swc()
@@ -29,8 +29,10 @@ export default defineConfig([
     plugins: [dts()]
   },
   {
-    input: 'src/primitives/index.ts',
-    output: { file: 'dist/primitives/index.d.ts' },
-    plugins: [dts()]
+    input: 'src/plugins/index.ts',
+    output: { file: 'dist/plugins/index.d.ts' },
+    plugins: [
+      dts()
+    ]
   }
 ])

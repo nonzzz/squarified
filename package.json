@@ -11,11 +11,12 @@
       "require": "./dist/index.js",
       "types": "./dist/index.d.ts"
     },
-    "./primitive": {
-      "import": "./dist/primitive/index.mjs",
-      "require": "./dist/primitive/index.js",
-      "types": "./dist/primitive/index.d.ts"
-    }
+    "./plugins": {
+      "import": "./dist/plugins/index.mjs",
+      "require": "./dist/plugins/index.js",
+      "types": "./dist/plugins/index.d.ts"
+    },
+    "./*": "./*"
   },
   "keywords": [
     "squarified",
@@ -30,7 +31,9 @@
     "eslint-config-kagura": "^2.2.1",
     "rollup": "^4.24.0",
     "rollup-plugin-dts": "^6.1.1",
-    "rollup-plugin-swc3": "^0.11.2",
-    "typescript": "^5.6.2"
-  }
+    "rollup-plugin-swc3": "^0.12.1",
+    "typescript": "^5.6.2",
+    "vite": "^5.4.8"
+  },
+  "packageManager": "pnpm@9.4.0"
 }

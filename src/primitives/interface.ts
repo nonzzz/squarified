@@ -1,18 +1,21 @@
-export type Module = Record<string, any> & {
-  label: string
-  groups: Module[]
+// /* eslint-disable no-use-before-define */
+// export interface PrimitiveRender {
+//   use<Options>(plugin: Plugin<Options>, options: Options): this
+// }
+
+import { App } from './render'
+import type { RenderDecorator } from './render'
+
+export interface PluginContext {
+  render: App['render']
+  setRenderDecorator: (decorator: Partial<RenderDecorator>) => void
 }
 
-export type SquarifiedModule = Module & {
-  weight: number
-}
+export type PluginInstallFunction<Options = unknown> = (app: PluginContext, options?: Options) => any
 
-export type SquarifiedModuleWithLayout = Omit<SquarifiedModule, 'groups'> & {
-  layout: [number, number, number, number]
-  children: SquarifiedModuleWithLayout[]
-}
-
-export interface Rect {
-  w: number
-  h: number
+export interface Plugin<Options = unknown, Expand = {}> {
+  name: string
+  order: 'pre' | 'post'
+  install: PluginInstallFunction<Options>
+  expand?: Expand
 }

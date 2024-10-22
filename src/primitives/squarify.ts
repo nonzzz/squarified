@@ -1,56 +1,100 @@
-import { perferNumeric } from '../shared'
-import type { Module, Rect, SquarifiedModule, SquarifiedModuleWithLayout } from './interface'
+import type { RenderLayout } from './render'
+import type { NativeModule } from './struct'
+import { getNodeDepth } from './struct'
 
-// Steps:
-// 1. pass a sorted array of SquarifiedModule
-export function squarify(data: SquarifiedModule[], rect: Rect) {
-  const { w, h } = rect
+type Rect = { w: number; h: number; x: number; y: number }
 
-  const result: SquarifiedModuleWithLayout[] = []
+export type LayoutModule = Partial<NativeModule> & {
+  layout: [number, number, number, number]
+  children: LayoutModule[]
+  decorator: {
+    titleHeight: number
+    rectBorderRadius: number
+    rectGap: number
+    rectBorderWidth: number
+  }
+}
 
+export function squarify(data: NativeModule[], rect: Rect, layoutDecorator: RenderLayout) {
+  const result: LayoutModule[] = []
   if (!data.length) return result
 
-  const recursion = () => {}
+  const worst = (start: number, end: number, shortestSide: number, totalWeight: number, aspectRatio: number) => {
+    const max = data[start].weight * aspectRatio
+    const min = data[end].weight * aspectRatio
+    return Math.max(
+      shortestSide * shortestSide * max / (totalWeight * totalWeight),
+      totalWeight * totalWeight / (shortestSide * shortestSide * min)
+    )
+  }
 
-  recursion()
-
-  return result
-}
-
-export function sortChildrenByKey<T extends Module, K extends keyof T = 'weight'>(data: T[], ...keys: K[]) {
-  return data.sort((a, b) => {
-    for (const key of keys) {
-      const v = a[key]
-      const v2 = b[key]
-      if (perferNumeric(v) && perferNumeric(v2)) {
-        if (v2 > v) return 1
-        if (v2 < v) return -1
-        continue
+  const recursion = (start: number, rect: Rect) => {
+    while (start < data.length) {
+      let totalWeight = 0
+      for (let i = start; i < data.length; i++) {
+        totalWeight += data[i].weight
       }
-      // Not numeric, compare as string
-      const comparison = ('' + v).localeCompare('' + v2)
-      if (comparison !== 0) return comparison
-    }
-    return 0
-  })
-}
+      const shortestSide = Math.min(rect.w, rect.h)
+      const aspectRatio = rect.w * rect.h / totalWeight
+      let end = start
+      let areaInRun = 0
+      let oldWorst = 0
 
-export function c2m<T extends Module, K extends keyof T>(data: T, key: K) {
-  if (Array.isArray(data.groups)) {
-    data.groups = sortChildrenByKey(data.groups.map(d => c2m(d, key as string)), 'weight')
-  }
-  return { ...data, weight: data[key] }
-}
+      // find the best split
+      while (end < data.length) {
+        const area = data[end].weight * aspectRatio
+        const newWorst = worst(start, end, shortestSide, areaInRun + area, aspectRatio)
+        if (end > start && oldWorst < newWorst) break
+        areaInRun += area
+        oldWorst = newWorst
+        end++
+      }
+      const splited = Math.round(areaInRun / shortestSide)
+      let areaInLayout = 0
 
-export function flatten<T extends Module>(data: T[]) {
-  const result: Omit<T, 'groups'>[] = []
-  for (let i = 0; i < data.length; i++) {
-    const { groups, ...rest } = data[i]
-    result.push(rest)
-    if (groups) {
-      // @ts-expect-error
-      result.push(...flatten(groups))
+      for (let i = start; i < end; i++) {
+        const children = data[i]
+        const area = children.weight * aspectRatio
+        const lower = Math.round(shortestSide * areaInLayout / areaInRun)
+        const upper = Math.round(shortestSide * (areaInLayout + area) / areaInRun)
+        const [x, y, w, h] = rect.w >= rect.h
+          ? [rect.x, rect.y + lower, splited, upper - lower]
+          : [rect.x + lower, rect.y, upper - lower, splited]
+        const depth = getNodeDepth(children) || 1
+        const { titleAreaHeight, rectGap } = layoutDecorator
+        const diff = titleAreaHeight.max / depth
+        const hh = diff < titleAreaHeight.min ? titleAreaHeight.min : diff
+        result.push({
+          layout: [x, y, w, h],
+          node: children,
+          decorator: {
+            ...layoutDecorator,
+            titleHeight: hh
+          },
+          children: w > rectGap * 2 && h > (hh + rectGap)
+            ? squarify(children.groups || [], {
+              x: x + rectGap,
+              y: y + hh,
+              w: w - rectGap * 2,
+              h: h - hh - rectGap
+            }, layoutDecorator)
+            : []
+        })
+        areaInLayout += area
+      }
+
+      start = end
+      if (rect.w >= rect.h) {
+        rect.x += splited
+        rect.w -= splited
+      } else {
+        rect.y += splited
+        rect.h -= splited
+      }
     }
   }
+
+  recursion(0, rect)
+
   return result
 }

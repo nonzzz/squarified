@@ -10,7 +10,7 @@
     "lib": ["esnext", "DOM", "DOM.Iterable"],
     "resolveJsonModule": true,
     "module": "ESNext",
-    "moduleResolution": "node",
+    "moduleResolution": "Bundler",
     "allowImportingTsExtensions": true,
     "noEmit": true,
     "strict": true

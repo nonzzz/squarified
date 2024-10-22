@@ -1,3 +1,7 @@
-export * from './render'
+import { App } from './primitives'
 
-export type { Treemap } from './interface'
+export function createTreemap() {
+  return new App()
+}
+
+export { c2m, flatten as flattenModule, sortChildrenByKey } from './primitives/struct'

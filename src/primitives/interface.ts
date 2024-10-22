@@ -13,8 +13,9 @@ export interface PluginContext {
 
 export type PluginInstallFunction<Options = unknown> = (app: PluginContext, options?: Options) => any
 
-export interface Plugin<Options = unknown> {
+export interface Plugin<Options = unknown, Expand = {}> {
   name: string
   order: 'pre' | 'post'
   install: PluginInstallFunction<Options>
+  expand?: Expand
 }

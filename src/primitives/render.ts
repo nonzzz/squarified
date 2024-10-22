@@ -274,14 +274,14 @@ export class App {
     return this._processedPlugins
   }
 
-  use<Options>(plugin: Plugin<Options>, options?: Options) {
+  use<Options, P extends Plugin<Options>>(plugin: P, options?: Options) {
     if (plugin && isObject(plugin)) {
       const { name, install, order } = plugin
       if (!this.plugins.has(name)) {
         this.plugins.set(name, { order, fn: () => install(this.pluginContext, options) })
       }
     }
-    return this
+    return this as unknown as 'expand' extends keyof P ? IAPP<P['expand']> : IAPP<{}>
   }
 
   setOptions(options?: AppOptions) {
@@ -303,3 +303,7 @@ function processPlugin(plugins: Map<string, { order: string; fn: () => any }>) {
   })
   return collections
 }
+
+type IAPP<T> = Omit<App, 'use'> & {
+  use<Options, P extends Plugin<any>>(plugin: P, options?: Options): IAPP<T & (P['expand'] & {}) >
+} & T

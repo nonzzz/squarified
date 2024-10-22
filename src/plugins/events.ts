@@ -13,7 +13,9 @@ export interface PrimitiveEventMetadata<T extends keyof HTMLElementEventMap> {
 
 export type PrimitiveEventCallback<T extends PrimitiveEvent> = (metadata: PrimitiveEventMetadata<T>) => void
 
-export type PrimitiveEventDefinition = Record<PrimitiveEvent, BindThisParameter<PrimitiveEvent, Render>>
+export type PrimitiveEventDefinition = {
+  [key in PrimitiveEvent]: BindThisParameter<PrimitiveEventCallback<key>, Render>
+}
 
 function bindPrimitiveEvent(c: HTMLCanvasElement, instance: App) {
   for (let i = 0; i < primitiveEvents.length; i++) {
@@ -64,7 +66,7 @@ function installEventForApplication(app: PluginContext) {
   bindPrimitiveEvent(canvas, instance)
 }
 
-export const events: Plugin = {
+export const events: Plugin<unknown, Event<PrimitiveEventDefinition>> = {
   name: 'preset:events',
   order: 'pre',
   install(app) {

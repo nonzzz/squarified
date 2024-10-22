@@ -4,9 +4,7 @@ import data from './data.json' assert { type: 'json' }
 
 const root = document.querySelector('#app')!
 
-const treemap = createTreemap()
-
-treemap.use(preset.events).use(preset.layout).use(preset.color).use(preset.fps)
+const treemap = createTreemap().use(preset.events).use(preset.layout).use(preset.color).use(preset.fps)
 
 function main() {
   treemap.init(root)
@@ -24,7 +22,6 @@ main()
 
 new ResizeObserver(() => treemap.resize()).observe(root)
 
-// @ts-expect-error
 treemap.on('click', function(a) {
   console.log(a)
 })

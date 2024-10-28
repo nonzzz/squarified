@@ -18,6 +18,9 @@ function main() {
   treemap.setOptions({
     data: sortedData
   })
+  treemap.on('click', () => {
+    console.log('a?')
+  })
 }
 
 main()

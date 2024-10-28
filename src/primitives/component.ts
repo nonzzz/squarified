@@ -1,12 +1,24 @@
-import { Box, Rect, etoile } from '../etoile'
+import { Box, Event, Rect, etoile } from '../etoile'
+import type { PrimitiveEventDefinition } from './event'
 import { bindParentForModule } from './struct'
 import type { Module, NativeModule } from './struct'
 import { squarify } from './squarify'
 import type { LayoutModule } from './squarify'
+import { SelfEvent } from './event'
+import { registerModuleForSchedule } from './registry'
 
 export interface TreemapOptions {
   data: Module[]
 }
+
+export interface App {
+  init: (el: Element) => void
+  dispose: () => void
+  setOptions: (options: TreemapOptions) => void
+  resize: () => void
+}
+
+type ExtendRegistry = Omit<Event<PrimitiveEventDefinition>, 'bindWithContext'>
 
 const d = {
   titleAreaHeight: {
@@ -17,6 +29,10 @@ const d = {
   rectBorderRadius: 0.5,
   rectBorderWidth: 1.5
 }
+
+const defaultRegistries = [
+  registerModuleForSchedule(new SelfEvent())
+]
 
 export class TreemapLayout extends etoile.Schedule {
   data: NativeModule[]
@@ -122,41 +138,9 @@ export class TreemapLayout extends etoile.Schedule {
   }
 }
 
-export function createTreemap() {
+export function createTreemap<E = ExtendRegistry>() {
   let treemap: TreemapLayout | null = null
   let root: Element | null = null
-  const init = (el: Element) => {
-    treemap = new TreemapLayout(el)
-    root = el
-  }
-  const dispose = () => {
-    if (root && treemap) {
-      root.removeChild(root.firstChild!)
-      root = null
-      treemap = null
-    }
-  }
-
-  const resize = () => {
-    if (!treemap || !root) return
-
-    const { width, height } = root.getBoundingClientRect()
-
-    //  0, 0, width, height
-    treemap.layoutNodes = squarify(treemap.data, { w: width, h: height, x: 0, y: 0 }, d)
-    treemap.draw()
-    treemap.update()
-  }
-
-  const setOptions = (options: TreemapOptions) => {
-    if (!treemap) {
-      throw new Error('Treemap not initialized')
-    }
-    treemap.data = bindParentForModule(options.data || [])
-
-    resize()
-    // treemap.update()
-  }
 
   const context = {
     init,
@@ -165,5 +149,37 @@ export function createTreemap() {
     resize
   }
 
-  return context
+  function init(el: Element) {
+    treemap = new TreemapLayout(el)
+    root = el
+  }
+  function dispose() {
+    if (root && treemap) {
+      root.removeChild(root.firstChild!)
+      root = null
+      treemap = null
+    }
+  }
+
+  function resize() {
+    if (!treemap || !root) return
+    const { width, height } = root.getBoundingClientRect()
+    treemap.render.initOptions({ height, width, devicePixelRatio: window.devicePixelRatio })
+    treemap.layoutNodes = squarify(treemap.data, { w: width, h: height, x: 0, y: 0 }, d)
+    treemap.draw()
+    treemap.update()
+  }
+
+  function setOptions(options: TreemapOptions) {
+    if (!treemap) {
+      throw new Error('Treemap not initialized')
+    }
+    treemap.data = bindParentForModule(options.data || [])
+    for (const registry of defaultRegistries) {
+      registry(context, treemap, treemap.render)
+    }
+    resize()
+  }
+
+  return context as App & E
 }

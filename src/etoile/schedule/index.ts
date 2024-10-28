@@ -1,5 +1,6 @@
 import { Box } from '../graph'
 import { Display, Graph } from '../graph/display'
+import { Event } from '../native/event'
 import { log } from '../native/log'
 import { Render } from './render'
 
@@ -8,8 +9,9 @@ import type { RenderViewportOptions } from './render'
 export type ApplyTo = string | Element
 
 export class Schedule extends Box {
-  private render: Render
+  render: Render
   to: Element
+  event: Event
   constructor(to: ApplyTo, renderOptions: Partial<RenderViewportOptions> = {}) {
     super()
     this.to = typeof to === 'string' ? document.querySelector(to)! : to
@@ -18,7 +20,7 @@ export class Schedule extends Box {
     }
     const { width, height } = this.to.getBoundingClientRect()
     Object.assign(renderOptions, { width, height }, { devicePixelRatio: window.devicePixelRatio || 1 })
-
+    this.event = new Event()
     this.render = new Render(this.to, renderOptions as RenderViewportOptions)
   }
 
@@ -27,9 +29,16 @@ export class Schedule extends Box {
   }
 
   // execute all graph elements
-  execute(ctx: CanvasRenderingContext2D, graph: Display = this, inBox = this.elements.length > 0) {
+  execute(render: Render, graph: Display = this) {
     let matrix = graph.matrix
-    ctx.setTransform(matrix.a, matrix.b, matrix.c, matrix.d, matrix.e, matrix.f)
+    render.ctx.setTransform(
+      matrix.a * render.options.devicePixelRatio,
+      matrix.b * render.options.devicePixelRatio,
+      matrix.c * render.options.devicePixelRatio,
+      matrix.d * render.options.devicePixelRatio,
+      matrix.e * render.options.devicePixelRatio,
+      matrix.f * render.options.devicePixelRatio
+    )
     if (graph instanceof Box) {
       const cap = graph.elements.length
       for (let i = 0; i < cap; i++) {
@@ -38,11 +47,11 @@ export class Schedule extends Box {
         if (element instanceof Graph) {
           matrix.transform(element.x, element.y, element.scaleX, element.scaleY, element.rotation, element.skewX, element.skewY)
         }
-        this.execute(ctx, element, element instanceof Box && element.elements.length > 0)
+        this.execute(render, element)
       }
     }
     if (graph instanceof Graph) {
-      graph.render(ctx)
+      graph.render(render.ctx)
     }
   }
 }

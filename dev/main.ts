@@ -34,10 +34,14 @@ const schedule = new etoile.Schedule(root)
 
 const box = new Box()
 
-const rect = new Rect({ height: 100, width: 100 })
+const rect = new Rect({ height: 100, width: 100, style: { fill: 'red' } })
+
+const rect2 = new Rect({ x: 130, rotation: 45, scaleX: 0.5, scaleY: 0.5, height: 100, width: 100, style: { fill: 'blue' } })
 
 box.add(rect)
 
 schedule.add(box)
+
+schedule.add(rect2)
 
 schedule.update()

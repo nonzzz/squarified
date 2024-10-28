@@ -1,47 +1,49 @@
-// import { c2m, createTreemap, sortChildrenByKey } from '../src'
-// import * as preset from '../src/plugins'
-// import data from './data.json' assert { type: 'json' }
+import { c2m, sortChildrenByKey } from '../src'
+import { createTreemap } from '../src/primitives/component'
+import * as preset from '../src/plugins'
+import data from './data.json' assert { type: 'json' }
 
-// const root = document.querySelector('#app')!
+const root = document.querySelector('#app')!
 
-// const treemap = createTreemap().use(preset.events).use(preset.layout).use(preset.color).use(preset.fps)
+const treemap = createTreemap()
+// .use(preset.events).use(preset.layout).use(preset.color).use(preset.fps)
 
-// function main() {
-//   treemap.init(root)
-//   const sortedData = sortChildrenByKey(
-//     data.map((item) => c2m({ ...item, groups: item.stats }, 'statSize', (d) => ({ ...d, id: d.filename }))),
-//     'weight'
-//   )
+function main() {
+  treemap.init(root)
+  const sortedData = sortChildrenByKey(
+    data.map((item) => c2m({ ...item, groups: item.stats }, 'statSize', (d) => ({ ...d, id: d.filename }))),
+    'weight'
+  )
 
-//   treemap.setOptions({
-//     data: sortedData
-//   })
-// }
+  treemap.setOptions({
+    data: sortedData
+  })
+}
 
-// main()
+main()
 
-// new ResizeObserver(() => treemap.resize()).observe(root)
+new ResizeObserver(() => treemap.resize()).observe(root)
 
 // treemap.on('click', function(a) {
 //   console.log(a)
 // })
 
-import { Box, Rect, etoile } from '../src/etoile'
+// import { Box, Rect, etoile } from '../src/etoile'
 
-const root = document.querySelector('#app')!
+// const root = document.querySelector('#app')!
 
-const schedule = new etoile.Schedule(root)
+// const schedule = new etoile.Schedule(root)
 
-const box = new Box()
+// const box = new Box()
 
-const rect = new Rect({ height: 100, width: 100, style: { fill: 'red' } })
+// const rect = new Rect({ height: 100, width: 100, style: { fill: 'red' } })
 
-const rect2 = new Rect({ x: 130, rotation: 45, scaleX: 0.5, scaleY: 0.5, height: 100, width: 100, style: { fill: 'blue' } })
+// const rect2 = new Rect({ x: 130, rotation: 45, scaleX: 0.5, scaleY: 0.5, height: 100, width: 100, style: { fill: 'blue' } })
 
-box.add(rect)
+// box.add(rect)
 
-schedule.add(box)
+// schedule.add(box)
 
-schedule.add(rect2)
+// schedule.add(rect2)
 
-schedule.update()
+// schedule.update()

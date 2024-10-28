@@ -30,24 +30,19 @@ export class Schedule extends Box {
   execute(ctx: CanvasRenderingContext2D, graph: Display = this, inBox = this.elements.length > 0) {
     let matrix = graph.matrix
     ctx.setTransform(matrix.a, matrix.b, matrix.c, matrix.d, matrix.e, matrix.f)
-    if (inBox && graph instanceof Box) {
+    if (graph instanceof Box) {
       const cap = graph.elements.length
       for (let i = 0; i < cap; i++) {
         const element = graph.elements[i]
         matrix = element.matrix.create({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 })
         if (element instanceof Graph) {
           matrix.transform(element.x, element.y, element.scaleX, element.scaleY, element.rotation, element.skewX, element.skewY)
-          console.log(matrix)
         }
         this.execute(ctx, element, element instanceof Box && element.elements.length > 0)
       }
-    } else {
-      if (graph instanceof Box) {
-        this.execute(ctx, graph, graph.elements.length > 0)
-      }
-      if (graph instanceof Graph) {
-        graph.render(ctx)
-      }
+    }
+    if (graph instanceof Graph) {
+      graph.render(ctx)
     }
   }
 }

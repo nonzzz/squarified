@@ -7,6 +7,7 @@ import type { LayoutModule } from './squarify'
 import { SelfEvent } from './event'
 import { registerModuleForSchedule } from './registry'
 import type { RenderDecorator, Series } from './decorator'
+import { Cube, CubeMethods } from './cube'
 
 export interface TreemapOptions {
   data: Module[]
@@ -26,7 +27,8 @@ export interface App {
 type ExtendRegistry = Omit<Event<PrimitiveEventDefinition>, 'bindWithContext'>
 
 const defaultRegistries = [
-  registerModuleForSchedule(new SelfEvent())
+  registerModuleForSchedule(new SelfEvent()),
+  registerModuleForSchedule(new Cube())
 ]
 
 export function charCodeWidth(c: CanvasRenderingContext2D, ch: number) {
@@ -103,13 +105,17 @@ function createTitleText(text: string, x: number, y: number, font: string, color
   })
 }
 
-export class TreemapLayout extends etoile.Schedule {
+// https://www.typescriptlang.org/docs/handbook/mixins.html
+class Schedule extends etoile.Schedule {}
+interface Schedule extends CubeMethods {}
+
+class TreemapLayout extends Schedule {
   data: NativeModule[]
   layoutNodes: LayoutModule[]
   decorator: RenderDecorator
   private bgBox: Box
   private fgBox: Box
-  constructor(...args: ConstructorParameters<typeof etoile.Schedule>) {
+  constructor(...args: ConstructorParameters<typeof Schedule>) {
     super(...args)
     this.data = []
     this.layoutNodes = []

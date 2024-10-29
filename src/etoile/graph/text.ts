@@ -8,7 +8,6 @@ export interface TextOptions extends Omit<GraphOptions, 'style'> {
     textAlign: CanvasTextAlign
     baseline: CanvasTextBaseline
     lineWidth: number
-    fillStyle: string
   }
 }
 

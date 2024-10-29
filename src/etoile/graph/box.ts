@@ -32,4 +32,9 @@ export class Box extends Display {
       }
     }
   }
+
+  destory() {
+    this.elements.forEach(element => element.parent = null)
+    this.elements.length = 0
+  }
 }

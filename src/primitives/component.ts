@@ -90,6 +90,19 @@ export function getSafeText(c: CanvasRenderingContext2D, text: string, width: nu
   return { text: '...', width: ellipsisWidth }
 }
 
+function createFillBlock(color: string, x: number, y: number, width: number, height: number) {
+  return new Rect({ width, height, x, y, style: { fill: color } })
+}
+
+function createTitleText(text: string, x: number, y: number, font: string, color: string) {
+  return new Text({
+    text,
+    x,
+    y,
+    style: { fill: color, textAlign: 'center', baseline: 'middle', font, lineWidth: 1 }
+  })
+}
+
 export class TreemapLayout extends etoile.Schedule {
   data: NativeModule[]
   layoutNodes: LayoutModule[]
@@ -113,49 +126,16 @@ export class TreemapLayout extends etoile.Schedule {
     const { rectGap, titleHeight } = node.decorator
     const fill = this.decorator.color.mappings[node.node.id]
     if (node.children.length) {
-      const top = new Rect({
-        x,
-        y,
-        width: w,
-        height: titleHeight,
-        style: { fill }
-      })
-      const bottom = new Rect({
-        x,
-        y: y + h - rectGap,
-        width: w,
-        height: rectGap,
-        style: { fill }
-      })
-      const left = new Rect({
-        x,
-        y: y + titleHeight,
-        width: rectGap,
-        height: h - titleHeight - rectGap,
-        style: { fill }
-      })
-
-      const right = new Rect({
-        x: x + w - rectGap,
-        y: y + titleHeight,
-        width: rectGap,
-        height: h - titleHeight - rectGap,
-        style: { fill }
-      })
-
-      this.bgBox.add(top)
-      this.bgBox.add(bottom)
-      this.bgBox.add(left)
-      this.bgBox.add(right)
+      const box = new Box()
+      box.add(
+        createFillBlock(fill, x, y, w, titleHeight),
+        createFillBlock(fill, x, y + h - rectGap, w, rectGap),
+        createFillBlock(fill, x, y + titleHeight, rectGap, h - titleHeight - rectGap),
+        createFillBlock(fill, x + w - rectGap, y + titleHeight, rectGap, h - titleHeight - rectGap)
+      )
+      this.bgBox.add(box)
     } else {
-      const rect = new Rect({
-        width: w,
-        height: h,
-        x,
-        y,
-        style: { fill }
-      })
-      this.bgBox.add(rect)
+      this.bgBox.add(createFillBlock(fill, x, y, w, h))
     }
   }
 
@@ -183,6 +163,7 @@ export class TreemapLayout extends etoile.Schedule {
       fontFamily,
       node.children.length ? Math.round(titleHeight / 2) + rectGap : h
     )
+    this.render.ctx.font = `${optimalFontSize}px ${fontFamily}`
     if (h > titleHeight) {
       const result = getSafeText(this.render.ctx, node.node.label, w - (rectGap * 2))
       if (!result) return
@@ -192,43 +173,18 @@ export class TreemapLayout extends etoile.Schedule {
       if (node.children.length) {
         textY = y + Math.round(titleHeight / 2)
       }
-      const f = new Text({
-        x: textX,
-        y: textY,
-        text,
-        style: {
-          fill: color,
-          textAlign: 'center',
-          baseline: 'middle',
-          font: `${optimalFontSize}px ${fontFamily}`,
-          lineWidth: 1
-        }
-      })
-      this.fgBox.add(f)
+      this.fgBox.add(createTitleText(text, textX, textY, `${optimalFontSize}px ${fontFamily}`, color))
     } else {
       const ellipsisWidth = 3 * charCodeWidth(this.render.ctx, 46)
       const textX = x + Math.round((w - ellipsisWidth) / 2)
       const textY = y + Math.round(h / 2)
-      this.fgBox.add(
-        new Text({
-          text: '...',
-          x: textX,
-          y: textY,
-          style: {
-            fill: color,
-            textAlign: 'center',
-            baseline: 'middle',
-            font: `${optimalFontSize}px ${fontFamily}`,
-            lineWidth: 1
-          }
-        })
-      )
+      this.fgBox.add(createTitleText('...', textX, textY, `${optimalFontSize}px ${fontFamily}`, color))
     }
   }
 
   draw() {
-    this.bgBox.elements = []
-    this.fgBox.elements = []
+    this.bgBox.destory()
+    this.fgBox.destory()
     this.remove(this.bgBox, this.fgBox)
     for (const node of this.layoutNodes) {
       this.drawBackgroundNode(node)

@@ -1,4 +1,4 @@
-import type { RenderLayout } from './render'
+import type { RenderLayout } from './decorator'
 import type { NativeModule } from './struct'
 import { getNodeDepth } from './struct'
 

@@ -11,3 +11,7 @@ build-lib:
 dev-server:
 	@echo "Start dev server"
 	@pnpm exec vite
+
+build-server:
+	@echo "Build server"
+	@pnpm exec vite build

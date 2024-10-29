@@ -1,6 +1,4 @@
-import { c2m, sortChildrenByKey } from '../src'
-import { createTreemap } from '../src/primitives/component'
-import { presetDecorator } from '../src/primitives'
+import { c2m, createTreemap, presetDecorator, sortChildrenByKey } from '../src'
 import data from './data.json' assert { type: 'json' }
 
 const root = document.querySelector('#app')!

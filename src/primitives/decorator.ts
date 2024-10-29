@@ -1,6 +1,66 @@
-import type { ColorMappings, NativeModule, Plugin, PluginContext } from '../primitives'
-import { getNodeDepth } from '../primitives'
 import { decodeHLS } from '../shared'
+import { TreemapLayout } from './component'
+import { getNodeDepth } from './struct'
+import type { NativeModule } from './struct'
+
+export type ColorMappings = Record<string, string>
+
+export type Rect = { w: number; h: number }
+
+export type Series<T> = {
+  max: T
+  min: T
+}
+
+export interface RenderColor {
+  mappings: ColorMappings
+}
+
+export interface RenderLayout {
+  titleAreaHeight: Series<number>
+  rectBorderRadius: number
+  rectBorderWidth: number
+  rectGap: number
+}
+
+export interface RenderFont {
+  color: string
+  fontSize: Series<number>
+  fontFamily: string
+}
+
+export interface RenderDecorator {
+  color: RenderColor
+  layout: RenderLayout
+  font: RenderFont
+}
+
+export const defaultLayoutOptions = {
+  titleAreaHeight: {
+    max: 80,
+    min: 20
+  },
+  rectGap: 5,
+  rectBorderRadius: 0.5,
+  rectBorderWidth: 1.5
+} satisfies RenderLayout
+
+export const defaultFontOptions = {
+  color: '#000',
+  fontSize: {
+    max: 38,
+    min: 7
+  },
+  fontFamily: 'sans-serif'
+} satisfies RenderFont
+
+export function presetDecorator(app: TreemapLayout) {
+  Object.assign(app.decorator, {
+    layout: defaultLayoutOptions,
+    font: defaultFontOptions,
+    color: colorMappings(app)
+  })
+}
 
 interface HueState {
   hue: number
@@ -52,21 +112,13 @@ function evaluateColorMappingByNode(node: NativeModule, state: HueState) {
   return colorMappings
 }
 
-function colorMappings(app: PluginContext) {
+function colorMappings(app: TreemapLayout) {
   const colorMappings: ColorMappings = {}
   const state: HueState = {
     hue: 0
   }
-  for (const node of app.render.data) {
+  for (const node of app.data) {
     Object.assign(colorMappings, evaluateColorMappingByNode(node, state))
   }
-  app.setRenderDecorator({ color: { mappings: colorMappings } })
-}
-
-export const color: Plugin = {
-  name: 'preset:colorMappings',
-  order: 'post',
-  install(app) {
-    colorMappings(app)
-  }
+  return { mappings: colorMappings } satisfies RenderColor
 }

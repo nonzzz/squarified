@@ -1,3 +1,7 @@
+// etoile is a simple 2D render engine for web and it don't take complex rendering into account.
+// So it's no need to implement a complex event algorithm or hit mode.
+// If one day etoile need to build as a useful library. Pls rewrite it!
+
 import { Event, Render, Schedule } from '../etoile'
 import type { BindThisParameter } from '../etoile'
 import type { App } from './component'

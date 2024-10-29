@@ -19,7 +19,6 @@ export class Render {
   }
 
   clear(width: number, height: number) {
-    console.log(width, height)
     this.ctx.clearRect(0, 0, width, height)
   }
 

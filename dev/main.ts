@@ -1,12 +1,12 @@
 import { c2m, sortChildrenByKey } from '../src'
 import { createTreemap } from '../src/primitives/component'
-import * as preset from '../src/plugins'
+import { presetDecorator } from '../src/primitives'
 import data from './data.json' assert { type: 'json' }
 
 const root = document.querySelector('#app')!
 
 const treemap = createTreemap()
-// .use(preset.events).use(preset.layout).use(preset.color).use(preset.fps)
+treemap.use('decorator', presetDecorator)
 
 function main() {
   treemap.init(root)
@@ -18,6 +18,7 @@ function main() {
   treemap.setOptions({
     data: sortedData
   })
+
   treemap.on('click', () => {
     console.log('a?')
   })
@@ -31,22 +32,32 @@ new ResizeObserver(() => treemap.resize()).observe(root)
 //   console.log(a)
 // })
 
-// import { Box, Rect, etoile } from '../src/etoile'
-
-// const root = document.querySelector('#app')!
-
-// const schedule = new etoile.Schedule(root)
-
-// const box = new Box()
-
-// const rect = new Rect({ height: 100, width: 100, style: { fill: 'red' } })
-
-// const rect2 = new Rect({ x: 130, rotation: 45, scaleX: 0.5, scaleY: 0.5, height: 100, width: 100, style: { fill: 'blue' } })
-
-// box.add(rect)
-
-// schedule.add(box)
-
-// schedule.add(rect2)
-
-// schedule.update()
+const badge = document.createElement('div')
+badge.style.position = 'fixed'
+badge.style.left = '20px'
+badge.style.bottom = '20px'
+badge.style.padding = '10px'
+badge.style.backgroundColor = 'rgba(0, 0, 0, 0.7)'
+badge.style.color = 'white'
+badge.style.borderRadius = '5px'
+badge.style.fontFamily = 'Arial, sans-serif'
+badge.style.fontSize = '14px'
+badge.textContent = 'FPS: 0'
+document.body.appendChild(badge)
+let lastFrameTime = 0
+let frameCount = 0
+let lastSecond = 0
+function animate(currentTime: number) {
+  if (lastFrameTime !== 0) {
+    frameCount++
+    if (currentTime - lastSecond >= 1000) {
+      const fps = frameCount
+      badge.textContent = `FPS: ${fps}`
+      frameCount = 0
+      lastSecond = currentTime
+    }
+  }
+  lastFrameTime = currentTime
+  requestAnimationFrame(animate)
+}
+requestAnimationFrame(animate)

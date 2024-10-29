@@ -1,5 +1,6 @@
-import { Render, Schedule } from '../etoile'
+import { Render } from '../etoile'
 import { log } from '../etoile/native/log'
+import { TreemapLayout } from './component'
 import type { App } from './component'
 
 export interface InheritedCollections<T = {}> {
@@ -8,7 +9,7 @@ export interface InheritedCollections<T = {}> {
 }
 
 export abstract class RegisterModule {
-  abstract init(app: App, schedule: Schedule, render: Render): void
+  abstract init(app: App, treemap: TreemapLayout, render: Render): void
   static mixin<T>(app: T, methods: InheritedCollections<T>[]) {
     methods.forEach(({ name, fn }) => {
       Object.defineProperty(app, name, {
@@ -21,7 +22,7 @@ export abstract class RegisterModule {
 
 export function registerModuleForSchedule(mod: RegisterModule) {
   if (mod instanceof RegisterModule) {
-    return (app: App, schedule: Schedule, render: Render) => mod.init(app, schedule, render)
+    return (app: App, treemap: TreemapLayout, render: Render) => mod.init(app, treemap, render)
   }
   throw new Error(log.error('The module is not a valid RegisterScheduleModule.'))
 }

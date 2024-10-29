@@ -16,18 +16,15 @@ function main() {
   treemap.setOptions({
     data: sortedData
   })
-
-  treemap.on('click', () => {
-  })
 }
 
 main()
 
-new ResizeObserver(() => treemap.resize()).observe(root)
+treemap.on('click', function(metadata) {
+  this.zoom(metadata.module)
+})
 
-// treemap.on('click', function(a) {
-//   console.log(a)
-// })
+new ResizeObserver(() => treemap.resize()).observe(root)
 
 const badge = document.createElement('div')
 badge.style.position = 'fixed'

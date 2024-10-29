@@ -87,13 +87,7 @@ function visit<T extends AnyObject>(data: T[], fn: (data: T) => boolean | void):
   return null
 }
 
-export function findRelativeNode(c: HTMLCanvasElement, pos: { x: number; y: number }, layoutNodes: LayoutModule[]) {
-  const p = { ...pos }
-  for (let el: HTMLElement | null = c; el; el = el.offsetParent as HTMLElement | null) {
-    p.x -= el.offsetLeft
-    p.y -= el.offsetTop
-  }
-
+export function findRelativeNode(c: HTMLCanvasElement, p: { x: number; y: number }, layoutNodes: LayoutModule[]) {
   return visit(layoutNodes, (node) => {
     const [x, y, w, h] = node.layout
     if (p.x >= x && p.y >= y && p.x < x + w && p.y < y + h) {

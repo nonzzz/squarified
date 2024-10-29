@@ -31,13 +31,14 @@ export class Schedule extends Box {
   // execute all graph elements
   execute(render: Render, graph: Display = this) {
     let matrix = graph.matrix
+    const pixel = render.options.devicePixelRatio
     render.ctx.setTransform(
-      matrix.a * render.options.devicePixelRatio,
-      matrix.b * render.options.devicePixelRatio,
-      matrix.c * render.options.devicePixelRatio,
-      matrix.d * render.options.devicePixelRatio,
-      matrix.e * render.options.devicePixelRatio,
-      matrix.f * render.options.devicePixelRatio
+      matrix.a * pixel,
+      matrix.b * pixel,
+      matrix.c * pixel,
+      matrix.d * pixel,
+      matrix.e * pixel,
+      matrix.f * pixel
     )
     if (graph instanceof Box) {
       const cap = graph.elements.length

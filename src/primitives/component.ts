@@ -1,10 +1,10 @@
-import { Box, Event, Rect, Text, etoile } from '../etoile'
-import type { PrimitiveEventDefinition } from './event'
+import { Box, Rect, Text, etoile } from '../etoile'
+import type { EventMethods } from './event'
 import { bindParentForModule } from './struct'
 import type { Module, NativeModule } from './struct'
 import { squarify } from './squarify'
 import type { LayoutModule } from './squarify'
-import { SelfEvent } from './event'
+import { SelfEvent, onZoom } from './event'
 import { registerModuleForSchedule } from './registry'
 import type { RenderDecorator, Series } from './decorator'
 import { Cube, CubeMethods } from './cube'
@@ -23,8 +23,6 @@ export interface App {
   // eslint-disable-next-line no-use-before-define
   use: (using: Using, register: (app: TreemapLayout) => void) => void
 }
-
-type ExtendRegistry = Omit<Event<PrimitiveEventDefinition>, 'bindWithContext'>
 
 const defaultRegistries = [
   registerModuleForSchedule(new SelfEvent()),
@@ -109,7 +107,11 @@ function createTitleText(text: string, x: number, y: number, font: string, color
 class Schedule extends etoile.Schedule {}
 interface Schedule extends CubeMethods {}
 
-class TreemapLayout extends Schedule {
+export interface TreemapInstanceAPI {
+  zoom: ReturnType<typeof onZoom>
+}
+
+export class TreemapLayout extends Schedule {
   data: NativeModule[]
   layoutNodes: LayoutModule[]
   decorator: RenderDecorator
@@ -198,6 +200,10 @@ class TreemapLayout extends Schedule {
     }
     this.add(this.bgBox, this.fgBox)
   }
+
+  get api(): TreemapInstanceAPI {
+    return { zoom: onZoom(this, this.render) }
+  }
 }
 
 export function createTreemap() {
@@ -256,5 +262,5 @@ export function createTreemap() {
     }
   }
 
-  return context as App & ExtendRegistry
+  return context as App & EventMethods
 }

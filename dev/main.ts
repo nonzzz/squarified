@@ -20,7 +20,6 @@ function main() {
   })
 
   treemap.on('click', () => {
-    console.log('a?')
   })
 }
 

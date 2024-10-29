@@ -1,4 +1,4 @@
-import { Box, Event, Rect, etoile } from '../etoile'
+import { Box, Event, Rect, Text, etoile } from '../etoile'
 import type { PrimitiveEventDefinition } from './event'
 import { bindParentForModule } from './struct'
 import type { Module, NativeModule } from './struct'
@@ -174,7 +174,6 @@ export class TreemapLayout extends etoile.Schedule {
       style: { stroke: '#222', lineWidth: rectBorderWidth }
     })
     this.fgBox.add(rect)
-    this.render.ctx.fillStyle = color
     this.render.ctx.textBaseline = 'middle'
     const optimalFontSize = evaluateOptimalFontSize(
       this.render.ctx,
@@ -184,24 +183,46 @@ export class TreemapLayout extends etoile.Schedule {
       fontFamily,
       node.children.length ? Math.round(titleHeight / 2) + rectGap : h
     )
-    this.render.ctx.font = `${optimalFontSize}px ${fontFamily}`
     if (h > titleHeight) {
       const result = getSafeText(this.render.ctx, node.node.label, w - (rectGap * 2))
       if (!result) return
       const { text, width } = result
       const textX = x + Math.round((w - width) / 2)
+      let textY = y + Math.round(h / 2)
       if (node.children.length) {
-        const textY = y + Math.round(titleHeight / 2)
-        this.render.ctx.fillText(text, textX, textY)
-      } else {
-        const textY = y + Math.round(h / 2)
-        this.render.ctx.fillText(text, textX, textY)
+        textY = y + Math.round(titleHeight / 2)
       }
+      const f = new Text({
+        x: textX,
+        y: textY,
+        text,
+        style: {
+          fill: color,
+          textAlign: 'center',
+          baseline: 'middle',
+          font: `${optimalFontSize}px ${fontFamily}`,
+          lineWidth: 1
+        }
+      })
+      this.fgBox.add(f)
     } else {
       const ellipsisWidth = 3 * charCodeWidth(this.render.ctx, 46)
       const textX = x + Math.round((w - ellipsisWidth) / 2)
       const textY = y + Math.round(h / 2)
-      this.render.ctx.fillText('...', textX, textY)
+      this.fgBox.add(
+        new Text({
+          text: '...',
+          x: textX,
+          y: textY,
+          style: {
+            fill: color,
+            textAlign: 'center',
+            baseline: 'middle',
+            font: `${optimalFontSize}px ${fontFamily}`,
+            lineWidth: 1
+          }
+        })
+      )
     }
   }
 

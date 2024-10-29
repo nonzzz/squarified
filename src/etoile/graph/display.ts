@@ -32,7 +32,7 @@ export interface GraphStyleSheet {
   lineWidth: number
 }
 
-export interface GraphOptions {
+export interface LocOptions {
   width: number
   height: number
   x: number
@@ -42,6 +42,9 @@ export interface GraphOptions {
   rotation: number
   skewX: number
   skewY: number
+}
+
+export interface GraphOptions extends LocOptions {
   style: Partial<GraphStyleSheet>
 }
 
@@ -52,15 +55,21 @@ interface Instruction {
   fillStyle(...args: any[]): void
   fillRect(...args: any[]): void
   strokeStyle(...args: any[]): void
-  lineWidth: (...args: any[]) => void
+  lineWidth(...args: any[]): void
   strokeRect(...args: any[]): void
+  fillText(...args: any[]): void
+  font(...args: any[]): void
+  textBaseline(...args: any[]): void
+  textAlign(...args: any[]): void
 }
 
 const ASSIGN_MAPPINGS = {
   fillStyle: !0,
   strokeStyle: !0,
   font: !0,
-  lineWidth: !0
+  lineWidth: !0,
+  textAlign: !0,
+  textBaseline: !0
 }
 
 function createInstruction() {
@@ -80,11 +89,23 @@ function createInstruction() {
     },
     strokeRect(...args: any[]) {
       this.mods.push(['strokeRect', args])
+    },
+    fillText(...args) {
+      this.mods.push(['fillText', args])
+    },
+    font(...args) {
+      this.mods.push(['font', args])
+    },
+    textBaseline(...args) {
+      this.mods.push(['textBaseline', args])
+    },
+    textAlign(...args) {
+      this.mods.push(['textAlign', args])
     }
   }
 }
 
-export abstract class Graph extends Display {
+export class S extends Display {
   width: number
   height: number
   x: number
@@ -94,9 +115,7 @@ export abstract class Graph extends Display {
   rotation: number
   skewX: number
   skewY: number
-  style: GraphStyleSheet
-  instruction: ReturnType<typeof createInstruction>
-  constructor(options: Partial<GraphOptions> = {}) {
+  constructor(options: Partial<LocOptions> = {}) {
     super()
     this.width = options.width || 0
     this.height = options.height || 0
@@ -107,6 +126,14 @@ export abstract class Graph extends Display {
     this.rotation = options.rotation || 0
     this.skewX = options.skewX || 0
     this.skewY = options.skewY || 0
+  }
+}
+
+export abstract class Graph extends S {
+  style: GraphStyleSheet
+  instruction: ReturnType<typeof createInstruction>
+  constructor(options: Partial<GraphOptions> = {}) {
+    super(options)
     this.style = options.style || Object.create(null)
     this.instruction = createInstruction()
   }

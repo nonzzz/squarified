@@ -95,3 +95,11 @@ export function findRelativeNode(c: HTMLCanvasElement, p: { x: number; y: number
     }
   })
 }
+
+export function findRelativeNodeById(id: string, layoutNodes: LayoutModule[]) {
+  return visit(layoutNodes, (node) => {
+    if (node.node.id === id) {
+      return true
+    }
+  })
+}

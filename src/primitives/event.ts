@@ -4,12 +4,13 @@
 
 import { Render, Event as _Event } from '../etoile'
 import type { BindThisParameter } from '../etoile'
-import { TreemapLayout } from './component'
+import { TreemapLayout, rewrite } from './component'
 import type { App, TreemapInstanceAPI } from './component'
 import { RegisterModule } from './registry'
 import type { InheritedCollections } from './registry'
-import type { LayoutModule } from './squarify'
-import { findRelativeNode } from './struct'
+import { type LayoutModule, squarify } from './squarify'
+import { findRelativeNode, findRelativeNodeById } from './struct'
+import type { NativeModule } from './struct'
 
 const primitiveEvents = ['click', 'mousedown', 'mousemove', 'mouseup', 'mouseover', 'mouseout'] as const
 
@@ -115,14 +116,53 @@ export class SelfEvent extends RegisterModule {
   }
 }
 
-function estimateZoomingArea(node: LayoutModule) {
-  //
+function estimateZoomingArea(node: LayoutModule, root: LayoutModule | null, w: number, h: number) {
+  let currentNode = node.node
+  const defaultSizes = [w, h, 1]
+  if (root === node) {
+    return defaultSizes
+  }
+  let parent: NativeModule
+  const viewArea = w * h
+  let area = viewArea * 1.5
+  // eslint-disable-next-line no-cond-assign
+  while (parent = currentNode.parent as NativeModule) {
+    let sum = 0
+    const siblings = parent.groups
+    for (let i = 0; i < siblings.length; i++) {
+      sum += siblings[i].weight
+    }
+    const currentNodeValue = currentNode.weight
+    area *= sum / currentNodeValue
+    currentNode = parent
+  }
+
+  area < viewArea && (area = viewArea)
+  const scale = Math.pow(area / viewArea, 0.5)
+  return [w * scale, h * scale]
 }
 
 export function onZoom(treemap: TreemapLayout, render: Render) {
   const c = render.canvas
+  let root: LayoutModule | null = null
   return (node: LayoutModule) => {
     const boundingClientRect = c.getBoundingClientRect()
-    estimateZoomingArea(node)
+    // console.log(treemap.matrix)
+    const [w, h] = estimateZoomingArea(node, root, boundingClientRect.width, boundingClientRect.height)
+    treemap.layoutNodes = squarify(treemap.data, { w, h, x: 0, y: 0 }, treemap.decorator.layout)
+    const module = findRelativeNodeById(node.node.id, treemap.layoutNodes)
+    console.log(module)
+    // console.log(node.node.id)
+    // if (module) {
+    //   const scale = Math.min(boundingClientRect.width / module.layout[2], boundingClientRect.height / module.layout[3])
+    //   const translateX = (boundingClientRect.width / 2) - (module.layout[0] + module.layout[2] / 2) * scale
+    //   const translateY = (boundingClientRect.height / 2) - (module.layout[1] + module.layout[3] / 2) * scale
+    //   treemap.matrix = treemap.matrix.create({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 })
+    //   treemap.matrix.transform(300, 300, 1.5, 1.5, 0, 0, 0)
+    //   console.log(treemap.matrix)
+    //   treemap.draw()
+    // }
+
+    root = node
   }
 }

@@ -103,6 +103,11 @@ function createTitleText(text: string, x: number, y: number, font: string, color
   })
 }
 
+export function rewrite(treemap: TreemapLayout, w: number, h: number) {
+  treemap.layoutNodes = squarify(treemap.data, { w, h, x: 0, y: 0 }, treemap.decorator.layout)
+  treemap.draw()
+}
+
 // https://www.typescriptlang.org/docs/handbook/mixins.html
 class Schedule extends etoile.Schedule {}
 interface Schedule extends CubeMethods {}
@@ -199,6 +204,7 @@ export class TreemapLayout extends Schedule {
       this.drawForegroundNode(node)
     }
     this.add(this.bgBox, this.fgBox)
+    this.update()
   }
 
   get api(): TreemapInstanceAPI {
@@ -235,9 +241,7 @@ export function createTreemap() {
     if (!treemap || !root) return
     const { width, height } = root.getBoundingClientRect()
     treemap.render.initOptions({ height, width, devicePixelRatio: window.devicePixelRatio })
-    treemap.layoutNodes = squarify(treemap.data, { w: width, h: height, x: 0, y: 0 }, treemap.decorator.layout)
-    treemap.draw()
-    treemap.update()
+    rewrite(treemap, width, height)
   }
 
   function setOptions(options: TreemapOptions) {

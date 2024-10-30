@@ -2,6 +2,7 @@ import { Box } from '../graph'
 import { Display, Graph } from '../graph/display'
 import { Event } from '../native/event'
 import { log } from '../native/log'
+import { Matrix2D } from '../native/matrix'
 import { Render } from './render'
 
 import type { RenderViewportOptions } from './render'
@@ -24,15 +25,9 @@ export class Schedule extends Box {
     this.render = new Render(this.to, renderOptions as RenderViewportOptions)
   }
 
-  update() {
-    this.render.update(this)
-  }
-
-  // execute all graph elements
-  execute(render: Render, graph: Display = this) {
-    let matrix = graph.matrix
-    const pixel = render.options.devicePixelRatio
-    render.ctx.setTransform(
+  applyTransform(matrix: Matrix2D) {
+    const pixel = this.render.options.devicePixelRatio
+    this.render.ctx.setTransform(
       matrix.a * pixel,
       matrix.b * pixel,
       matrix.c * pixel,
@@ -40,6 +35,19 @@ export class Schedule extends Box {
       matrix.e * pixel,
       matrix.f * pixel
     )
+  }
+
+  update() {
+    this.render.update(this)
+    // const matrix = this.matrix.create({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 })
+    // this.applyTransform(matrix)
+  }
+
+  // execute all graph elements
+  execute(render: Render, graph: Display = this) {
+    render.ctx.save()
+    let matrix = graph.matrix
+    this.applyTransform(matrix)
     if (graph instanceof Box) {
       const cap = graph.elements.length
       for (let i = 0; i < cap; i++) {
@@ -54,5 +62,6 @@ export class Schedule extends Box {
     if (graph instanceof Graph) {
       graph.render(render.ctx)
     }
+    render.ctx.restore()
   }
 }

@@ -37,8 +37,8 @@ export class Matrix2D {
     return this
   }
 
-  transform(X: number, y: number, scaleX: number, scaleY: number, rotation: number, skewX: number, skewY: number) {
-    this.scale(scaleX, scaleY).translation(X, y)
+  transform(x: number, y: number, scaleX: number, scaleY: number, rotation: number, skewX: number, skewY: number) {
+    this.scale(scaleX, scaleY).translation(x, y)
     if (skewX || skewY) {
       this.skew(skewX, skewY)
     } else {

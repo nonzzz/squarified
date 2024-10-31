@@ -15,7 +15,7 @@ export interface HLSColor {
 export type ColorMode = 'rgb' | 'hsl'
 
 export interface ColorDecoratorResultHLS {
-  mode: 'hsl'
+  mode?: 'hsl'
   desc: HLSColor
 }
 
@@ -44,4 +44,29 @@ export function decodeRGB(meta: RGBColor): string {
 
 export function decodeColor(meta: ColorDecoratorResult) {
   return meta.mode === 'rgb' ? decodeRGB(meta.desc) : decodeHLS(meta.desc)
+}
+
+export function parseColor(s: string): ColorDecoratorResult | null {
+  const hslRegex = /hsla?\((\d+(\.\d+)?)(deg)?,\s*(\d+(\.\d+)?%)?,\s*(\d+(\.\d+)?%)?(,\s*(\d+(\.\d+)?))?\)/
+  const rgbRegex = /rgba?\((\d+),\s*(\d+),\s*(\d+)(,\s*(\d+(\.\d+)?))?\)/
+
+  let match = hslRegex.exec(s)
+  if (match) {
+    const h = parseFloat(match[1])
+    const s = parseFloat(match[4])
+    const l = parseFloat(match[6])
+    const a = match[8] ? parseFloat(match[8]) : 1
+    return { mode: 'hsl', desc: { h, s, l, a } }
+  }
+
+  match = rgbRegex.exec(s)
+  if (match) {
+    const r = parseInt(match[1], 10)
+    const g = parseInt(match[2], 10)
+    const b = parseInt(match[3], 10)
+    const a = match[5] ? parseFloat(match[5]) : 1
+    return { mode: 'rgb', desc: { r, g, b, a } }
+  }
+
+  return null
 }

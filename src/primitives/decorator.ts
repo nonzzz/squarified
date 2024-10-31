@@ -91,8 +91,7 @@ function colorDecorator(node: NativeModule, state: HueState) {
     desc: {
       h: finalHue,
       s: Math.round(saturation * 100),
-      l: Math.round(lightness * 100),
-      a: 0.9
+      l: Math.round(lightness * 100)
     }
   }
 }

@@ -2,14 +2,15 @@
 // So it's no need to implement a complex event algorithm or hit mode.
 // If one day etoile need to build as a useful library. Pls rewrite it!
 
-import { Render, Event as _Event } from '../etoile'
+import { decodeColor, parseColor } from '../shared'
+import { Render, Event as _Event, etoile } from '../etoile'
 import type { BindThisParameter } from '../etoile'
-import { TreemapLayout, rewrite } from './component'
+import { TreemapLayout } from './component'
 import type { App, TreemapInstanceAPI } from './component'
 import { RegisterModule } from './registry'
 import type { InheritedCollections } from './registry'
 import { type LayoutModule, squarify } from './squarify'
-import { findRelativeNode, findRelativeNodeById } from './struct'
+import { findRelativeNode, findRelativeNodeById, visit } from './struct'
 import type { NativeModule } from './struct'
 
 const primitiveEvents = ['click', 'mousedown', 'mousemove', 'mouseup', 'mouseover', 'mouseout'] as const
@@ -25,6 +26,17 @@ export type PrimitiveEventCallback<T extends PrimitiveEvent> = (metadata: Primit
 
 export type PrimitiveEventDefinition = {
   [key in PrimitiveEvent]: BindThisParameter<PrimitiveEventCallback<key>, TreemapInstanceAPI>
+}
+
+export interface EventMethods<C = TreemapInstanceAPI, D = PrimitiveEventDefinition> {
+  on<Evt extends keyof D>(
+    evt: Evt,
+    handler: BindThisParameter<D[Evt], unknown extends C ? this : C>
+  ): void
+  off<Evt extends keyof D>(
+    evt: keyof D,
+    handler?: BindThisParameter<D[Evt], unknown extends C ? this : C>
+  ): void
 }
 
 function getOffset(el: HTMLElement) {
@@ -79,21 +91,64 @@ function bindPrimitiveEvent(treemap: TreemapLayout, render: Render, evt: Primiti
   return handler
 }
 
-export interface EventMethods<C = TreemapInstanceAPI, D = PrimitiveEventDefinition> {
-  on<Evt extends keyof D>(
-    evt: Evt,
-    handler: BindThisParameter<D[Evt], unknown extends C ? this : C>
-  ): void
-  off<Evt extends keyof D>(
-    evt: keyof D,
-    handler?: BindThisParameter<D[Evt], unknown extends C ? this : C>
-  ): void
+interface SelfEventContenxt {
+  treemap: TreemapLayout
+  // eslint-disable-next-line no-use-before-define
+  self: SelfEvent
+}
+
+function smoothDrawing(c: SelfEventContenxt) {
+  const { self, treemap } = c
+  window.requestAnimationFrame(() => {
+    treemap.reset()
+    if (self.currentNode) {
+      const bbox: Set<string> = new Set()
+      visit([self.currentNode], (node) => {
+        const [x, y, w, h] = node.layout
+        const { rectGap, titleHeight } = node.decorator
+        bbox.add(x + '-' + y)
+        bbox.add(x + '-' + (y + h - rectGap))
+        bbox.add(x + '-' + (y + titleHeight))
+        bbox.add(x + w - rectGap + '-' + (y + titleHeight))
+      })
+      etoile.traverse(treemap.elements, (graph) => {
+        const key = graph.x + '-' + graph.y
+        if (bbox.has(key)) {
+          const color = parseColor(graph.style.fill)
+          if (color) {
+            color.desc.a = 0.5
+            graph.style.fill = decodeColor(color)
+          }
+        }
+      })
+    }
+    treemap.update()
+  })
 }
 
 export class SelfEvent extends RegisterModule {
+  currentNode: LayoutModule | null = null
+  constructor() {
+    super()
+    this.currentNode = null
+  }
+
+  onmousemove(this: SelfEventContenxt, metadata: PrimitiveEventMetadata<'mousemove'>) {
+    const { module: node } = metadata
+    if (this.self.currentNode !== node) {
+      this.self.currentNode = node
+    }
+    smoothDrawing(this)
+  }
+
+  onmouseout(this: SelfEventContenxt) {
+    this.self.currentNode = null
+    smoothDrawing(this)
+  }
+
   init(app: App, treemap: TreemapLayout, render: Render): void {
     const event = new _Event<PrimitiveEventDefinition>()
-    const nativeEvents: any[] = []
+    const nativeEvents: Array<ReturnType<typeof bindPrimitiveEvent>> = []
     const methods: InheritedCollections[] = [
       {
         name: 'on',
@@ -113,6 +168,9 @@ export class SelfEvent extends RegisterModule {
     primitiveEvents.forEach((evt) => {
       nativeEvents.push(bindPrimitiveEvent(treemap, render, evt, event))
     })
+    const selfEvt = event.bindWithContext<SelfEventContenxt>({ treemap, self: this })
+    selfEvt('mousemove', this.onmousemove)
+    selfEvt('mouseout', this.onmouseout)
   }
 }
 

@@ -103,9 +103,9 @@ function createTitleText(text: string, x: number, y: number, font: string, color
   })
 }
 
-export function rewrite(treemap: TreemapLayout, w: number, h: number) {
+export function resetLayout(treemap: TreemapLayout, w: number, h: number) {
   treemap.layoutNodes = squarify(treemap.data, { w, h, x: 0, y: 0 }, treemap.decorator.layout)
-  treemap.draw()
+  treemap.reset()
 }
 
 // https://www.typescriptlang.org/docs/handbook/mixins.html
@@ -195,7 +195,7 @@ export class TreemapLayout extends Schedule {
     }
   }
 
-  draw() {
+  reset() {
     this.bgBox.destory()
     this.fgBox.destory()
     this.remove(this.bgBox, this.fgBox)
@@ -204,7 +204,6 @@ export class TreemapLayout extends Schedule {
       this.drawForegroundNode(node)
     }
     this.add(this.bgBox, this.fgBox)
-    this.update()
   }
 
   get api(): TreemapInstanceAPI {
@@ -241,7 +240,8 @@ export function createTreemap() {
     if (!treemap || !root) return
     const { width, height } = root.getBoundingClientRect()
     treemap.render.initOptions({ height, width, devicePixelRatio: window.devicePixelRatio })
-    rewrite(treemap, width, height)
+    resetLayout(treemap, width, height)
+    treemap.update()
   }
 
   function setOptions(options: TreemapOptions) {

@@ -39,8 +39,8 @@ export class Schedule extends Box {
 
   update() {
     this.render.update(this)
-    // const matrix = this.matrix.create({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 })
-    // this.applyTransform(matrix)
+    const matrix = this.matrix.create({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 })
+    this.applyTransform(matrix)
   }
 
   // execute all graph elements

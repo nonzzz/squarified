@@ -74,7 +74,7 @@ export function getNodeDepth(node: NativeModule) {
   return depth
 }
 
-function visit<T extends AnyObject>(data: T[], fn: (data: T) => boolean | void): T | null {
+export function visit<T extends AnyObject>(data: T[], fn: (data: T) => boolean | void): T | null {
   if (!data) return null
   for (const d of data) {
     if (d.children) {

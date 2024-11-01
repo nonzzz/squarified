@@ -47,8 +47,8 @@ export function decodeColor(meta: ColorDecoratorResult) {
 }
 
 export function parseColor(s: string): ColorDecoratorResult | null {
-  const hslRegex = /hsla?\((\d+(\.\d+)?)(deg)?,\s*(\d+(\.\d+)?%)?,\s*(\d+(\.\d+)?%)?(,\s*(\d+(\.\d+)?))?\)/
-  const rgbRegex = /rgba?\((\d+),\s*(\d+),\s*(\d+)(,\s*(\d+(\.\d+)?))?\)/
+  const hslRegex = /hsla?\(\s*(\d+(\.\d+)?)(deg)?,\s*(\d+(\.\d+)?%)?,\s*(\d+(\.\d+)?%)?(,\s*(\d+(\.\d+)?))?\s*\)/
+  const rgbRegex = /rgba?\(\s*(\d+),\s*(\d+),\s*(\d+)(,\s*(\d+(\.\d+)?))?\s*\)/
 
   let match = hslRegex.exec(s)
   if (match) {

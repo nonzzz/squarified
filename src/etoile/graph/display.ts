@@ -1,6 +1,7 @@
 /* eslint-disable no-use-before-define */
 
 import { Matrix2D } from '../native/matrix'
+import type { ColorDecoratorResult } from '../native/runtime'
 
 const SELF_ID = {
   id: 0,
@@ -25,7 +26,7 @@ export class Display {
 }
 
 export interface GraphStyleSheet {
-  fill: string
+  fill: ColorDecoratorResult
   stroke: string
   opacity: number
   font: string

@@ -1,9 +1,9 @@
-import { decodeHLS } from '../shared'
+import { type ColorDecoratorResult } from '../etoile/native/runtime'
 import { TreemapLayout } from './component'
 import { getNodeDepth } from './struct'
 import type { NativeModule } from './struct'
 
-export type ColorMappings = Record<string, string>
+export type ColorMappings = Record<string, ColorDecoratorResult>
 
 export type Rect = { w: number; h: number }
 
@@ -93,7 +93,7 @@ function colorDecorator(node: NativeModule, state: HueState) {
       s: Math.round(saturation * 100),
       l: Math.round(lightness * 100)
     }
-  }
+  } satisfies ColorDecoratorResult
 }
 
 function evaluateColorMappingByNode(node: NativeModule, state: HueState) {
@@ -105,7 +105,7 @@ function evaluateColorMappingByNode(node: NativeModule, state: HueState) {
   }
 
   if (node.id) {
-    colorMappings[node.id] = decodeHLS(colorDecorator(node, state).desc)
+    colorMappings[node.id] = colorDecorator(node, state)
   }
 
   return colorMappings

@@ -1,4 +1,5 @@
 // Currently, etoile is an internal module, so we won't need too much easing functions.
+// And the animation logic is implemented by user code.
 
 export const easing = {
   linear: (k: number) => k,

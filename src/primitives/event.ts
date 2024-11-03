@@ -2,9 +2,9 @@
 // So it's no need to implement a complex event algorithm or hit mode.
 // If one day etoile need to build as a useful library. Pls rewrite it!
 
-import { decodeColor, parseColor } from '../shared'
 import { Render, Event as _Event, easing, etoile } from '../etoile'
 import type { BindThisParameter } from '../etoile'
+import type { AnimationContext } from './animation'
 import { TreemapLayout } from './component'
 import type { App, TreemapInstanceAPI } from './component'
 import { RegisterModule } from './registry'
@@ -99,31 +99,28 @@ interface SelfEventContenxt {
 
 function smoothDrawing(c: SelfEventContenxt) {
   const { self, treemap } = c
-  // window.requestAnimationFrame(() => {
-  //   treemap.reset()
-  //   if (self.currentNode) {
-  //     const bbox: Set<string> = new Set()
-  //     visit([self.currentNode], (node) => {
-  //       const [x, y, w, h] = node.layout
-  //       const { rectGap, titleHeight } = node.decorator
-  //       bbox.add(x + '-' + y)
-  //       bbox.add(x + '-' + (y + h - rectGap))
-  //       bbox.add(x + '-' + (y + titleHeight))
-  //       bbox.add(x + w - rectGap + '-' + (y + titleHeight))
-  //     })
-  //     etoile.traverse(treemap.elements, (graph) => {
-  //       const key = graph.x + '-' + graph.y
-  //       if (bbox.has(key)) {
-  //         const color = parseColor(graph.style.fill)
-  //         if (color) {
-  //           color.desc.a = 0.5
-  //           graph.style.fill = decodeColor(color)
-  //         }
-  //       }
-  //     })
-  //   }
-  //   treemap.update()
-  // })
+  treemap.reset()
+  if (self.currentNode) {
+    const bbox: Set<string> = new Set()
+    const tasks: Array<() => AnimationContext> = []
+    visit([self.currentNode], (node) => {
+      const [x, y, w, h] = node.layout
+      const { rectGap, titleHeight } = node.decorator
+      bbox.add(x + '-' + y)
+      bbox.add(x + '-' + (y + h - rectGap))
+      bbox.add(x + '-' + (y + titleHeight))
+      bbox.add(x + w - rectGap + '-' + (y + titleHeight))
+    })
+    etoile.traverse([treemap.elements[0]], (graph) => {
+      const key = graph.x + '-' + graph.y
+      if (bbox.has(key)) {
+        graph.style.opacity = 0.5
+        // const fn = treemap.animate(graph).effect('opacity', 0.1).when({ time: 300, easing: easing.cubicIn })
+        // tasks.push(() => fn)
+      }
+    })
+  }
+  treemap.update()
 }
 
 export class SelfEvent extends RegisterModule {

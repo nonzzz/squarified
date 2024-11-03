@@ -1,3 +1,4 @@
+import type { ColorDecoratorResult } from '../etoile/native/runtime'
 import { Box, Rect, Text, etoile } from '../etoile'
 import type { EventMethods } from './event'
 import { bindParentForModule } from './struct'
@@ -7,7 +8,8 @@ import type { LayoutModule } from './squarify'
 import { SelfEvent, onZoom } from './event'
 import { registerModuleForSchedule } from './registry'
 import type { RenderDecorator, Series } from './decorator'
-import { Cube, CubeMethods } from './cube'
+import { Animation } from './animation'
+import type { AnimationMethods } from './animation'
 
 export interface TreemapOptions {
   data: Module[]
@@ -26,7 +28,7 @@ export interface App {
 
 const defaultRegistries = [
   registerModuleForSchedule(new SelfEvent()),
-  registerModuleForSchedule(new Cube())
+  registerModuleForSchedule(new Animation())
 ]
 
 export function charCodeWidth(c: CanvasRenderingContext2D, ch: number) {
@@ -90,8 +92,8 @@ export function getSafeText(c: CanvasRenderingContext2D, text: string, width: nu
   return { text: '...', width: ellipsisWidth }
 }
 
-function createFillBlock(color: string, x: number, y: number, width: number, height: number) {
-  return new Rect({ width, height, x, y, style: { fill: color } })
+function createFillBlock(color: string | ColorDecoratorResult, x: number, y: number, width: number, height: number) {
+  return new Rect({ width, height, x, y, style: { fill: color, opacity: 1 } })
 }
 
 function createTitleText(text: string, x: number, y: number, font: string, color: string) {
@@ -110,7 +112,7 @@ export function resetLayout(treemap: TreemapLayout, w: number, h: number) {
 
 // https://www.typescriptlang.org/docs/handbook/mixins.html
 class Schedule extends etoile.Schedule {}
-interface Schedule extends CubeMethods {}
+interface Schedule extends AnimationMethods {}
 
 export interface TreemapInstanceAPI {
   zoom: ReturnType<typeof onZoom>

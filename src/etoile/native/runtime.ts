@@ -1,3 +1,5 @@
+// Runtime is designed for graph element
+
 export interface RGBColor {
   r: number
   g: number
@@ -46,27 +48,11 @@ export function decodeColor(meta: ColorDecoratorResult) {
   return meta.mode === 'rgb' ? decodeRGB(meta.desc) : decodeHLS(meta.desc)
 }
 
-export function parseColor(s: string): ColorDecoratorResult | null {
-  const hslRegex = /hsla?\(\s*(\d+(\.\d+)?)(deg)?,\s*(\d+(\.\d+)?%)?,\s*(\d+(\.\d+)?%)?(,\s*(\d+(\.\d+)?))?\s*\)/
-  const rgbRegex = /rgba?\(\s*(\d+),\s*(\d+),\s*(\d+)(,\s*(\d+(\.\d+)?))?\s*\)/
+function evaluateFillStyle(primitive: ColorDecoratorResult, opacity: number = 1) {
+  const descibe = <ColorDecoratorResult> { mode: primitive.mode, desc: { ...primitive.desc, a: opacity } }
+  return decodeColor(descibe)
+}
 
-  let match = hslRegex.exec(s)
-  if (match) {
-    const h = parseFloat(match[1])
-    const s = parseFloat(match[4])
-    const l = parseFloat(match[6])
-    const a = match[8] ? parseFloat(match[8]) : 1
-    return { mode: 'hsl', desc: { h, s, l, a } }
-  }
-
-  match = rgbRegex.exec(s)
-  if (match) {
-    const r = parseInt(match[1], 10)
-    const g = parseInt(match[2], 10)
-    const b = parseInt(match[3], 10)
-    const a = match[5] ? parseFloat(match[5]) : 1
-    return { mode: 'rgb', desc: { r, g, b, a } }
-  }
-
-  return null
+export const runtime = {
+  evaluateFillStyle
 }

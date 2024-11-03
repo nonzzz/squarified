@@ -1,4 +1,4 @@
-import { Iter, decodeColor, parseColor } from '../shared'
+import { Iter } from '../shared'
 import { Render, easing } from '../etoile'
 import { Graph } from '../etoile/graph/display'
 import type { GraphStyleSheet } from '../etoile/graph/display'
@@ -10,7 +10,7 @@ interface WhenOptions {
   easing: typeof easing.cubicIn
 }
 
-interface AnimationContext {
+export interface AnimationContext {
   effect: <P extends Record<string, any> = GraphStyleSheet, K extends keyof P = string, V extends P[K] = P[K]>(
     prop: K,
     value: V
@@ -19,11 +19,16 @@ interface AnimationContext {
   start: () => void
 }
 
-export interface CubeMethods {
+export interface AnimationMethods {
   animate: ReturnType<typeof createAnimation>
 }
 
 const raf = window.requestAnimationFrame
+
+export function applyForOpacity(graph: Graph, lastState: number, nextState: number, easedProgress: number) {
+  const alpha = lastState + (nextState - lastState) * easedProgress
+  graph.style.opacity = alpha
+}
 
 function createAnimation(treemap: TreemapLayout) {
   return (graph: Graph) => {
@@ -60,23 +65,19 @@ function createAnimation(treemap: TreemapLayout) {
     function animate() {
       const elapsed = Date.now() - startTime
       let allTasksCompleted = true
+      graph.matrix = graph.matrix.create({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 })
+      graph.matrix.transform(graph.x, graph.y, graph.scaleX, graph.scaleY, graph.rotation, graph.skewX, graph.skewY)
+      treemap.render.clear(treemap.render.options.width, treemap.render.options.height)
+      treemap.execute(treemap.render, graph)
+
       for (const { key, value } of new Iter(tasks)) {
         const { last, next, time, easing } = value
         const progress = Math.min(elapsed / time, 1)
         const easedProgress = easing(progress)
         switch (key) {
-          case 'fill': {
-            const lastColor = parseColor(last)!
-            const nextColor = parseColor(next)!
-            nextColor.desc.a = 0.5
-            if (lastColor.mode === nextColor.mode) {
-              const currentAlpha = lastColor.desc.a! + (nextColor.desc.a! - lastColor.desc.a!) * easedProgress
-              nextColor.desc.a = currentAlpha
-              const currentColor = decodeColor(nextColor)
-              graph.style[key] = currentColor
-            }
+          case 'opacity':
+            applyForOpacity(graph, last, next, easedProgress)
             break
-          }
         }
         if (progress < 1) {
           allTasksCompleted = false
@@ -101,7 +102,7 @@ function createAnimation(treemap: TreemapLayout) {
   }
 }
 
-export class Cube extends RegisterModule {
+export class Animation extends RegisterModule {
   init(app: App, treemap: TreemapLayout, render: Render): void {
     const animation = createAnimation(treemap)
     const methods: InheritedCollections[] = [

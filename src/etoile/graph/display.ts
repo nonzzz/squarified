@@ -1,7 +1,6 @@
 /* eslint-disable no-use-before-define */
 
 import { Matrix2D } from '../native/matrix'
-import type { ColorDecoratorResult } from '../native/runtime'
 
 const SELF_ID = {
   id: 0,
@@ -26,7 +25,6 @@ export class Display {
 }
 
 export interface GraphStyleSheet {
-  fill: ColorDecoratorResult
   stroke: string
   opacity: number
   font: string
@@ -46,7 +44,6 @@ export interface LocOptions {
 }
 
 export interface GraphOptions extends LocOptions {
-  style: Partial<GraphStyleSheet>
 }
 
 type Mod = [string, ...any[]]
@@ -131,11 +128,9 @@ export class S extends Display {
 }
 
 export abstract class Graph extends S {
-  style: GraphStyleSheet
   instruction: ReturnType<typeof createInstruction>
   constructor(options: Partial<GraphOptions> = {}) {
     super(options)
-    this.style = options.style || Object.create(null)
     this.instruction = createInstruction()
   }
   abstract create(): void

@@ -1,14 +1,17 @@
 import { Graph } from './display'
-import type { GraphOptions } from './display'
+import type { GraphOptions, GraphStyleSheet } from './display'
 
 export interface TextOptions extends Omit<GraphOptions, 'style'> {
   text: string
-  style: GraphOptions['style'] & {
-    font: string
-    textAlign: CanvasTextAlign
-    baseline: CanvasTextBaseline
-    lineWidth: number
-  }
+  style: Partial<
+    GraphStyleSheet & {
+      font: string
+      textAlign: CanvasTextAlign
+      baseline: CanvasTextBaseline
+      lineWidth: number
+      fill: string
+    }
+  >
 }
 
 export class Text extends Graph {

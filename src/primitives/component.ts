@@ -92,7 +92,7 @@ export function getSafeText(c: CanvasRenderingContext2D, text: string, width: nu
   return { text: '...', width: ellipsisWidth }
 }
 
-function createFillBlock(color: string | ColorDecoratorResult, x: number, y: number, width: number, height: number) {
+function createFillBlock(color: ColorDecoratorResult, x: number, y: number, width: number, height: number) {
   return new Rect({ width, height, x, y, style: { fill: color, opacity: 1 } })
 }
 
@@ -232,6 +232,7 @@ export function createTreemap() {
   }
   function dispose() {
     if (root && treemap) {
+      treemap.destory()
       root.removeChild(root.firstChild!)
       root = null
       treemap = null

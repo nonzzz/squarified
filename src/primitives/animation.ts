@@ -1,5 +1,5 @@
 import { Iter } from '../shared'
-import { Render, easing } from '../etoile'
+import { Rect, Render, easing } from '../etoile'
 import { Graph } from '../etoile/graph/display'
 import type { GraphStyleSheet } from '../etoile/graph/display'
 import type { App, TreemapLayout } from './component'
@@ -27,8 +27,13 @@ const raf = window.requestAnimationFrame
 
 export function applyForOpacity(graph: Graph, lastState: number, nextState: number, easedProgress: number) {
   const alpha = lastState + (nextState - lastState) * easedProgress
-  graph.style.opacity = alpha
+  if (graph instanceof Rect) {
+    graph.style.opacity = alpha
+  }
 }
+
+// In canvas the animation is that a series of frames are drawn on the canvas in
+//  rapid succession to create the illusion of motion.
 
 function createAnimation(treemap: TreemapLayout) {
   return (graph: Graph) => {
@@ -65,15 +70,11 @@ function createAnimation(treemap: TreemapLayout) {
     function animate() {
       const elapsed = Date.now() - startTime
       let allTasksCompleted = true
-      graph.matrix = graph.matrix.create({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 })
-      graph.matrix.transform(graph.x, graph.y, graph.scaleX, graph.scaleY, graph.rotation, graph.skewX, graph.skewY)
-      treemap.render.clear(treemap.render.options.width, treemap.render.options.height)
-      treemap.execute(treemap.render, graph)
 
       for (const { key, value } of new Iter(tasks)) {
         const { last, next, time, easing } = value
         const progress = Math.min(elapsed / time, 1)
-        const easedProgress = easing(progress)
+        const easedProgress = easing(progress) || 0.1
         switch (key) {
           case 'opacity':
             applyForOpacity(graph, last, next, easedProgress)

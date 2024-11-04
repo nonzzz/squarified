@@ -4,7 +4,7 @@
 
 import { Render, Event as _Event, easing, etoile } from '../etoile'
 import type { BindThisParameter } from '../etoile'
-import type { AnimationContext } from './animation'
+import { applyForOpacity } from './animation'
 import { TreemapLayout } from './component'
 import type { App, TreemapInstanceAPI } from './component'
 import { RegisterModule } from './registry'
@@ -99,47 +99,77 @@ interface SelfEventContenxt {
 
 function smoothDrawing(c: SelfEventContenxt) {
   const { self, treemap } = c
-  treemap.reset()
-  if (self.currentNode) {
-    const bbox: Set<string> = new Set()
-    const tasks: Array<() => AnimationContext> = []
-    visit([self.currentNode], (node) => {
+
+  const currentNode = self.currentNode
+  if (currentNode) {
+    const lloc: Set<string> = new Set()
+    visit([currentNode], (node) => {
       const [x, y, w, h] = node.layout
       const { rectGap, titleHeight } = node.decorator
-      bbox.add(x + '-' + y)
-      bbox.add(x + '-' + (y + h - rectGap))
-      bbox.add(x + '-' + (y + titleHeight))
-      bbox.add(x + w - rectGap + '-' + (y + titleHeight))
+      lloc.add(x + '-' + y)
+      lloc.add(x + '-' + (y + h - rectGap))
+      lloc.add(x + '-' + (y + titleHeight))
+      lloc.add(x + w - rectGap + '-' + (y + titleHeight))
     })
-    etoile.traverse([treemap.elements[0]], (graph) => {
-      const key = graph.x + '-' + graph.y
-      if (bbox.has(key)) {
-        graph.style.opacity = 0.5
-        // const fn = treemap.animate(graph).effect('opacity', 0.1).when({ time: 300, easing: easing.cubicIn })
-        // tasks.push(() => fn)
+    const startTime = Date.now()
+    const animationDuration = 300
+    const draw = () => {
+      if (self.forceDestroy) {
+        return
       }
-    })
+      const elapsed = Date.now() - startTime
+      const progress = Math.min(elapsed / animationDuration, 1)
+      const easedProgress = easing.cubicIn(progress) || 0.1
+      let allTasksCompleted = true
+      treemap.reset()
+      etoile.traverse([treemap.elements[0]], (graph) => {
+        const key = `${graph.x}-${graph.y}`
+        if (lloc.has(key)) {
+          applyForOpacity(graph, 1, 0.7, easedProgress)
+          if (progress < 1) {
+            allTasksCompleted = false
+          }
+        }
+      })
+      treemap.update()
+      if (!allTasksCompleted) {
+        window.requestAnimationFrame(draw)
+      }
+    }
+    if (!self.isAnimating) {
+      self.isAnimating = true
+      window.requestAnimationFrame(draw)
+    }
+  } else {
+    treemap.reset()
+    treemap.update()
   }
-  treemap.update()
 }
 
 export class SelfEvent extends RegisterModule {
-  currentNode: LayoutModule | null = null
+  currentNode: LayoutModule | null
+  isAnimating: boolean
+  forceDestroy: boolean
   constructor() {
     super()
     this.currentNode = null
+    this.isAnimating = false
+    this.forceDestroy = false
   }
 
   onmousemove(this: SelfEventContenxt, metadata: PrimitiveEventMetadata<'mousemove'>) {
     const { module: node } = metadata
+    this.self.forceDestroy = false
     if (this.self.currentNode !== node) {
       this.self.currentNode = node
+      this.self.isAnimating = false
     }
     smoothDrawing(this)
   }
 
   onmouseout(this: SelfEventContenxt) {
     this.self.currentNode = null
+    this.self.forceDestroy = true
     smoothDrawing(this)
   }
 

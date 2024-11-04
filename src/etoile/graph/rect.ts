@@ -1,7 +1,18 @@
 import { runtime } from '../native/runtime'
-import { Graph } from './display'
+import type { ColorDecoratorResult } from '../native/runtime'
+import { Graph, GraphStyleSheet } from './display'
+import type { GraphOptions } from './display'
 
+export type RectStyleOptions = GraphStyleSheet & { fill: ColorDecoratorResult }
+
+export type RectOptions = GraphOptions & { style: Partial<RectStyleOptions> }
 export class Rect extends Graph {
+  style: Required<RectStyleOptions>
+  constructor(options: Partial<RectOptions> = {}) {
+    super(options)
+    this.style = options.style || Object.create(null)
+  }
+
   create() {
     if (this.style.fill) {
       this.instruction.fillStyle(runtime.evaluateFillStyle(this.style.fill, this.style.opacity))

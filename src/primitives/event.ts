@@ -24,8 +24,14 @@ export interface PrimitiveEventMetadata<T extends keyof HTMLElementEventMap> {
 
 export type PrimitiveEventCallback<T extends PrimitiveEvent> = (metadata: PrimitiveEventMetadata<T>) => void
 
+type SelfEventCallback<T extends PrimitiveEvent | 'wheel'> = (metadata: PrimitiveEventMetadata<T>) => void
+
 export type PrimitiveEventDefinition = {
   [key in PrimitiveEvent]: BindThisParameter<PrimitiveEventCallback<key>, TreemapInstanceAPI>
+}
+
+type SelfEventDefinition = PrimitiveEventDefinition & {
+  wheel: BindThisParameter<SelfEventCallback<'wheel'>, TreemapInstanceAPI>
 }
 
 export interface EventMethods<C = TreemapInstanceAPI, D = PrimitiveEventDefinition> {
@@ -71,7 +77,12 @@ function captureBoxXY(c: HTMLCanvasElement, evt: unknown, a: number, d: number) 
   return { x: 0, y: 0 }
 }
 
-function bindPrimitiveEvent(treemap: TreemapLayout, render: Render, evt: PrimitiveEvent, bus: _Event<PrimitiveEventDefinition>) {
+function bindPrimitiveEvent(
+  treemap: TreemapLayout,
+  render: Render,
+  evt: PrimitiveEvent | (string & {}),
+  bus: _Event<SelfEventDefinition>
+) {
   const c = render.canvas
   const handler = (e: unknown) => {
     const { x, y } = captureBoxXY(
@@ -173,8 +184,22 @@ export class SelfEvent extends RegisterModule {
     smoothDrawing(this)
   }
 
+  onmousewheel(this: SelfEventContenxt, metadata: PrimitiveEventMetadata<'wheel'>) {
+    const { self, treemap } = this
+    // @ts-expect-error
+    const wheelDelta = metadata.native.wheelDelta
+    const absWheelDelta = Math.abs(wheelDelta)
+    const originX = metadata.native.offsetX
+    const originY = metadata.native.offsetY
+    if (wheelDelta === 0) {
+      return
+    }
+    const factor = absWheelDelta > 3 ? 1.4 : absWheelDelta > 1 ? 1.2 : 1.1
+    const scale = wheelDelta > 0 ? factor : 1 / factor
+  }
+
   init(app: App, treemap: TreemapLayout, render: Render): void {
-    const event = new _Event<PrimitiveEventDefinition>()
+    const event = new _Event<SelfEventDefinition>()
     const nativeEvents: Array<ReturnType<typeof bindPrimitiveEvent>> = []
     const methods: InheritedCollections[] = [
       {
@@ -192,10 +217,13 @@ export class SelfEvent extends RegisterModule {
     ]
     RegisterModule.mixin(app, methods)
 
-    primitiveEvents.forEach((evt) => {
+    const selfEvents = [...primitiveEvents, 'wheel'] as const
+
+    selfEvents.forEach((evt) => {
       nativeEvents.push(bindPrimitiveEvent(treemap, render, evt, event))
     })
     const selfEvt = event.bindWithContext<SelfEventContenxt>({ treemap, self: this })
+    selfEvt('wheel', this.onmousewheel)
     selfEvt('mousemove', this.onmousemove)
     selfEvt('mouseout', this.onmouseout)
   }

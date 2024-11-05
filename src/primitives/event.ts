@@ -52,9 +52,15 @@ interface SelfEventContenxt {
   self: SelfEvent
 }
 
+interface DraggingState {
+  x: number
+  y: number
+}
+
 function smoothDrawing(c: SelfEventContenxt) {
   const { self, treemap } = c
   const currentNode = self.currentNode
+
   if (currentNode) {
     const lloc: Set<string> = new Set()
     visit([currentNode], (node) => {
@@ -71,6 +77,7 @@ function smoothDrawing(c: SelfEventContenxt) {
       if (self.forceDestroy) {
         return
       }
+
       const elapsed = Date.now() - startTime
       const progress = Math.min(elapsed / animationDuration, 1)
       const easedProgress = easing.cubicIn(progress) || 0.1
@@ -95,7 +102,19 @@ function smoothDrawing(c: SelfEventContenxt) {
       self.isAnimating = true
       window.requestAnimationFrame(draw)
     }
+  } else {
+    treemap.reset()
+    applyGraphTransform(treemap.elements, self.translateX, self.translateY, self.scaleRatio)
+    treemap.update()
   }
+}
+
+function applyZoomEvent(ctx: SelfEventContenxt) {
+  ctx.treemap.event.on('zoom', (node: LayoutModule) => {
+    const root: LayoutModule | null = null
+    if (ctx.self.isDragging) return
+    onZoom(ctx, node, root)
+  })
 }
 
 function getOffset(el: HTMLElement) {
@@ -167,21 +186,78 @@ export class SelfEvent extends RegisterModule {
   translateY: number
   layoutWidth: number
   layoutHeight: number
+  isDragging: boolean
+  draggingState: DraggingState
+  event: _Event<SelfEventDefinition>
   constructor() {
     super()
     this.currentNode = null
     this.isAnimating = false
     this.forceDestroy = false
+    this.isDragging = false
     this.scaleRatio = 1
     this.translateX = 0
     this.translateY = 0
     this.layoutWidth = 0
     this.layoutHeight = 0
+    this.draggingState = { x: 0, y: 0 }
+    this.event = new _Event<SelfEventDefinition>()
+  }
+
+  ondragstart(this: SelfEventContenxt, metadata: PrimitiveEventMetadata<'mousedown'>) {
+    const { native } = metadata
+    if (isScrollWheelOrRightButtonOnMouseupAndDown(native)) {
+      return
+    }
+    const x = native.offsetX
+    const y = native.offsetY
+    this.self.isDragging = true
+    this.self.draggingState = { x, y }
+  }
+
+  ondragmove(this: SelfEventContenxt, metadata: PrimitiveEventMetadata<'mousemove'>) {
+    if (!this.self.isDragging) {
+      if ('zoom' in this.treemap.event.eventCollections) {
+        const condit = this.treemap.event.eventCollections.zoom.length > 0
+        if (!condit) {
+          applyZoomEvent(this)
+        }
+      }
+      return
+    }
+    // @ts-expect-error
+    this.self.event.off('mousemove', this.self.onmousemove)
+    this.treemap.event.off('zoom')
+    this.self.forceDestroy = true
+    const { native } = metadata
+    const x = native.offsetX
+    const y = native.offsetY
+    const { x: lastX, y: lastY } = this.self.draggingState
+    const drawX = x - lastX
+    const drawY = y - lastY
+    this.self.translateX += drawX
+    this.self.translateY += drawY
+    this.self.draggingState = { x, y }
+    this.treemap.reset()
+    applyGraphTransform(this.treemap.elements, this.self.translateX, this.self.translateY, this.self.scaleRatio)
+    this.treemap.update()
+  }
+
+  ondragend(this: SelfEventContenxt, metadata: PrimitiveEventMetadata<'mousemove'>) {
+    if (!this.self.isDragging) {
+      return
+    }
+    this.self.isDragging = false
+    this.self.draggingState = { x: 0, y: 0 }
+    this.self.event.bindWithContext(this)('mousemove', this.self.onmousemove)
   }
 
   onmousemove(this: SelfEventContenxt, metadata: PrimitiveEventMetadata<'mousemove'>) {
-    const { module: node } = metadata
     const { self } = this
+    if (self.isDragging) {
+      return
+    }
+    const { module: node } = metadata
     self.forceDestroy = false
     if (self.currentNode !== node) {
       self.currentNode = node
@@ -191,30 +267,15 @@ export class SelfEvent extends RegisterModule {
   }
 
   onmouseout(this: SelfEventContenxt) {
-    const { self, treemap } = this
+    const { self } = this
     self.currentNode = null
     self.forceDestroy = true
-    treemap.reset()
-    applyGraphTransform(treemap.elements, self.translateX, self.translateY, self.scaleRatio)
-    treemap.update()
+    self.isDragging = false
+    smoothDrawing(this)
   }
 
-  // onmousewheel(this: SelfEventContenxt, metadata: PrimitiveEventMetadata<'wheel'>) {
-  //   const { self, treemap } = this
-  //   // @ts-expect-error
-  //   const wheelDelta = metadata.native.wheelDelta
-  //   const absWheelDelta = Math.abs(wheelDelta)
-  //   const originX = metadata.native.offsetX
-  //   const originY = metadata.native.offsetY
-  //   if (wheelDelta === 0) {
-  //     return
-  //   }
-  //   const factor = absWheelDelta > 3 ? 1.4 : absWheelDelta > 1 ? 1.2 : 1.1
-  //   const scale = wheelDelta > 0 ? factor : 1 / factor
-  // }
-
   init(app: App, treemap: TreemapLayout, render: Render): void {
-    const event = new _Event<SelfEventDefinition>()
+    const event = this.event
     const nativeEvents: Array<ReturnType<typeof bindPrimitiveEvent>> = []
     const methods: InheritedCollections[] = [
       {
@@ -236,23 +297,26 @@ export class SelfEvent extends RegisterModule {
       nativeEvents.push(bindPrimitiveEvent({ treemap, self: this }, evt, event))
     })
     const selfEvt = event.bindWithContext<SelfEventContenxt>({ treemap, self: this })
-    // selfEvt('wheel', this.onmousewheel)
+    selfEvt('mousedown', this.ondragstart)
+    selfEvt('mousemove', this.ondragmove)
+    selfEvt('mouseup', this.ondragend)
+
+    // highlight
     selfEvt('mousemove', this.onmousemove)
     selfEvt('mouseout', this.onmouseout)
 
-    treemap.event.on('zoom', (node: LayoutModule) => {
-      const root: LayoutModule | null = null
-      onZoom({ treemap, self: this }, node, root)
-    })
+    applyZoomEvent({ treemap, self: this })
 
     treemap.event.on('cleanup:selfevent', () => {
       this.currentNode = null
       this.isAnimating = false
-      this.scaleRatio = treemap.render.options.devicePixelRatio
+      this.scaleRatio = 1
       this.translateX = 0
       this.translateY = 0
       this.layoutWidth = treemap.render.canvas.width
       this.layoutHeight = treemap.render.canvas.height
+      this.isDragging = false
+      this.draggingState = { x: 0, y: 0 }
     })
   }
 }
@@ -347,4 +411,13 @@ function onZoom(ctx: SelfEventContenxt, node: LayoutModule, root: LayoutModule |
     }
   }
   root = node
+}
+
+interface DuckE {
+  which: number
+}
+
+// Only works for mouseup and mousedown events
+function isScrollWheelOrRightButtonOnMouseupAndDown<E extends DuckE = DuckE>(e: E) {
+  return e.which === 2 || e.which === 3
 }

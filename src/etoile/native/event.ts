@@ -17,7 +17,7 @@ export type EventCollections<EvtDefinition extends DefaultEventDefinition> = Rec
 >
 
 export class Event<EvtDefinition extends DefaultEventDefinition = DefaultEventDefinition> {
-  private eventCollections: EventCollections<EvtDefinition>
+  eventCollections: EventCollections<EvtDefinition>
 
   constructor() {
     this.eventCollections = Object.create(null)

@@ -45,63 +45,6 @@ export interface EventMethods<C = TreemapInstanceAPI, D = PrimitiveEventDefiniti
   ): void
 }
 
-function getOffset(el: HTMLElement) {
-  let e = 0
-  let f = 0
-  if (document.documentElement.getBoundingClientRect && el.getBoundingClientRect) {
-    const { top, left } = el.getBoundingClientRect()
-    e = top
-    f = left
-  } else {
-    for (let elt: HTMLElement | null = el; elt; elt = el.offsetParent as HTMLElement | null) {
-      e += el.offsetLeft
-      f += el.offsetTop
-    }
-  }
-
-  return [
-    e + Math.max(document.documentElement.scrollLeft, document.body.scrollLeft),
-    f + Math.max(document.documentElement.scrollTop, document.body.scrollTop)
-  ]
-}
-
-function captureBoxXY(c: HTMLCanvasElement, evt: unknown, a: number, d: number) {
-  const boundingClientRect = c.getBoundingClientRect()
-  if (evt instanceof MouseEvent) {
-    const [e, f] = getOffset(c)
-    return {
-      x: (evt.clientX - boundingClientRect.left - e) / a,
-      y: (evt.clientY - boundingClientRect.top - f) / d
-    }
-  }
-  return { x: 0, y: 0 }
-}
-
-function bindPrimitiveEvent(
-  treemap: TreemapLayout,
-  render: Render,
-  evt: PrimitiveEvent | (string & {}),
-  bus: _Event<SelfEventDefinition>
-) {
-  const c = render.canvas
-  const handler = (e: unknown) => {
-    const { x, y } = captureBoxXY(
-      c,
-      e,
-      treemap.matrix.a,
-      treemap.matrix.d
-    )
-    const event = <PrimitiveEventMetadata<PrimitiveEvent>> {
-      native: e,
-      module: findRelativeNode(c, { x, y }, treemap.layoutNodes)
-    }
-    // @ts-expect-error
-    bus.emit(evt, event)
-  }
-  c.addEventListener(evt, handler)
-  return handler
-}
-
 interface SelfEventContenxt {
   treemap: TreemapLayout
   // eslint-disable-next-line no-use-before-define
@@ -157,15 +100,75 @@ function smoothDrawing(c: SelfEventContenxt) {
   }
 }
 
+function getOffset(el: HTMLElement) {
+  let e = 0
+  let f = 0
+  if (document.documentElement.getBoundingClientRect && el.getBoundingClientRect) {
+    const { top, left } = el.getBoundingClientRect()
+    e = top
+    f = left
+  } else {
+    for (let elt: HTMLElement | null = el; elt; elt = el.offsetParent as HTMLElement | null) {
+      e += el.offsetLeft
+      f += el.offsetTop
+    }
+  }
+
+  return [
+    e + Math.max(document.documentElement.scrollLeft, document.body.scrollLeft),
+    f + Math.max(document.documentElement.scrollTop, document.body.scrollTop)
+  ]
+}
+
+function captureBoxXY(c: HTMLCanvasElement, evt: unknown, a: number, d: number) {
+  const boundingClientRect = c.getBoundingClientRect()
+  if (evt instanceof MouseEvent) {
+    const [e, f] = getOffset(c)
+    return {
+      x: ((evt.clientX - boundingClientRect.left - e) / a),
+      y: ((evt.clientY - boundingClientRect.top - f) / d)
+    }
+  }
+  return { x: 0, y: 0 }
+}
+
+function bindPrimitiveEvent(
+  ctx: SelfEventContenxt,
+  evt: PrimitiveEvent | (string & {}),
+  bus: _Event<SelfEventDefinition>
+) {
+  const { treemap, self } = ctx
+  const c = treemap.render.canvas
+  const handler = (e: unknown) => {
+    console.log(self.scaleRatio)
+    const { x, y } = captureBoxXY(
+      c,
+      e,
+      treemap.matrix.a,
+      treemap.matrix.d
+    )
+    const event = <PrimitiveEventMetadata<PrimitiveEvent>> {
+      native: e,
+      module: findRelativeNode(c, { x, y }, treemap.layoutNodes)
+    }
+    // @ts-expect-error
+    bus.emit(evt, event)
+  }
+  c.addEventListener(evt, handler)
+  return handler
+}
+
 export class SelfEvent extends RegisterModule {
   currentNode: LayoutModule | null
   isAnimating: boolean
   forceDestroy: boolean
+  scaleRatio: number
   constructor() {
     super()
     this.currentNode = null
     this.isAnimating = false
     this.forceDestroy = false
+    this.scaleRatio = 1
   }
 
   onmousemove(this: SelfEventContenxt, metadata: PrimitiveEventMetadata<'mousemove'>) {
@@ -184,19 +187,19 @@ export class SelfEvent extends RegisterModule {
     smoothDrawing(this)
   }
 
-  onmousewheel(this: SelfEventContenxt, metadata: PrimitiveEventMetadata<'wheel'>) {
-    const { self, treemap } = this
-    // @ts-expect-error
-    const wheelDelta = metadata.native.wheelDelta
-    const absWheelDelta = Math.abs(wheelDelta)
-    const originX = metadata.native.offsetX
-    const originY = metadata.native.offsetY
-    if (wheelDelta === 0) {
-      return
-    }
-    const factor = absWheelDelta > 3 ? 1.4 : absWheelDelta > 1 ? 1.2 : 1.1
-    const scale = wheelDelta > 0 ? factor : 1 / factor
-  }
+  // onmousewheel(this: SelfEventContenxt, metadata: PrimitiveEventMetadata<'wheel'>) {
+  //   const { self, treemap } = this
+  //   // @ts-expect-error
+  //   const wheelDelta = metadata.native.wheelDelta
+  //   const absWheelDelta = Math.abs(wheelDelta)
+  //   const originX = metadata.native.offsetX
+  //   const originY = metadata.native.offsetY
+  //   if (wheelDelta === 0) {
+  //     return
+  //   }
+  //   const factor = absWheelDelta > 3 ? 1.4 : absWheelDelta > 1 ? 1.2 : 1.1
+  //   const scale = wheelDelta > 0 ? factor : 1 / factor
+  // }
 
   init(app: App, treemap: TreemapLayout, render: Render): void {
     const event = new _Event<SelfEventDefinition>()
@@ -216,16 +219,21 @@ export class SelfEvent extends RegisterModule {
       }
     ]
     RegisterModule.mixin(app, methods)
-
+    this.scaleRatio = treemap.render.options.devicePixelRatio
     const selfEvents = [...primitiveEvents, 'wheel'] as const
 
     selfEvents.forEach((evt) => {
-      nativeEvents.push(bindPrimitiveEvent(treemap, render, evt, event))
+      nativeEvents.push(bindPrimitiveEvent({ treemap, self: this }, evt, event))
     })
     const selfEvt = event.bindWithContext<SelfEventContenxt>({ treemap, self: this })
-    selfEvt('wheel', this.onmousewheel)
+    // selfEvt('wheel', this.onmousewheel)
     selfEvt('mousemove', this.onmousemove)
     selfEvt('mouseout', this.onmouseout)
+
+    treemap.event.on('zoom', (node: LayoutModule) => {
+      const root: LayoutModule | null = null
+      onZoom({ treemap, self: this }, node, root)
+    })
   }
 }
 
@@ -255,29 +263,27 @@ function estimateZoomingArea(node: LayoutModule, root: LayoutModule | null, w: n
   return [w * scale, h * scale]
 }
 
-export function onZoom(treemap: TreemapLayout, render: Render) {
-  const c = render.canvas
-  let root: LayoutModule | null = null
-  return (node: LayoutModule) => {
-    const boundingClientRect = c.getBoundingClientRect()
-    const [w, h] = estimateZoomingArea(node, root, boundingClientRect.width, boundingClientRect.height)
-    resetLayout(treemap, w, h)
-    treemap.reset()
-    const module = findRelativeNodeById(node.node.id, treemap.layoutNodes)
-    if (module) {
-      const [mx, my, mw, mh] = module.layout
-      const scale = Math.min(boundingClientRect.width / mw, boundingClientRect.height / mh)
-      const translateX = (boundingClientRect.width / 2) - (mx + mw / 2) * scale
-      const translateY = (boundingClientRect.height / 2) - (my + mh / 2) * scale
-      etoile.traverse(treemap.elements, (graph) => {
-        graph.x = graph.x * scale + translateX
-        graph.y = graph.y * scale + translateY
-        graph.scaleX = graph.scaleX * scale
-        graph.scaleY = graph.scaleY * scale
-      })
-      treemap.update()
-    }
-
-    root = node
+function onZoom(ctx: SelfEventContenxt, node: LayoutModule, root: LayoutModule | null) {
+  const { treemap, self } = ctx
+  const c = treemap.render.canvas
+  const boundingClientRect = c.getBoundingClientRect()
+  const [w, h] = estimateZoomingArea(node, root, boundingClientRect.width, boundingClientRect.height)
+  resetLayout(treemap, w, h)
+  treemap.reset()
+  const module = findRelativeNodeById(node.node.id, treemap.layoutNodes)
+  if (module) {
+    const [mx, my, mw, mh] = module.layout
+    const scale = Math.min(boundingClientRect.width / mw, boundingClientRect.height / mh)
+    const translateX = (boundingClientRect.width / 2) - (mx + mw / 2) * scale
+    const translateY = (boundingClientRect.height / 2) - (my + mh / 2) * scale
+    etoile.traverse(treemap.elements, (graph) => {
+      graph.x = graph.x * scale + translateX
+      graph.y = graph.y * scale + translateY
+      graph.scaleX = graph.scaleX * scale
+      graph.scaleY = graph.scaleY * scale
+    })
+    self.scaleRatio = scale
+    treemap.update()
   }
+  root = node
 }

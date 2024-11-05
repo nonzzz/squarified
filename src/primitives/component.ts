@@ -5,11 +5,9 @@ import { bindParentForModule } from './struct'
 import type { Module, NativeModule } from './struct'
 import { squarify } from './squarify'
 import type { LayoutModule } from './squarify'
-import { SelfEvent, onZoom } from './event'
+import { SelfEvent } from './event'
 import { registerModuleForSchedule } from './registry'
 import type { RenderDecorator, Series } from './decorator'
-import { Animation } from './animation'
-import type { AnimationMethods } from './animation'
 
 export interface TreemapOptions {
   data: Module[]
@@ -27,8 +25,7 @@ export interface App {
 }
 
 const defaultRegistries = [
-  registerModuleForSchedule(new SelfEvent()),
-  registerModuleForSchedule(new Animation())
+  registerModuleForSchedule(new SelfEvent())
 ]
 
 export function charCodeWidth(c: CanvasRenderingContext2D, ch: number) {
@@ -112,11 +109,6 @@ export function resetLayout(treemap: TreemapLayout, w: number, h: number) {
 
 // https://www.typescriptlang.org/docs/handbook/mixins.html
 class Schedule extends etoile.Schedule {}
-interface Schedule extends AnimationMethods {}
-
-export interface TreemapInstanceAPI {
-  zoom: ReturnType<typeof onZoom>
-}
 
 export class TreemapLayout extends Schedule {
   data: NativeModule[]
@@ -208,8 +200,12 @@ export class TreemapLayout extends Schedule {
     this.add(this.bgBox, this.fgBox)
   }
 
-  get api(): TreemapInstanceAPI {
-    return { zoom: onZoom(this, this.render) }
+  get api() {
+    return {
+      zoom: (node: LayoutModule) => {
+        this.event.emit('zoom', node)
+      }
+    }
   }
 }
 
@@ -271,3 +267,5 @@ export function createTreemap() {
 
   return context as App & EventMethods
 }
+
+export type TreemapInstanceAPI = TreemapLayout['api']

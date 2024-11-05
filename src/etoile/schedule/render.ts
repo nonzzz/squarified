@@ -32,7 +32,6 @@ export class Render {
 
   update(schedule: Schedule) {
     this.clear(this.options.width, this.options.height)
-    // schedule
     schedule.execute(this)
   }
 

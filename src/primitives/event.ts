@@ -5,11 +5,11 @@
 import { Render, Event as _Event, easing, etoile } from '../etoile'
 import type { BindThisParameter } from '../etoile'
 import { applyForOpacity } from './animation'
-import { TreemapLayout } from './component'
+import { TreemapLayout, resetLayout } from './component'
 import type { App, TreemapInstanceAPI } from './component'
 import { RegisterModule } from './registry'
 import type { InheritedCollections } from './registry'
-import { type LayoutModule, squarify } from './squarify'
+import type { LayoutModule } from './squarify'
 import { findRelativeNode, findRelativeNodeById, visit } from './struct'
 import type { NativeModule } from './struct'
 
@@ -260,21 +260,23 @@ export function onZoom(treemap: TreemapLayout, render: Render) {
   let root: LayoutModule | null = null
   return (node: LayoutModule) => {
     const boundingClientRect = c.getBoundingClientRect()
-    // console.log(treemap.matrix)
     const [w, h] = estimateZoomingArea(node, root, boundingClientRect.width, boundingClientRect.height)
-    treemap.layoutNodes = squarify(treemap.data, { w, h, x: 0, y: 0 }, treemap.decorator.layout)
+    resetLayout(treemap, w, h)
+    treemap.reset()
     const module = findRelativeNodeById(node.node.id, treemap.layoutNodes)
-    console.log(module)
-    // console.log(node.node.id)
-    // if (module) {
-    //   const scale = Math.min(boundingClientRect.width / module.layout[2], boundingClientRect.height / module.layout[3])
-    //   const translateX = (boundingClientRect.width / 2) - (module.layout[0] + module.layout[2] / 2) * scale
-    //   const translateY = (boundingClientRect.height / 2) - (module.layout[1] + module.layout[3] / 2) * scale
-    //   treemap.matrix = treemap.matrix.create({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 })
-    //   treemap.matrix.transform(300, 300, 1.5, 1.5, 0, 0, 0)
-    //   console.log(treemap.matrix)
-    //   treemap.draw()
-    // }
+    if (module) {
+      const [mx, my, mw, mh] = module.layout
+      const scale = Math.min(boundingClientRect.width / mw, boundingClientRect.height / mh)
+      const translateX = (boundingClientRect.width / 2) - (mx + mw / 2) * scale
+      const translateY = (boundingClientRect.height / 2) - (my + mh / 2) * scale
+      etoile.traverse(treemap.elements, (graph) => {
+        graph.x = graph.x * scale + translateX
+        graph.y = graph.y * scale + translateY
+        graph.scaleX = graph.scaleX * scale
+        graph.scaleY = graph.scaleY * scale
+      })
+      treemap.update()
+    }
 
     root = node
   }

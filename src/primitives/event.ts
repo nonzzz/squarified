@@ -258,29 +258,37 @@ export class SelfEvent extends RegisterModule {
 }
 
 function estimateZoomingArea(node: LayoutModule, root: LayoutModule | null, w: number, h: number) {
-  let currentNode = node.node
   const defaultSizes = [w, h, 1]
   if (root === node) {
     return defaultSizes
   }
-  let parent: NativeModule
+
   const viewArea = w * h
-  let area = viewArea * 1.5
-  // eslint-disable-next-line no-cond-assign
-  while (parent = currentNode.parent as NativeModule) {
-    let sum = 0
-    const siblings = parent.groups
-    for (let i = 0; i < siblings.length; i++) {
-      sum += siblings[i].weight
+  let area = viewArea
+
+  let parent: NativeModule | null = node.node.parent as NativeModule
+  let totalWeight = node.node.weight
+
+  while (parent) {
+    const siblings = parent.groups || []
+    let siblingWeightSum = 0
+
+    for (const sibling of siblings) {
+      siblingWeightSum += sibling.weight
     }
-    const currentNodeValue = currentNode.weight
-    area *= sum / currentNodeValue
-    currentNode = parent
+
+    area *= siblingWeightSum / totalWeight
+
+    totalWeight = parent.weight
+    parent = parent.parent as NativeModule
   }
 
-  area < viewArea && (area = viewArea)
-  const scale = Math.pow(area / viewArea, 0.5)
-  return [w * scale, h * scale]
+  const maxScaleFactor = 2.5
+  const minScaleFactor = 0.3
+
+  const scaleFactor = Math.max(minScaleFactor, Math.min(maxScaleFactor, Math.sqrt(area / viewArea)))
+
+  return [w * scaleFactor, h * scaleFactor]
 }
 
 function applyGraphTransform(graphs: Display[], translateX: number, translateY: number, scale: number) {
@@ -295,6 +303,7 @@ function applyGraphTransform(graphs: Display[], translateX: number, translateY: 
 function onZoom(ctx: SelfEventContenxt, node: LayoutModule, root: LayoutModule | null) {
   if (!node) return
   const { treemap, self } = ctx
+  let isAnimating = false
   const c = treemap.render.canvas
   const boundingClientRect = c.getBoundingClientRect()
   const [w, h] = estimateZoomingArea(node, root, boundingClientRect.width, boundingClientRect.height)
@@ -305,13 +314,37 @@ function onZoom(ctx: SelfEventContenxt, node: LayoutModule, root: LayoutModule |
     const scale = Math.min(boundingClientRect.width / mw, boundingClientRect.height / mh)
     const translateX = (boundingClientRect.width / 2) - (mx + mw / 2) * scale
     const translateY = (boundingClientRect.height / 2) - (my + mh / 2) * scale
-    applyGraphTransform(treemap.elements, translateX, translateY, scale)
-    self.scaleRatio = scale
-    self.translateX = translateX
-    self.translateY = translateY
-    self.layoutWidth = w
-    self.layoutHeight = h
-    treemap.update()
+    const initialScale = self.scaleRatio
+    const initialTranslateX = self.translateX
+    const initialTranslateY = self.translateY
+    const startTime = Date.now()
+    const animationDuration = 300
+    const draw = () => {
+      if (self.forceDestroy) {
+        return
+      }
+      const elapsed = Date.now() - startTime
+      const progress = Math.min(elapsed / animationDuration, 1)
+      const easedProgress = easing.cubicInOut(progress)
+      const scaleRatio = initialScale + (scale - initialScale) * easedProgress
+      self.translateX = initialTranslateX + (translateX - initialTranslateX) * easedProgress
+      self.translateY = initialTranslateY + (translateY - initialTranslateY) * easedProgress
+      self.scaleRatio = scaleRatio
+      treemap.reset()
+      applyGraphTransform(treemap.elements, self.translateX, self.translateY, scaleRatio)
+      treemap.update()
+      if (progress < 1) {
+        window.requestAnimationFrame(draw)
+      } else {
+        self.layoutWidth = w
+        self.layoutHeight = h
+        isAnimating = false
+      }
+    }
+    if (!isAnimating) {
+      isAnimating = true
+      window.requestAnimationFrame(draw)
+    }
   }
   root = node
 }

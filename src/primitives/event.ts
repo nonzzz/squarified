@@ -1,6 +1,7 @@
 // etoile is a simple 2D render engine for web and it don't take complex rendering into account.
 // So it's no need to implement a complex event algorithm or hit mode.
 // If one day etoile need to build as a useful library. Pls rewrite it!
+// All of implementation don't want to consider the compatibility of the browser.
 
 import { Display } from '../etoile/graph/display'
 import { Render, Event as _Event, easing, etoile } from '../etoile'
@@ -274,6 +275,9 @@ export class SelfEvent extends RegisterModule {
     smoothDrawing(this)
   }
 
+  onwheel(this: SelfEventContenxt, metadata: PrimitiveEventMetadata<'wheel'>) {
+  }
+
   init(app: App, treemap: TreemapLayout, render: Render): void {
     const event = this.event
     const nativeEvents: Array<ReturnType<typeof bindPrimitiveEvent>> = []
@@ -304,6 +308,9 @@ export class SelfEvent extends RegisterModule {
     // highlight
     selfEvt('mousemove', this.onmousemove)
     selfEvt('mouseout', this.onmouseout)
+
+    // wheel
+    selfEvt('wheel', this.onwheel)
 
     applyZoomEvent({ treemap, self: this })
 

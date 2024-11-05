@@ -4,7 +4,8 @@ import { getNodeDepth } from './struct'
 
 type Rect = { w: number; h: number; x: number; y: number }
 
-export type LayoutModule = Partial<NativeModule> & {
+export type LayoutModule = {
+  node: NativeModule
   layout: [number, number, number, number]
   children: LayoutModule[]
   decorator: {

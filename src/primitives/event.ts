@@ -2,6 +2,7 @@
 // So it's no need to implement a complex event algorithm or hit mode.
 // If one day etoile need to build as a useful library. Pls rewrite it!
 
+import { Display } from '../etoile/graph/display'
 import { Render, Event as _Event, easing, etoile } from '../etoile'
 import type { BindThisParameter } from '../etoile'
 import { applyForOpacity } from './animation'
@@ -53,7 +54,6 @@ interface SelfEventContenxt {
 
 function smoothDrawing(c: SelfEventContenxt) {
   const { self, treemap } = c
-
   const currentNode = self.currentNode
   if (currentNode) {
     const lloc: Set<string> = new Set()
@@ -85,6 +85,7 @@ function smoothDrawing(c: SelfEventContenxt) {
           }
         }
       })
+      applyGraphTransform(treemap.elements, self.translateX, self.translateY, self.scaleRatio)
       treemap.update()
       if (!allTasksCompleted) {
         window.requestAnimationFrame(draw)
@@ -94,9 +95,6 @@ function smoothDrawing(c: SelfEventContenxt) {
       self.isAnimating = true
       window.requestAnimationFrame(draw)
     }
-  } else {
-    treemap.reset()
-    treemap.update()
   }
 }
 
@@ -120,13 +118,13 @@ function getOffset(el: HTMLElement) {
   ]
 }
 
-function captureBoxXY(c: HTMLCanvasElement, evt: unknown, a: number, d: number) {
+function captureBoxXY(c: HTMLCanvasElement, evt: unknown, a: number, d: number, translateX: number, translateY: number) {
   const boundingClientRect = c.getBoundingClientRect()
   if (evt instanceof MouseEvent) {
     const [e, f] = getOffset(c)
     return {
-      x: ((evt.clientX - boundingClientRect.left - e) / a),
-      y: ((evt.clientY - boundingClientRect.top - f) / d)
+      x: ((evt.clientX - boundingClientRect.left - e - translateX) / a),
+      y: ((evt.clientY - boundingClientRect.top - f - translateY) / d)
     }
   }
   return { x: 0, y: 0 }
@@ -140,13 +138,15 @@ function bindPrimitiveEvent(
   const { treemap, self } = ctx
   const c = treemap.render.canvas
   const handler = (e: unknown) => {
-    console.log(self.scaleRatio)
     const { x, y } = captureBoxXY(
       c,
       e,
-      treemap.matrix.a,
-      treemap.matrix.d
+      self.scaleRatio,
+      self.scaleRatio,
+      self.translateX,
+      self.translateY
     )
+
     const event = <PrimitiveEventMetadata<PrimitiveEvent>> {
       native: e,
       module: findRelativeNode(c, { x, y }, treemap.layoutNodes)
@@ -163,28 +163,40 @@ export class SelfEvent extends RegisterModule {
   isAnimating: boolean
   forceDestroy: boolean
   scaleRatio: number
+  translateX: number
+  translateY: number
+  layoutWidth: number
+  layoutHeight: number
   constructor() {
     super()
     this.currentNode = null
     this.isAnimating = false
     this.forceDestroy = false
     this.scaleRatio = 1
+    this.translateX = 0
+    this.translateY = 0
+    this.layoutWidth = 0
+    this.layoutHeight = 0
   }
 
   onmousemove(this: SelfEventContenxt, metadata: PrimitiveEventMetadata<'mousemove'>) {
     const { module: node } = metadata
-    this.self.forceDestroy = false
-    if (this.self.currentNode !== node) {
-      this.self.currentNode = node
-      this.self.isAnimating = false
+    const { self } = this
+    self.forceDestroy = false
+    if (self.currentNode !== node) {
+      self.currentNode = node
+      self.isAnimating = false
     }
     smoothDrawing(this)
   }
 
   onmouseout(this: SelfEventContenxt) {
-    this.self.currentNode = null
-    this.self.forceDestroy = true
-    smoothDrawing(this)
+    const { self, treemap } = this
+    self.currentNode = null
+    self.forceDestroy = true
+    treemap.reset()
+    applyGraphTransform(treemap.elements, self.translateX, self.translateY, self.scaleRatio)
+    treemap.update()
   }
 
   // onmousewheel(this: SelfEventContenxt, metadata: PrimitiveEventMetadata<'wheel'>) {
@@ -219,9 +231,7 @@ export class SelfEvent extends RegisterModule {
       }
     ]
     RegisterModule.mixin(app, methods)
-    this.scaleRatio = treemap.render.options.devicePixelRatio
     const selfEvents = [...primitiveEvents, 'wheel'] as const
-
     selfEvents.forEach((evt) => {
       nativeEvents.push(bindPrimitiveEvent({ treemap, self: this }, evt, event))
     })
@@ -233,6 +243,16 @@ export class SelfEvent extends RegisterModule {
     treemap.event.on('zoom', (node: LayoutModule) => {
       const root: LayoutModule | null = null
       onZoom({ treemap, self: this }, node, root)
+    })
+
+    treemap.event.on('cleanup:selfevent', () => {
+      this.currentNode = null
+      this.isAnimating = false
+      this.scaleRatio = treemap.render.options.devicePixelRatio
+      this.translateX = 0
+      this.translateY = 0
+      this.layoutWidth = treemap.render.canvas.width
+      this.layoutHeight = treemap.render.canvas.height
     })
   }
 }
@@ -263,26 +283,34 @@ function estimateZoomingArea(node: LayoutModule, root: LayoutModule | null, w: n
   return [w * scale, h * scale]
 }
 
+function applyGraphTransform(graphs: Display[], translateX: number, translateY: number, scale: number) {
+  etoile.traverse(graphs, (graph) => {
+    graph.x = graph.x * scale + translateX
+    graph.y = graph.y * scale + translateY
+    graph.scaleX = scale
+    graph.scaleY = scale
+  })
+}
+
 function onZoom(ctx: SelfEventContenxt, node: LayoutModule, root: LayoutModule | null) {
+  if (!node) return
   const { treemap, self } = ctx
   const c = treemap.render.canvas
   const boundingClientRect = c.getBoundingClientRect()
   const [w, h] = estimateZoomingArea(node, root, boundingClientRect.width, boundingClientRect.height)
   resetLayout(treemap, w, h)
-  treemap.reset()
   const module = findRelativeNodeById(node.node.id, treemap.layoutNodes)
   if (module) {
     const [mx, my, mw, mh] = module.layout
     const scale = Math.min(boundingClientRect.width / mw, boundingClientRect.height / mh)
     const translateX = (boundingClientRect.width / 2) - (mx + mw / 2) * scale
     const translateY = (boundingClientRect.height / 2) - (my + mh / 2) * scale
-    etoile.traverse(treemap.elements, (graph) => {
-      graph.x = graph.x * scale + translateX
-      graph.y = graph.y * scale + translateY
-      graph.scaleX = graph.scaleX * scale
-      graph.scaleY = graph.scaleY * scale
-    })
+    applyGraphTransform(treemap.elements, translateX, translateY, scale)
     self.scaleRatio = scale
+    self.translateX = translateX
+    self.translateY = translateY
+    self.layoutWidth = w
+    self.layoutHeight = h
     treemap.update()
   }
   root = node

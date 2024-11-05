@@ -1,7 +1,4 @@
-import { App } from './primitives'
-
-export function createTreemap() {
-  return new App()
-}
-
+export { createTreemap } from './primitives/component'
+export type { App, TreemapInstanceAPI } from './primitives/component'
+export * from './primitives/decorator'
 export { c2m, flatten as flattenModule, sortChildrenByKey } from './primitives/struct'

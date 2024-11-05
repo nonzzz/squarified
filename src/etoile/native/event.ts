@@ -59,6 +59,7 @@ export class Event<EvtDefinition extends DefaultEventDefinition = DefaultEventDe
   bindWithContext<C>(
     c: C
   ) {
-    return (evt: keyof EvtDefinition, handler: BindThisParameter<EvtDefinition[keyof EvtDefinition]>) => this.on(evt, handler, c)
+    return (evt: keyof EvtDefinition, handler: BindThisParameter<EvtDefinition[keyof EvtDefinition], unknown extends C ? this : C>) =>
+      this.on(evt, handler, c)
   }
 }

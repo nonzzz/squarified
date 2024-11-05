@@ -1,10 +1,11 @@
-import type { RenderLayout } from './render'
+import type { RenderLayout } from './decorator'
 import type { NativeModule } from './struct'
 import { getNodeDepth } from './struct'
 
 type Rect = { w: number; h: number; x: number; y: number }
 
-export type LayoutModule = Partial<NativeModule> & {
+export type LayoutModule = {
+  node: NativeModule
   layout: [number, number, number, number]
   children: LayoutModule[]
   decorator: {

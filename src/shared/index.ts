@@ -1,6 +1,4 @@
-export * from './colors'
-
-export class Iter<T extends Record<string, unknown>> {
+export class Iter<T extends NonNullable<Record<string, any>>> {
   private keys: (keyof T)[]
   private data: T
   constructor(data: T) {

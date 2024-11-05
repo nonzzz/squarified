@@ -1,3 +1,5 @@
+// Runtime is designed for graph element
+
 export interface RGBColor {
   r: number
   g: number
@@ -15,7 +17,7 @@ export interface HLSColor {
 export type ColorMode = 'rgb' | 'hsl'
 
 export interface ColorDecoratorResultHLS {
-  mode: 'hsl'
+  mode?: 'hsl'
   desc: HLSColor
 }
 
@@ -44,4 +46,13 @@ export function decodeRGB(meta: RGBColor): string {
 
 export function decodeColor(meta: ColorDecoratorResult) {
   return meta.mode === 'rgb' ? decodeRGB(meta.desc) : decodeHLS(meta.desc)
+}
+
+function evaluateFillStyle(primitive: ColorDecoratorResult, opacity: number = 1) {
+  const descibe = <ColorDecoratorResult> { mode: primitive.mode, desc: { ...primitive.desc, a: opacity } }
+  return decodeColor(descibe)
+}
+
+export const runtime = {
+  evaluateFillStyle
 }

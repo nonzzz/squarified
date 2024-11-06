@@ -1,6 +1,6 @@
 {
   "name": "squarified",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "squarified tree map",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
@@ -17,6 +17,15 @@
     "squarified",
     "tree-map"
   ],
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nonzzz/squarified.git"
+  },
   "author": "Kanno",
   "license": "MIT",
   "devDependencies": {

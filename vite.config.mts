@@ -1,5 +1,8 @@
 import { defineConfig } from 'vite'
 
 export default defineConfig({
-  root: './dev'
+  root: './dev',
+  build: {
+    outDir: '../display'
+  }
 })

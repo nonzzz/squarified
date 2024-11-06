@@ -7,7 +7,7 @@
 ## Usage
 
 ```ts
-import { createTreemap, presetDecorator } from '.'
+import { createTreemap, presetDecorator } from 'squarified'
 
 const root = document.querySelector('#app')
 

@@ -1,6 +1,7 @@
 // etoile is a simple 2D render engine for web and it don't take complex rendering into account.
 // So it's no need to implement a complex event algorithm or hit mode.
 // If one day etoile need to build as a useful library. Pls rewrite it!
+// All of implementation don't want to consider the compatibility of the browser.
 
 import { Display } from '../etoile/graph/display'
 import { Render, Event as _Event, easing, etoile } from '../etoile'
@@ -274,6 +275,36 @@ export class SelfEvent extends RegisterModule {
     smoothDrawing(this)
   }
 
+  onwheel(this: SelfEventContenxt, metadata: PrimitiveEventMetadata<'wheel'>) {
+    const { self, treemap } = this
+    // @ts-expect-error
+    const wheelDelta = metadata.native.wheelDelta
+    const absWheelDelta = Math.abs(wheelDelta)
+    const offsetX = metadata.native.offsetX
+    const offsetY = metadata.native.offsetY
+
+    if (wheelDelta === 0) {
+      return
+    }
+    self.forceDestroy = true
+    self.isAnimating = true
+    treemap.reset()
+    const factor = absWheelDelta > 3 ? 1.4 : absWheelDelta > 1 ? 1.2 : 1.1
+    const delta = wheelDelta > 0 ? factor : 1 / factor
+
+    self.scaleRatio *= delta
+
+    const translateX = offsetX - (offsetX - self.translateX) * delta
+    const translateY = offsetY - (offsetY - self.translateY) * delta
+    self.translateX = translateX
+    self.translateY = translateY
+    applyGraphTransform(treemap.elements, self.translateX, self.translateY, self.scaleRatio)
+
+    treemap.update()
+    self.forceDestroy = false
+    self.isAnimating = false
+  }
+
   init(app: App, treemap: TreemapLayout, render: Render): void {
     const event = this.event
     const nativeEvents: Array<ReturnType<typeof bindPrimitiveEvent>> = []
@@ -304,6 +335,9 @@ export class SelfEvent extends RegisterModule {
     // highlight
     selfEvt('mousemove', this.onmousemove)
     selfEvt('mouseout', this.onmouseout)
+
+    // wheel
+    selfEvt('wheel', this.onwheel)
 
     applyZoomEvent({ treemap, self: this })
 

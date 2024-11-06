@@ -282,23 +282,27 @@ export class SelfEvent extends RegisterModule {
     const absWheelDelta = Math.abs(wheelDelta)
     const offsetX = metadata.native.offsetX
     const offsetY = metadata.native.offsetY
+
     if (wheelDelta === 0) {
       return
     }
-    this.self.forceDestroy = true
-    this.treemap.reset()
+    self.forceDestroy = true
+    self.isAnimating = true
+    treemap.reset()
     const factor = absWheelDelta > 3 ? 1.4 : absWheelDelta > 1 ? 1.2 : 1.1
     const delta = wheelDelta > 0 ? factor : 1 / factor
-    this.self.scaleRatio *= delta
-    const translateX = offsetX - (offsetX - this.self.translateX) * delta
-    const translateY = offsetY - (offsetY - this.self.translateY) * delta
 
-    this.self.translateX = translateX
-    this.self.translateY = translateY
+    self.scaleRatio *= delta
 
+    const translateX = offsetX - (offsetX - self.translateX) * delta
+    const translateY = offsetY - (offsetY - self.translateY) * delta
+    self.translateX = translateX
+    self.translateY = translateY
     applyGraphTransform(treemap.elements, self.translateX, self.translateY, self.scaleRatio)
-    this.treemap.update()
-    this.self.forceDestroy = false
+
+    treemap.update()
+    self.forceDestroy = false
+    self.isAnimating = false
   }
 
   init(app: App, treemap: TreemapLayout, render: Render): void {

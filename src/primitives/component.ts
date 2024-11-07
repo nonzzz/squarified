@@ -1,7 +1,7 @@
 import type { ColorDecoratorResult } from '../etoile/native/runtime'
 import { Box, Rect, Text, etoile } from '../etoile'
 import type { EventMethods } from './event'
-import { bindParentForModule } from './struct'
+import { bindParentForModule, findRelativeNodeById } from './struct'
 import type { Module, NativeModule } from './struct'
 import { squarify } from './squarify'
 import type { LayoutModule } from './squarify'
@@ -22,6 +22,7 @@ export interface App {
   resize: () => void
   // eslint-disable-next-line no-use-before-define
   use: (using: Using, register: (app: TreemapLayout) => void) => void
+  zoom: (id: string) => void
 }
 
 const defaultRegistries = [
@@ -212,6 +213,7 @@ export class TreemapLayout extends Schedule {
 export function createTreemap() {
   let treemap: TreemapLayout | null = null
   let root: Element | null = null
+  let installed = false
   const uses: any[] = []
 
   const context = {
@@ -219,7 +221,8 @@ export function createTreemap() {
     dispose,
     setOptions,
     resize,
-    use
+    use,
+    zoom
   }
 
   function init(el: Element) {
@@ -249,9 +252,14 @@ export function createTreemap() {
       throw new Error('Treemap not initialized')
     }
     treemap.data = bindParentForModule(options.data || [])
-    for (const registry of defaultRegistries) {
-      registry(context, treemap, treemap.render)
+
+    if (!installed) {
+      for (const registry of defaultRegistries) {
+        registry(context, treemap, treemap.render)
+      }
+      installed = true
     }
+
     for (const use of uses) {
       use(treemap)
     }
@@ -264,6 +272,14 @@ export function createTreemap() {
         uses.push((treemap: TreemapLayout) => register(treemap))
         break
     }
+  }
+
+  function zoom(id: string) {
+    if (!treemap) {
+      throw new Error("treemap don't init.")
+    }
+    const node = findRelativeNodeById(id, treemap.layoutNodes)
+    node && treemap.api.zoom(node)
   }
 
   return context as App & EventMethods

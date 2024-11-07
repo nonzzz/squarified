@@ -418,9 +418,6 @@ function onZoom(ctx: SelfEventContenxt, node: LayoutModule, root: LayoutModule |
     const startTime = Date.now()
     const animationDuration = 300
     const draw = () => {
-      if (self.forceDestroy) {
-        return
-      }
       const elapsed = Date.now() - startTime
       const progress = Math.min(elapsed / animationDuration, 1)
       const easedProgress = easing.cubicInOut(progress)

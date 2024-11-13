@@ -29,47 +29,49 @@ const defaultRegistries = [
   registerModuleForSchedule(new SelfEvent())
 ]
 
-export function charCodeWidth(c: CanvasRenderingContext2D, ch: number) {
-  return c.measureText(String.fromCharCode(ch)).width
+function measureTextWidth(c: CanvasRenderingContext2D, text: string) {
+  return c.measureText(text).width
+}
+
+interface OptimalFontOptions {
+  range: Series<number>
+  family: string
 }
 
 export function evaluateOptimalFontSize(
   c: CanvasRenderingContext2D,
   text: string,
-  width: number,
-  fontRange: Series<number>,
-  fontFamily: string,
-  height: number
+  font: OptimalFontOptions,
+  desiredW: number,
+  desiredH: number
 ) {
-  height = Math.floor(height)
-  let optimalFontSize = fontRange.min
-  for (let fontSize = fontRange.min; fontSize <= fontRange.max; fontSize++) {
-    c.font = `${fontSize}px ${fontFamily}`
-    let textWidth = 0
-    const textHeight = fontSize
-    let i = 0
-    while (i < text.length) {
-      const codePointWidth = charCodeWidth(c, text.charCodeAt(i))
-      textWidth += codePointWidth
-      i++
+  desiredW = Math.floor(desiredW)
+  desiredH = Math.floor(desiredH)
+  const { range, family } = font
+  let min = range.min
+  let max = range.max
+  const cache = new Map<number, { width: number; height: number }>()
+
+  while (max - min >= 1) {
+    const current = min + (max - min) / 2
+    if (!cache.has(current)) {
+      c.font = `${current}px ${family}`
+      const metrics = c.measureText(text)
+      const width = metrics.width
+      const height = metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent
+      cache.set(current, { width, height })
     }
-    if (textWidth >= width) {
-      const overflow = textWidth - width
-      const ratio = overflow / textWidth
-      const newFontSize = Math.abs(Math.floor(fontSize - fontSize * ratio))
-      optimalFontSize = newFontSize || fontRange.min
-      break
+
+    const { width, height } = cache.get(current)!
+
+    if (width > desiredW || height > desiredH) {
+      max = current
+    } else {
+      min = current
     }
-    if (textHeight >= height) {
-      const overflow = textHeight - height
-      const ratio = overflow / textHeight
-      const newFontSize = Math.abs(Math.floor(fontSize - fontSize * ratio))
-      optimalFontSize = newFontSize || fontRange.min
-      break
-    }
-    optimalFontSize = fontSize
   }
-  return optimalFontSize
+
+  return Math.floor(min)
 }
 
 export function getSafeText(c: CanvasRenderingContext2D, text: string, width: number) {
@@ -77,13 +79,7 @@ export function getSafeText(c: CanvasRenderingContext2D, text: string, width: nu
   if (width < ellipsisWidth) {
     return false
   }
-  let textWidth = 0
-  let i = 0
-  while (i < text.length) {
-    const codePointWidth = charCodeWidth(c, text.charCodeAt(i))
-    textWidth += codePointWidth
-    i++
-  }
+  const textWidth = measureTextWidth(c, text)
   if (textWidth < width) {
     return { text, width: textWidth }
   }
@@ -165,14 +161,17 @@ export class TreemapLayout extends Schedule {
     this.render.ctx.textBaseline = 'middle'
     const optimalFontSize = evaluateOptimalFontSize(
       this.render.ctx,
-      node.node.label,
+      node.node.id,
+      {
+        range: fontSize,
+        family: fontFamily
+      },
       w - (rectGap * 2),
-      fontSize,
-      fontFamily,
       node.children.length ? Math.round(titleHeight / 2) + rectGap : h
     )
+
     this.render.ctx.font = `${optimalFontSize}px ${fontFamily}`
-    if (h > titleHeight) {
+    if (h > optimalFontSize) {
       const result = getSafeText(this.render.ctx, node.node.label, w - (rectGap * 2))
       if (!result) return
       const { text, width } = result
@@ -183,7 +182,9 @@ export class TreemapLayout extends Schedule {
       }
       this.fgBox.add(createTitleText(text, textX, textY, `${optimalFontSize}px ${fontFamily}`, color))
     } else {
-      const ellipsisWidth = 3 * charCodeWidth(this.render.ctx, 46)
+      if (!w || !h) return
+      const ellipsisWidth = measureTextWidth(this.render.ctx, '...')
+      if (ellipsisWidth >= w || optimalFontSize >= h) return
       const textX = x + Math.round((w - ellipsisWidth) / 2)
       const textY = y + Math.round(h / 2)
       this.fgBox.add(createTitleText('...', textX, textY, `${optimalFontSize}px ${fontFamily}`, color))

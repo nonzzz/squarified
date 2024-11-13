@@ -1,4 +1,4 @@
-import { Graph } from './display'
+import { DisplayType, Graph } from './display'
 import type { GraphOptions, GraphStyleSheet } from './display'
 
 export interface TextOptions extends Omit<GraphOptions, 'style'> {
@@ -31,5 +31,13 @@ export class Text extends Graph {
       this.instruction.fillStyle(this.style.fill)
       this.instruction.fillText(this.text, 0, 0)
     }
+  }
+
+  clone() {
+    return new Text({ ...this.style, ...this.__options__ })
+  }
+
+  get __shape__() {
+    return DisplayType.Text
   }
 }

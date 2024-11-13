@@ -1,7 +1,7 @@
 import { runtime } from '../native/runtime'
 import type { ColorDecoratorResult } from '../native/runtime'
-import { Graph, GraphStyleSheet } from './display'
-import type { GraphOptions } from './display'
+import { DisplayType, Graph } from './display'
+import type { GraphOptions, GraphStyleSheet } from './display'
 
 export type RectStyleOptions = GraphStyleSheet & { fill: ColorDecoratorResult }
 
@@ -11,6 +11,10 @@ export class Rect extends Graph {
   constructor(options: Partial<RectOptions> = {}) {
     super(options)
     this.style = options.style || Object.create(null)
+  }
+
+  get __shape__() {
+    return DisplayType.Rect
   }
 
   create() {
@@ -25,5 +29,9 @@ export class Rect extends Graph {
       }
       this.instruction.strokeRect(0, 0, this.width, this.height)
     }
+  }
+
+  clone() {
+    return new Rect({ ...this.style, ...this.__options__ })
   }
 }

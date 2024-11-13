@@ -9,10 +9,22 @@ const SELF_ID = {
   }
 }
 
-export class Display {
+export const enum DisplayType {
+  // eslint-disable-next-line no-unused-vars
+  Graph = 'Graph',
+  // eslint-disable-next-line no-unused-vars
+  Box = 'Box',
+  // eslint-disable-next-line no-unused-vars
+  Rect = 'Rect',
+  // eslint-disable-next-line no-unused-vars
+  Text = 'Text'
+}
+
+export abstract class Display {
   parent: Display | null
   id: number
   matrix: Matrix2D
+  abstract get __instanceOf__(): string
   constructor() {
     this.parent = null
     this.id = SELF_ID.get()
@@ -103,7 +115,7 @@ function createInstruction() {
   }
 }
 
-export class S extends Display {
+export abstract class S extends Display {
   width: number
   height: number
   x: number
@@ -129,23 +141,39 @@ export class S extends Display {
 
 export abstract class Graph extends S {
   instruction: ReturnType<typeof createInstruction>
+  __refresh__: boolean
+  __options__: Partial<LocOptions>
+  abstract style: GraphStyleSheet
   constructor(options: Partial<GraphOptions> = {}) {
     super(options)
     this.instruction = createInstruction()
+    // For better performance
+    this.__refresh__ = true
+    this.__options__ = options
   }
   abstract create(): void
+  abstract clone(): Graph
+  abstract get __shape__(): string
 
   render(ctx: CanvasRenderingContext2D) {
     this.create()
-    this.instruction.mods.forEach((mod) => {
-      const direct = mod[0]
+    const cap = this.instruction.mods.length
+
+    for (let i = 0; i < cap; i++) {
+      const mod = this.instruction.mods[i]
+      const [direct, ...args] = mod
       if (direct in ASSIGN_MAPPINGS) {
         // @ts-expect-error
-        ctx[direct] = mod[1]
-        return
+        ctx[direct] = args[0]
+        continue
       }
+
       // @ts-expect-error
-      ctx[direct].apply(ctx, ...mod.slice(1))
-    })
+      ctx[direct].apply(ctx, ...args)
+    }
+  }
+
+  get __instanceOf__(): DisplayType.Graph {
+    return DisplayType.Graph
   }
 }

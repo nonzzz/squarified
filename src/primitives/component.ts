@@ -123,36 +123,21 @@ export class TreemapLayout extends Schedule {
   }
 
   drawBackgroundNode(node: LayoutModule) {
+    const [x, y, w, h] = node.layout
+    const fill = this.decorator.color.mappings[node.node.id]
+    this.fgBox.add(createFillBlock(fill, x, y, w, h))
     for (const child of node.children) {
       this.drawBackgroundNode(child)
-    }
-    const [x, y, w, h] = node.layout
-    const { rectGap, titleHeight } = node.decorator
-    const fill = this.decorator.color.mappings[node.node.id]
-    if (node.children.length) {
-      const box = new Box()
-      box.add(
-        createFillBlock(fill, x, y, w, titleHeight),
-        createFillBlock(fill, x, y + h - rectGap, w, rectGap),
-        createFillBlock(fill, x, y + titleHeight, rectGap, h - titleHeight - rectGap),
-        createFillBlock(fill, x + w - rectGap, y + titleHeight, rectGap, h - titleHeight - rectGap)
-      )
-      this.bgBox.add(box)
-    } else {
-      this.bgBox.add(createFillBlock(fill, x, y, w, h))
     }
   }
 
   drawForegroundNode(node: LayoutModule) {
-    for (const child of node.children) {
-      this.drawForegroundNode(child)
-    }
     const [x, y, w, h] = node.layout
     const { rectBorderWidth, titleHeight, rectGap } = node.decorator
     const { fontSize, fontFamily, color } = this.decorator.font
     const rect = new Rect({
-      x: x + 0.5,
-      y: y + 0.5,
+      x: x + 1,
+      y: y + 1,
       width: w,
       height: h,
       style: { stroke: '#222', lineWidth: rectBorderWidth }
@@ -188,6 +173,9 @@ export class TreemapLayout extends Schedule {
       const textX = x + Math.round((w - ellipsisWidth) / 2)
       const textY = y + Math.round(h / 2)
       this.fgBox.add(createTitleText('...', textX, textY, `${optimalFontSize}px ${fontFamily}`, color))
+    }
+    for (const child of node.children) {
+      this.drawForegroundNode(child)
     }
   }
 

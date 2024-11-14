@@ -126,8 +126,20 @@ export class TreemapLayout extends Schedule {
 
   drawBackgroundNode(node: LayoutModule) {
     const [x, y, w, h] = node.layout
+    const { rectGap, titleHeight } = node.decorator
     const fill = this.decorator.color.mappings[node.node.id]
-    this.fgBox.add(createFillBlock(fill, x, y, w, h))
+    if (node.children.length) {
+      const box = new Box()
+      box.add(
+        createFillBlock(fill, x, y, w, titleHeight),
+        createFillBlock(fill, x, y + h - rectGap, w, rectGap),
+        createFillBlock(fill, x, y + titleHeight, rectGap, h - titleHeight - rectGap),
+        createFillBlock(fill, x + w - rectGap, y + titleHeight, rectGap, h - titleHeight - rectGap)
+      )
+      this.bgBox.add(box)
+    } else {
+      this.bgBox.add(createFillBlock(fill, x, y, w, h))
+    }
     for (const child of node.children) {
       this.drawBackgroundNode(child)
     }
@@ -195,6 +207,7 @@ export class TreemapLayout extends Schedule {
       this.drawBackgroundNode(node)
       this.drawForegroundNode(node)
     }
+    console.log(this.bgBox)
     this.add(this.bgBox, this.fgBox)
   }
 

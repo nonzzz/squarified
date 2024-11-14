@@ -113,6 +113,7 @@ export class TreemapLayout extends Schedule {
   decorator: RenderDecorator
   private bgBox: Box
   private fgBox: Box
+  fontsCaches: Record<string, number>
   constructor(...args: ConstructorParameters<typeof Schedule>) {
     super(...args)
     this.data = []
@@ -120,6 +121,7 @@ export class TreemapLayout extends Schedule {
     this.bgBox = new Box()
     this.fgBox = new Box()
     this.decorator = Object.create(null)
+    this.fontsCaches = Object.create(null)
   }
 
   drawBackgroundNode(node: LayoutModule) {
@@ -136,24 +138,30 @@ export class TreemapLayout extends Schedule {
     const { rectBorderWidth, titleHeight, rectGap } = node.decorator
     const { fontSize, fontFamily, color } = this.decorator.font
     const rect = new Rect({
-      x: x + 1,
-      y: y + 1,
+      x: x + 0.5,
+      y: y + 0.5,
       width: w,
       height: h,
       style: { stroke: '#222', lineWidth: rectBorderWidth }
     })
     this.fgBox.add(rect)
     this.render.ctx.textBaseline = 'middle'
-    const optimalFontSize = evaluateOptimalFontSize(
-      this.render.ctx,
-      node.node.id,
-      {
-        range: fontSize,
-        family: fontFamily
-      },
-      w - (rectGap * 2),
-      node.children.length ? Math.round(titleHeight / 2) + rectGap : h
-    )
+    let optimalFontSize
+    if (node.node.id in this.fontsCaches) {
+      optimalFontSize = this.fontsCaches[node.node.id]
+    } else {
+      optimalFontSize = evaluateOptimalFontSize(
+        this.render.ctx,
+        node.node.id,
+        {
+          range: fontSize,
+          family: fontFamily
+        },
+        w - (rectGap * 2),
+        node.children.length ? Math.round(titleHeight / 2) + rectGap : h
+      )
+      this.fontsCaches[node.node.id] = optimalFontSize
+    }
 
     this.render.ctx.font = `${optimalFontSize}px ${fontFamily}`
     if (h > optimalFontSize) {

@@ -417,6 +417,10 @@ function onZoom(ctx: SelfEventContenxt, node: LayoutModule, root: LayoutModule |
     const initialTranslateY = self.translateY
     const startTime = Date.now()
     const animationDuration = 300
+    if (self.layoutHeight !== w || self.layoutHeight !== h) {
+      // remove font caches
+      delete treemap.fontsCaches[module.node.id]
+    }
     const draw = () => {
       const elapsed = Date.now() - startTime
       const progress = Math.min(elapsed / animationDuration, 1)
@@ -425,6 +429,7 @@ function onZoom(ctx: SelfEventContenxt, node: LayoutModule, root: LayoutModule |
       self.translateX = initialTranslateX + (translateX - initialTranslateX) * easedProgress
       self.translateY = initialTranslateY + (translateY - initialTranslateY) * easedProgress
       self.scaleRatio = scaleRatio
+
       treemap.reset()
       applyGraphTransform(treemap.elements, self.translateX, self.translateY, scaleRatio)
       treemap.update()

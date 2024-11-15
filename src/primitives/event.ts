@@ -3,16 +3,18 @@
 // If one day etoile need to build as a useful library. Pls rewrite it!
 // All of implementation don't want to consider the compatibility of the browser.
 
+import { createFillBlock } from '../shared'
 import { Display } from '../etoile/graph/display'
 import { Render, Event as _Event, easing, etoile } from '../etoile'
 import type { BindThisParameter } from '../etoile'
+import type { ColorDecoratorResultRGB } from '../etoile/native/runtime'
 import { applyForOpacity } from './animation'
 import { TreemapLayout, resetLayout } from './component'
 import type { App, TreemapInstanceAPI } from './component'
 import { RegisterModule } from './registry'
 import type { InheritedCollections } from './registry'
 import type { LayoutModule } from './squarify'
-import { findRelativeNode, findRelativeNodeById, visit } from './struct'
+import { findRelativeNode, findRelativeNodeById } from './struct'
 import type { NativeModule } from './struct'
 
 const primitiveEvents = ['click', 'mousedown', 'mousemove', 'mouseup', 'mouseover', 'mouseout'] as const
@@ -58,44 +60,34 @@ interface DraggingState {
   y: number
 }
 
+const fill = <ColorDecoratorResultRGB> { desc: { r: 255, g: 255, b: 255 }, mode: 'rgb' }
+
 function smoothDrawing(c: SelfEventContenxt) {
   const { self, treemap } = c
   const currentNode = self.currentNode
 
   if (currentNode) {
-    const lloc: Set<string> = new Set()
-    visit([currentNode], (node) => {
-      const [x, y, w, h] = node.layout
-      const { rectGap, titleHeight } = node.decorator
-      lloc.add(x + '-' + y)
-      lloc.add(x + '-' + (y + h - rectGap))
-      lloc.add(x + '-' + (y + titleHeight))
-      lloc.add(x + w - rectGap + '-' + (y + titleHeight))
-    })
+    const [x, y, w, h] = currentNode.layout
+
     const startTime = Date.now()
     const animationDuration = 300
     const draw = () => {
       if (self.forceDestroy) {
         return
       }
-
       const elapsed = Date.now() - startTime
       const progress = Math.min(elapsed / animationDuration, 1)
       const easedProgress = easing.cubicIn(progress) || 0.1
-      let allTasksCompleted = true
+
+      const mask = createFillBlock(fill, x, y, w, h)
       treemap.reset()
-      etoile.traverse([treemap.elements[0]], (graph) => {
-        const key = `${graph.x}-${graph.y}`
-        if (lloc.has(key)) {
-          applyForOpacity(graph, 1, 0.7, easedProgress)
-          if (progress < 1) {
-            allTasksCompleted = false
-          }
-        }
-      })
+      applyForOpacity(mask, 0.4, 0.4, easedProgress)
+      // @ts-expect-error
+      treemap.bgBox.add(mask)
+
       applyGraphTransform(treemap.elements, self.translateX, self.translateY, self.scaleRatio)
       treemap.update()
-      if (!allTasksCompleted) {
+      if (progress < 1) {
         window.requestAnimationFrame(draw)
       }
     }

@@ -1,3 +1,6 @@
+import { Rect, Text } from '../etoile'
+import type { ColorDecoratorResult } from '../etoile/native/runtime'
+
 export class Iter<T extends NonNullable<Record<string, any>>> {
   private keys: (keyof T)[]
   private data: T
@@ -44,4 +47,17 @@ export function noop() {}
 export function replaceString<S extends string, From extends string, To extends string>(str: S, searchValue: From, replaceValue: To) {
   return str.replace(searchValue, replaceValue) as S extends `${infer L}${From extends '' ? never : From}${infer R}` ? `${L}${To}${R}`
     : S
+}
+
+export function createFillBlock(color: ColorDecoratorResult, x: number, y: number, width: number, height: number) {
+  return new Rect({ width, height, x, y, style: { fill: color, opacity: 1 } })
+}
+
+export function createTitleText(text: string, x: number, y: number, font: string, color: string) {
+  return new Text({
+    text,
+    x,
+    y,
+    style: { fill: color, textAlign: 'center', baseline: 'middle', font, lineWidth: 1 }
+  })
 }

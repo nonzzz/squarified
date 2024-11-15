@@ -1,5 +1,5 @@
-import type { ColorDecoratorResult } from '../etoile/native/runtime'
-import { Box, Rect, Text, etoile } from '../etoile'
+import { createFillBlock, createTitleText } from '../shared'
+import { Box, Rect, etoile } from '../etoile'
 import type { EventMethods } from './event'
 import { bindParentForModule, findRelativeNodeById } from './struct'
 import type { Module, NativeModule } from './struct'
@@ -86,19 +86,6 @@ export function getSafeText(c: CanvasRenderingContext2D, text: string, width: nu
   return { text: '...', width: ellipsisWidth }
 }
 
-function createFillBlock(color: ColorDecoratorResult, x: number, y: number, width: number, height: number) {
-  return new Rect({ width, height, x, y, style: { fill: color, opacity: 1 } })
-}
-
-function createTitleText(text: string, x: number, y: number, font: string, color: string) {
-  return new Text({
-    text,
-    x,
-    y,
-    style: { fill: color, textAlign: 'center', baseline: 'middle', font, lineWidth: 1 }
-  })
-}
-
 export function resetLayout(treemap: TreemapLayout, w: number, h: number) {
   treemap.layoutNodes = squarify(treemap.data, { w, h, x: 0, y: 0 }, treemap.decorator.layout)
   treemap.reset()
@@ -126,20 +113,9 @@ export class TreemapLayout extends Schedule {
 
   drawBackgroundNode(node: LayoutModule) {
     const [x, y, w, h] = node.layout
-    const { rectGap, titleHeight } = node.decorator
     const fill = this.decorator.color.mappings[node.node.id]
-    if (node.children.length) {
-      const box = new Box()
-      box.add(
-        createFillBlock(fill, x, y, w, titleHeight),
-        createFillBlock(fill, x, y + h - rectGap, w, rectGap),
-        createFillBlock(fill, x, y + titleHeight, rectGap, h - titleHeight - rectGap),
-        createFillBlock(fill, x + w - rectGap, y + titleHeight, rectGap, h - titleHeight - rectGap)
-      )
-      this.bgBox.add(box)
-    } else {
-      this.bgBox.add(createFillBlock(fill, x, y, w, h))
-    }
+    const s = createFillBlock(fill, x, y, w, h)
+    this.bgBox.add(s)
     for (const child of node.children) {
       this.drawBackgroundNode(child)
     }
@@ -157,7 +133,6 @@ export class TreemapLayout extends Schedule {
       style: { stroke: '#222', lineWidth: rectBorderWidth }
     })
     this.fgBox.add(rect)
-    this.render.ctx.textBaseline = 'middle'
     let optimalFontSize
     if (node.node.id in this.fontsCaches) {
       optimalFontSize = this.fontsCaches[node.node.id]
@@ -203,6 +178,7 @@ export class TreemapLayout extends Schedule {
     this.bgBox.destory()
     this.fgBox.destory()
     this.remove(this.bgBox, this.fgBox)
+    this.render.ctx.textBaseline = 'middle'
     for (const node of this.layoutNodes) {
       this.drawBackgroundNode(node)
       this.drawForegroundNode(node)

@@ -1,5 +1,5 @@
+import type { RectStyleOptions } from '../etoile/graph/rect'
 import { Rect, Text } from '../etoile'
-import type { ColorDecoratorResult } from '../etoile/native/runtime'
 
 export class Iter<T extends NonNullable<Record<string, any>>> {
   private keys: (keyof T)[]
@@ -49,8 +49,8 @@ export function replaceString<S extends string, From extends string, To extends 
     : S
 }
 
-export function createFillBlock(color: ColorDecoratorResult, x: number, y: number, width: number, height: number) {
-  return new Rect({ width, height, x, y, style: { fill: color, opacity: 1 } })
+export function createFillBlock(x: number, y: number, width: number, height: number, style?: Partial<RectStyleOptions>) {
+  return new Rect({ width, height, x, y, style })
 }
 
 export function createTitleText(text: string, x: number, y: number, font: string, color: string) {

@@ -79,7 +79,7 @@ function smoothDrawing(c: SelfEventContenxt) {
       const progress = Math.min(elapsed / animationDuration, 1)
       const easedProgress = easing.cubicIn(progress) || 0.1
 
-      const mask = createFillBlock(fill, x, y, w, h)
+      const mask = createFillBlock(x, y, w, h, { fill })
       treemap.reset()
       applyForOpacity(mask, 0.4, 0.4, easedProgress)
       // @ts-expect-error

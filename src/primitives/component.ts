@@ -1,5 +1,5 @@
 import { createFillBlock, createTitleText } from '../shared'
-import { Box, Rect, etoile } from '../etoile'
+import { Box, etoile } from '../etoile'
 import type { EventMethods } from './event'
 import { bindParentForModule, findRelativeNodeById } from './struct'
 import type { Module, NativeModule } from './struct'
@@ -114,7 +114,7 @@ export class TreemapLayout extends Schedule {
   drawBackgroundNode(node: LayoutModule) {
     const [x, y, w, h] = node.layout
     const fill = this.decorator.color.mappings[node.node.id]
-    const s = createFillBlock(fill, x, y, w, h)
+    const s = createFillBlock(x, y, w, h, { fill })
     this.bgBox.add(s)
     for (const child of node.children) {
       this.drawBackgroundNode(child)
@@ -125,14 +125,7 @@ export class TreemapLayout extends Schedule {
     const [x, y, w, h] = node.layout
     const { rectBorderWidth, titleHeight, rectGap } = node.decorator
     const { fontSize, fontFamily, color } = this.decorator.font
-    const rect = new Rect({
-      x: x + 0.5,
-      y: y + 0.5,
-      width: w,
-      height: h,
-      style: { stroke: '#222', lineWidth: rectBorderWidth }
-    })
-    this.fgBox.add(rect)
+    this.fgBox.add(createFillBlock(x + 0.5, y + 0.5, w, h, { stroke: '#222', lineWidth: rectBorderWidth }))
     let optimalFontSize
     if (node.node.id in this.fontsCaches) {
       optimalFontSize = this.fontsCaches[node.node.id]

@@ -8,7 +8,7 @@ function traverse(graphs: Display[], handler: (graph: Graph) => void) {
     const graph = graphs[i]
     if (asserts.isBox(graph)) {
       traverse(graph.elements, handler)
-    } else if (graph instanceof Graph) {
+    } else if (asserts.isGraph(graph)) {
       handler(graph)
     }
   }

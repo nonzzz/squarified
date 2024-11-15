@@ -207,7 +207,6 @@ export class TreemapLayout extends Schedule {
       this.drawBackgroundNode(node)
       this.drawForegroundNode(node)
     }
-    console.log(this.bgBox)
     this.add(this.bgBox, this.fgBox)
   }
 

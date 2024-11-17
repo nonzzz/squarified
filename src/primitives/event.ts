@@ -162,10 +162,9 @@ function bindPrimitiveEvent(
   c.addEventListener(evt, handler)
   return handler
 }
-
+// For best render performance. we should cache avaliable layout nodes.
 export class SelfEvent extends RegisterModule {
   currentNode: LayoutModule | null
-  isAnimating: boolean
   forceDestroy: boolean
   scaleRatio: number
   translateX: number
@@ -178,7 +177,6 @@ export class SelfEvent extends RegisterModule {
   constructor() {
     super()
     this.currentNode = null
-    this.isAnimating = false
     this.forceDestroy = false
     this.isDragging = false
     this.scaleRatio = 1
@@ -247,7 +245,6 @@ export class SelfEvent extends RegisterModule {
     self.forceDestroy = false
     if (self.currentNode !== node) {
       self.currentNode = node
-      self.isAnimating = false
     }
     smoothDrawing(this)
   }
@@ -272,7 +269,6 @@ export class SelfEvent extends RegisterModule {
       return
     }
     self.forceDestroy = true
-    self.isAnimating = true
     treemap.reset()
     const factor = absWheelDelta > 3 ? 1.4 : absWheelDelta > 1 ? 1.2 : 1.1
     const delta = wheelDelta > 0 ? factor : 1 / factor
@@ -287,7 +283,6 @@ export class SelfEvent extends RegisterModule {
 
     treemap.update()
     self.forceDestroy = false
-    self.isAnimating = false
   }
 
   init(app: App, treemap: TreemapLayout, render: Render): void {
@@ -328,7 +323,6 @@ export class SelfEvent extends RegisterModule {
 
     treemap.event.on('cleanup:selfevent', () => {
       this.currentNode = null
-      this.isAnimating = false
       this.scaleRatio = 1
       this.translateX = 0
       this.translateY = 0
@@ -404,6 +398,7 @@ function onZoom(ctx: SelfEventContenxt, node: LayoutModule, root: LayoutModule |
     if (self.layoutHeight !== w || self.layoutHeight !== h) {
       // remove font caches
       delete treemap.fontsCaches[module.node.id]
+      delete treemap.ellispsisWidthCache[module.node.id]
     }
     const { run, stop } = createEffectScope()
     run(() => {

@@ -74,8 +74,14 @@ export function evaluateOptimalFontSize(
   return Math.floor(min)
 }
 
-export function getSafeText(c: CanvasRenderingContext2D, text: string, width: number) {
-  const ellipsisWidth = c.measureText('...').width
+export function getSafeText(c: CanvasRenderingContext2D, text: string, width: number, cache: Record<string, number>) {
+  let ellipsisWidth = 0
+  if (text in cache) {
+    ellipsisWidth = cache[text]
+  } else {
+    ellipsisWidth = measureTextWidth(c, '...')
+    cache[text] = ellipsisWidth
+  }
   if (width < ellipsisWidth) {
     return false
   }
@@ -101,6 +107,7 @@ export class TreemapLayout extends Schedule {
   private bgBox: Box
   private fgBox: Box
   fontsCaches: Record<string, number>
+  ellispsisWidthCache: Record<string, number>
   constructor(...args: ConstructorParameters<typeof Schedule>) {
     super(...args)
     this.data = []
@@ -109,6 +116,7 @@ export class TreemapLayout extends Schedule {
     this.fgBox = new Box()
     this.decorator = Object.create(null)
     this.fontsCaches = Object.create(null)
+    this.ellispsisWidthCache = Object.create(null)
   }
 
   drawBackgroundNode(node: LayoutModule) {
@@ -145,7 +153,7 @@ export class TreemapLayout extends Schedule {
     }
 
     this.render.ctx.font = `${optimalFontSize}px ${fontFamily}`
-    const result = getSafeText(this.render.ctx, node.node.label, w - (rectGap * 2))
+    const result = getSafeText(this.render.ctx, node.node.id, w - (rectGap * 2), this.ellispsisWidthCache)
     if (!result) return
     if (result.width >= w || optimalFontSize >= h) return
     const { text, width } = result

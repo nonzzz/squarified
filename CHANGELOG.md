@@ -1,3 +1,7 @@
+# 0.1.2
+
+Some rendering optimize.
+
 # 0.1.1
 
 - Fix error `zooming` logic.

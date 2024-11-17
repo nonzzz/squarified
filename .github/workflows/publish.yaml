@@ -15,11 +15,8 @@ jobs:
         with:
           node-version: 22
           registry-url: "https://registry.npmjs.org"
-      - name: Install Dependices
-        run: make
       - name: Pack and Publish
         run: |
-          make build-lib
-          npm publish --provenance --access public
+          make build-pub
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

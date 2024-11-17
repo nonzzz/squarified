@@ -11,6 +11,12 @@ build-lib:
 	-rm -rf dist
 	$(JK) build
 
+
+build-pub: bootstrap build-lib
+	@echo "Build publish"
+	$(JK) pub -no-b
+
+
 dev-server:
 	@echo "Start dev server"
 	@pnpm exec vite

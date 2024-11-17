@@ -1,3 +1,5 @@
+JK = @pnpm exec jiek --root .
+
 bootstrap:
 	@echo "Install dependiences"
 	corepack enable
@@ -6,7 +8,8 @@ bootstrap:
 
 build-lib:
 	@echo "Build library"
-	@pnpm exec rollup --config rollup.config.mts --configPlugin swc3
+	-rm -rf dist
+	$(JK) build
 
 dev-server:
 	@echo "Start dev server"

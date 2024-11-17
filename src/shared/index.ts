@@ -61,3 +61,5 @@ export function createTitleText(text: string, x: number, y: number, font: string
     style: { fill: color, textAlign: 'center', baseline: 'middle', font, lineWidth: 1 }
   })
 }
+
+export const raf = window.requestAnimationFrame

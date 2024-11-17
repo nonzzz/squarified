@@ -11,8 +11,6 @@
     "resolveJsonModule": true,
     "module": "ESNext",
     "moduleResolution": "Bundler",
-    "allowImportingTsExtensions": true,
-    "noEmit": true,
     "strict": true
   }
 }

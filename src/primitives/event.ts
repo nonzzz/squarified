@@ -8,7 +8,7 @@ import { Display } from '../etoile/graph/display'
 import { Render, Event as _Event, easing, etoile } from '../etoile'
 import type { BindThisParameter } from '../etoile'
 import type { ColorDecoratorResultRGB } from '../etoile/native/runtime'
-import { applyForOpacity } from './animation'
+import { applyForOpacity, createEffectScope } from './animation'
 import { TreemapLayout, resetLayout } from './component'
 import type { App, TreemapInstanceAPI } from './component'
 import { RegisterModule } from './registry'
@@ -67,34 +67,27 @@ function smoothDrawing(c: SelfEventContenxt) {
   const currentNode = self.currentNode
 
   if (currentNode) {
-    const [x, y, w, h] = currentNode.layout
-
+    const { run, stop } = createEffectScope()
     const startTime = Date.now()
     const animationDuration = 300
-    const draw = () => {
+    const [x, y, w, h] = currentNode.layout
+    run(() => {
       if (self.forceDestroy) {
-        return
+        stop()
+        return true
       }
       const elapsed = Date.now() - startTime
       const progress = Math.min(elapsed / animationDuration, 1)
-      const easedProgress = easing.cubicIn(progress) || 0.1
-
+      const easedProgress = easing.cubicInOut(progress)
       const mask = createFillBlock(x, y, w, h, { fill })
       treemap.reset()
       applyForOpacity(mask, 0.4, 0.4, easedProgress)
       // @ts-expect-error
       treemap.bgBox.add(mask)
-
       applyGraphTransform(treemap.elements, self.translateX, self.translateY, self.scaleRatio)
       treemap.update()
-      if (progress < 1) {
-        window.requestAnimationFrame(draw)
-      }
-    }
-    if (!self.isAnimating) {
-      self.isAnimating = true
-      window.requestAnimationFrame(draw)
-    }
+      return progress >= 1
+    })
   } else {
     treemap.reset()
     applyGraphTransform(treemap.elements, self.translateX, self.translateY, self.scaleRatio)
@@ -393,7 +386,6 @@ function applyGraphTransform(graphs: Display[], translateX: number, translateY: 
 function onZoom(ctx: SelfEventContenxt, node: LayoutModule, root: LayoutModule | null) {
   if (!node) return
   const { treemap, self } = ctx
-  let isAnimating = false
   const c = treemap.render.canvas
   const boundingClientRect = c.getBoundingClientRect()
   const [w, h] = estimateZoomingArea(node, root, boundingClientRect.width, boundingClientRect.height)
@@ -413,30 +405,26 @@ function onZoom(ctx: SelfEventContenxt, node: LayoutModule, root: LayoutModule |
       // remove font caches
       delete treemap.fontsCaches[module.node.id]
     }
-    const draw = () => {
+    const { run, stop } = createEffectScope()
+    run(() => {
       const elapsed = Date.now() - startTime
       const progress = Math.min(elapsed / animationDuration, 1)
+      if (progress >= 1) {
+        stop()
+        self.layoutWidth = w
+        self.layoutHeight = h
+      }
       const easedProgress = easing.cubicInOut(progress)
       const scaleRatio = initialScale + (scale - initialScale) * easedProgress
       self.translateX = initialTranslateX + (translateX - initialTranslateX) * easedProgress
       self.translateY = initialTranslateY + (translateY - initialTranslateY) * easedProgress
       self.scaleRatio = scaleRatio
-
       treemap.reset()
       applyGraphTransform(treemap.elements, self.translateX, self.translateY, scaleRatio)
       treemap.update()
-      if (progress < 1) {
-        window.requestAnimationFrame(draw)
-      } else {
-        self.layoutWidth = w
-        self.layoutHeight = h
-        isAnimating = false
-      }
-    }
-    if (!isAnimating) {
-      isAnimating = true
-      window.requestAnimationFrame(draw)
-    }
+
+      return progress >= 1
+    })
   }
   root = node
 }

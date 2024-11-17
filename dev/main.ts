@@ -9,7 +9,7 @@ treemap.use('decorator', presetDecorator)
 function main() {
   treemap.init(root)
   const sortedData = sortChildrenByKey(
-    data.map((item) => c2m({ ...item, groups: item.stats }, 'statSize', (d) => ({ ...d, id: d.filename }))),
+    data.map((item) => c2m({ ...item, groups: item.stats }, 'statSize', (d) => ({ ...d, id: d.label }))),
     'weight'
   )
 

@@ -1,3 +1,6 @@
+import type { RectStyleOptions } from '../etoile/graph/rect'
+import { Rect, Text } from '../etoile'
+
 export class Iter<T extends NonNullable<Record<string, any>>> {
   private keys: (keyof T)[]
   private data: T
@@ -45,3 +48,18 @@ export function replaceString<S extends string, From extends string, To extends 
   return str.replace(searchValue, replaceValue) as S extends `${infer L}${From extends '' ? never : From}${infer R}` ? `${L}${To}${R}`
     : S
 }
+
+export function createFillBlock(x: number, y: number, width: number, height: number, style?: Partial<RectStyleOptions>) {
+  return new Rect({ width, height, x, y, style })
+}
+
+export function createTitleText(text: string, x: number, y: number, font: string, color: string) {
+  return new Text({
+    text,
+    x,
+    y,
+    style: { fill: color, textAlign: 'center', baseline: 'middle', font, lineWidth: 1 }
+  })
+}
+
+export const raf = window.requestAnimationFrame

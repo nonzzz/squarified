@@ -123,6 +123,7 @@ export class TreemapLayout extends Schedule {
 
   drawForegroundNode(node: LayoutModule) {
     const [x, y, w, h] = node.layout
+    if (!w || !h) return
     const { rectBorderWidth, titleHeight, rectGap } = node.decorator
     const { fontSize, fontFamily, color } = this.decorator.font
     this.fgBox.add(createFillBlock(x + 0.5, y + 0.5, w, h, { stroke: '#222', lineWidth: rectBorderWidth }))
@@ -144,24 +145,13 @@ export class TreemapLayout extends Schedule {
     }
 
     this.render.ctx.font = `${optimalFontSize}px ${fontFamily}`
-    if (h > optimalFontSize) {
-      const result = getSafeText(this.render.ctx, node.node.label, w - (rectGap * 2))
-      if (!result) return
-      const { text, width } = result
-      const textX = x + Math.round((w - width) / 2)
-      let textY = y + Math.round(h / 2)
-      if (node.children.length) {
-        textY = y + Math.round(titleHeight / 2)
-      }
-      this.fgBox.add(createTitleText(text, textX, textY, `${optimalFontSize}px ${fontFamily}`, color))
-    } else {
-      if (!w || !h) return
-      const ellipsisWidth = measureTextWidth(this.render.ctx, '...')
-      if (ellipsisWidth >= w || optimalFontSize >= h) return
-      const textX = x + Math.round((w - ellipsisWidth) / 2)
-      const textY = y + Math.round(h / 2)
-      this.fgBox.add(createTitleText('...', textX, textY, `${optimalFontSize}px ${fontFamily}`, color))
-    }
+    const result = getSafeText(this.render.ctx, node.node.label, w - (rectGap * 2))
+    if (!result) return
+    if (result.width >= w || optimalFontSize >= h) return
+    const { text, width } = result
+    const textX = x + Math.round((w - width) / 2)
+    const textY = y + (node.children.length ? Math.round(titleHeight / 2) : Math.round(h / 2))
+    this.fgBox.add(createTitleText(text, textX, textY, `${optimalFontSize}px ${fontFamily}`, color))
     for (const child of node.children) {
       this.drawForegroundNode(child)
     }

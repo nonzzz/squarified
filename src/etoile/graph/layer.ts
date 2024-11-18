@@ -58,6 +58,16 @@ export class Layer extends C implements S {
     this.c.c.ctx.drawImage(c, 0, 0)
   }
 
+  initLoc(options: Partial<LocOptions> = {}) {
+    this.x = options.x || 0
+    this.y = options.y || 0
+    this.scaleX = options.scaleX || 1
+    this.scaleY = options.scaleY || 1
+    this.rotation = options.rotation || 0
+    this.skewX = options.skewX || 0
+    this.skewY = options.skewY || 0
+  }
+
   draw(ctx: CanvasRenderingContext2D) {
     ctx.drawImage(this.c.c.canvas, 0, 0)
   }

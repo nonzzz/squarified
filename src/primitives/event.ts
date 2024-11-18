@@ -65,7 +65,6 @@ const fill = <ColorDecoratorResultRGB> { desc: { r: 255, g: 255, b: 255 }, mode:
 function smoothDrawing(c: SelfEventContenxt) {
   const { self, treemap } = c
   const currentNode = self.currentNode
-
   if (currentNode) {
     const { run, stop } = createEffectScope()
     const startTime = Date.now()
@@ -81,10 +80,12 @@ function smoothDrawing(c: SelfEventContenxt) {
       const easedProgress = easing.cubicInOut(progress)
       const mask = createFillBlock(x, y, w, h, { fill, opacity: 0.4 })
       treemap.reset()
+      setupGraphTransform(treemap.backgroundLayer, 0, 0, 0)
       applyForOpacity(mask, 0.4, 0.4, easedProgress)
       // @ts-expect-error
-      treemap.bgLayer.add(mask)
+      treemap.fgBox.add(mask)
       applyGraphTransform(treemap.elements, self.translateX, self.translateY, self.scaleRatio)
+      setupGraphTransform(treemap.backgroundLayer, self.translateX, self.translateY, self.scaleRatio)
       treemap.update()
       return progress >= 1
     })
@@ -204,7 +205,7 @@ export class SelfEvent extends RegisterModule {
       if ('zoom' in this.treemap.event.eventCollections) {
         const condit = this.treemap.event.eventCollections.zoom.length > 0
         if (!condit) {
-          applyZoomEvent(this)
+          // applyZoomEvent(this)
         }
       }
       return
@@ -316,8 +317,8 @@ export class SelfEvent extends RegisterModule {
     selfEvt('mouseup', this.ondragend)
 
     // highlight
-    // selfEvt('mousemove', this.onmousemove)
-    // selfEvt('mouseout', this.onmouseout)
+    selfEvt('mousemove', this.onmousemove)
+    selfEvt('mouseout', this.onmouseout)
 
     // wheel
     selfEvt('wheel', this.onwheel)

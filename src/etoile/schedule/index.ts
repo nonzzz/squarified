@@ -47,7 +47,10 @@ export class Schedule extends Box {
   execute(render: Render, graph: Display = this) {
     render.ctx.save()
     if (asserts.isLayer(graph) && graph.__refresh__) {
-      graph.draw()
+      const matrix = graph.matrix.create({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 })
+      matrix.transform(graph.x, graph.y, graph.scaleX, graph.scaleY, graph.rotation, graph.skewX, graph.skewY)
+      this.applyTransform(graph.matrix)
+      graph.draw(render.ctx)
     } else {
       if (asserts.isBox(graph) || asserts.isLayer(graph)) {
         const elements = graph.elements
@@ -55,6 +58,10 @@ export class Schedule extends Box {
         for (let i = 0; i < cap; i++) {
           const element = elements[i]
           this.execute(render, element)
+        }
+        if (asserts.isLayer(graph)) {
+          graph.setCacheSnapshot(render.canvas)
+          graph.__refresh__ = true
         }
       }
 

@@ -4,7 +4,7 @@
 // All of implementation don't want to consider the compatibility of the browser.
 
 import { createFillBlock } from '../shared'
-import { Display } from '../etoile/graph/display'
+import { Display, S } from '../etoile/graph/display'
 import { Render, Event as _Event, easing, etoile } from '../etoile'
 import type { BindThisParameter } from '../etoile'
 import type { ColorDecoratorResultRGB } from '../etoile/native/runtime'
@@ -223,7 +223,9 @@ export class SelfEvent extends RegisterModule {
     this.self.translateY += drawY
     this.self.draggingState = { x, y }
     this.treemap.reset()
+    setupGraphTransform(this.treemap.backgroundLayer, 0, 0, 0)
     applyGraphTransform(this.treemap.elements, this.self.translateX, this.self.translateY, this.self.scaleRatio)
+    setupGraphTransform(this.treemap.backgroundLayer, this.self.translateX, this.self.translateY, this.self.scaleRatio)
     this.treemap.update()
   }
 
@@ -270,6 +272,7 @@ export class SelfEvent extends RegisterModule {
     }
     self.forceDestroy = true
     treemap.reset()
+    setupGraphTransform(treemap.backgroundLayer, 0, 0, 0)
     const factor = absWheelDelta > 3 ? 1.4 : absWheelDelta > 1 ? 1.2 : 1.1
     const delta = wheelDelta > 0 ? factor : 1 / factor
 
@@ -280,7 +283,7 @@ export class SelfEvent extends RegisterModule {
     self.translateX = translateX
     self.translateY = translateY
     applyGraphTransform(treemap.elements, self.translateX, self.translateY, self.scaleRatio)
-
+    setupGraphTransform(treemap.backgroundLayer, self.translateX, self.translateY, self.scaleRatio)
     treemap.update()
     self.forceDestroy = false
   }
@@ -313,8 +316,8 @@ export class SelfEvent extends RegisterModule {
     selfEvt('mouseup', this.ondragend)
 
     // highlight
-    selfEvt('mousemove', this.onmousemove)
-    selfEvt('mouseout', this.onmouseout)
+    // selfEvt('mousemove', this.onmousemove)
+    // selfEvt('mouseout', this.onmouseout)
 
     // wheel
     selfEvt('wheel', this.onwheel)
@@ -368,13 +371,15 @@ function estimateZoomingArea(node: LayoutModule, root: LayoutModule | null, w: n
   return [w * scaleFactor, h * scaleFactor]
 }
 
+function setupGraphTransform(graph: S, translateX: number, translateY: number, scale: number) {
+  graph.x = graph.x * scale + translateX
+  graph.y = graph.y * scale + translateY
+  graph.scaleX = scale
+  graph.scaleY = scale
+}
+
 function applyGraphTransform(graphs: Display[], translateX: number, translateY: number, scale: number) {
-  etoile.traverse(graphs, (graph) => {
-    graph.x = graph.x * scale + translateX
-    graph.y = graph.y * scale + translateY
-    graph.scaleX = scale
-    graph.scaleY = scale
-  })
+  etoile.traverse(graphs, (graph) => setupGraphTransform(graph, translateX, translateY, scale))
 }
 
 function onZoom(ctx: SelfEventContenxt, node: LayoutModule, root: LayoutModule | null) {
@@ -416,6 +421,7 @@ function onZoom(ctx: SelfEventContenxt, node: LayoutModule, root: LayoutModule |
       self.scaleRatio = scaleRatio
       treemap.reset()
       applyGraphTransform(treemap.elements, self.translateX, self.translateY, scaleRatio)
+      setupGraphTransform(treemap.backgroundLayer, self.translateX, self.translateY, self.scaleRatio)
       treemap.update()
 
       return progress >= 1

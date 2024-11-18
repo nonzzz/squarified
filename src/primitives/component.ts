@@ -117,6 +117,7 @@ export class TreemapLayout extends Schedule {
     this.decorator = Object.create(null)
     this.fontsCaches = Object.create(null)
     this.ellispsisWidthCache = Object.create(null)
+    this.bgLayer.setCanvasOptions(this.render.options)
   }
 
   drawBackgroundNode(node: LayoutModule) {
@@ -166,13 +167,17 @@ export class TreemapLayout extends Schedule {
   }
 
   reset() {
-    this.bgLayer.destory()
     this.fgBox.destory()
     this.remove(this.bgLayer, this.fgBox)
     this.render.ctx.textBaseline = 'middle'
+    if (!this.bgLayer.__refresh__) {
+      this.bgLayer.destory()
+      for (const node of this.layoutNodes) {
+        this.drawBackgroundNode(node)
+      }
+    }
     for (const node of this.layoutNodes) {
-      this.drawBackgroundNode(node)
-      // this.drawForegroundNode(node)
+      this.drawForegroundNode(node)
     }
     this.add(this.bgLayer, this.fgBox)
   }
@@ -183,6 +188,10 @@ export class TreemapLayout extends Schedule {
         this.event.emit('zoom', node)
       }
     }
+  }
+
+  get backgroundLayer() {
+    return this.bgLayer
   }
 }
 
@@ -217,6 +226,7 @@ export function createTreemap() {
   function resize() {
     if (!treemap || !root) return
     const { width, height } = root.getBoundingClientRect()
+    treemap.backgroundLayer.__refresh__ = false
     treemap.render.initOptions({ height, width, devicePixelRatio: window.devicePixelRatio })
     treemap.fontsCaches = Object.create(null)
     treemap.event.emit('cleanup:selfevent')

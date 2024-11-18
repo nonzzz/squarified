@@ -46,29 +46,25 @@ export class Schedule extends Box {
   // execute all graph elements
   execute(render: Render, graph: Display = this) {
     render.ctx.save()
-    if (asserts.isBox(graph)) {
-      const elements = graph.elements
-      const cap = elements.length
-      const matrices = new Array(cap)
-      for (let i = 0; i < cap; i++) {
-        const element = elements[i]
-        if (asserts.isGraph(element)) {
-          matrices[i] = element.matrix.create({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 })
-          matrices[i].transform(element.x, element.y, element.scaleX, element.scaleY, element.rotation, element.skewX, element.skewY)
+    if (asserts.isLayer(graph) && graph.__refresh__) {
+      graph.draw()
+    } else {
+      if (asserts.isBox(graph) || asserts.isLayer(graph)) {
+        const elements = graph.elements
+        const cap = elements.length
+        for (let i = 0; i < cap; i++) {
+          const element = elements[i]
+          this.execute(render, element)
         }
       }
-      for (let i = 0; i < cap; i++) {
-        const element = elements[i]
-        this.execute(render, element)
+
+      if (asserts.isGraph(graph)) {
+        const matrix = graph.matrix.create({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 })
+        matrix.transform(graph.x, graph.y, graph.scaleX, graph.scaleY, graph.rotation, graph.skewX, graph.skewY)
+        this.applyTransform(matrix)
+        graph.render(render.ctx)
       }
     }
-
-    if (asserts.isGraph(graph)) {
-      const matrix = graph.matrix
-      this.applyTransform(matrix)
-      graph.render(render.ctx)
-    }
-
     render.ctx.restore()
   }
 }

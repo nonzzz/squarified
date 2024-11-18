@@ -1,5 +1,3 @@
-import { Iter } from '../../shared'
-
 const DEG_TO_RAD = Math.PI / 180
 export const PI_2 = Math.PI * 2
 
@@ -12,7 +10,7 @@ export interface MatrixLoc {
   f: number
 }
 
-export class Matrix2D {
+export class Matrix2D implements MatrixLoc {
   a: number
   b: number
   c: number
@@ -29,11 +27,7 @@ export class Matrix2D {
   }
 
   create(loc: MatrixLoc) {
-    for (const { key, value } of new Iter(loc)) {
-      if (Object.hasOwnProperty.call(this, key)) {
-        this[key] = value
-      }
-    }
+    Object.assign(this, loc)
     return this
   }
 

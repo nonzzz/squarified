@@ -1,7 +1,46 @@
 import { Display, DisplayType } from './display'
 import { asserts } from './types'
 
-export class Box extends Display {
+export abstract class C extends Display {
+  elements: Display[]
+  constructor() {
+    super()
+    this.elements = []
+  }
+  abstract get __instanceOf__(): string
+
+  add(...elements: Display[]) {
+    const cap = elements.length
+    for (let i = 0; i < cap; i++) {
+      const element = elements[i]
+      if (element.parent) {
+        // todo
+      }
+      this.elements.push(element)
+      element.parent = this
+    }
+  }
+
+  remove(...elements: Display[]) {
+    const cap = elements.length
+    for (let i = 0; i < cap; i++) {
+      for (let j = this.elements.length - 1; j >= 0; j--) {
+        const element = this.elements[j]
+        if (element.id === elements[i].id) {
+          this.elements.splice(j, 1)
+          element.parent = null
+        }
+      }
+    }
+  }
+
+  destory() {
+    this.elements.forEach(element => element.parent = null)
+    this.elements.length = 0
+  }
+}
+
+export class Box extends C {
   elements: Display[]
 
   constructor() {

@@ -17,7 +17,9 @@ export const enum DisplayType {
   // eslint-disable-next-line no-unused-vars
   Rect = 'Rect',
   // eslint-disable-next-line no-unused-vars
-  Text = 'Text'
+  Text = 'Text',
+  // eslint-disable-next-line no-unused-vars
+  Layer = 'Layer'
 }
 
 export abstract class Display {
@@ -141,14 +143,11 @@ export abstract class S extends Display {
 
 export abstract class Graph extends S {
   instruction: ReturnType<typeof createInstruction>
-  __refresh__: boolean
   __options__: Partial<LocOptions>
   abstract style: GraphStyleSheet
   constructor(options: Partial<GraphOptions> = {}) {
     super(options)
     this.instruction = createInstruction()
-    // For better performance
-    this.__refresh__ = true
     this.__options__ = options
   }
   abstract create(): void

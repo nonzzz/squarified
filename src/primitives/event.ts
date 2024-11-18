@@ -83,7 +83,7 @@ function smoothDrawing(c: SelfEventContenxt) {
       treemap.reset()
       applyForOpacity(mask, 0.4, 0.4, easedProgress)
       // @ts-expect-error
-      treemap.bgBox.add(mask)
+      treemap.bgLayer.add(mask)
       applyGraphTransform(treemap.elements, self.translateX, self.translateY, self.scaleRatio)
       treemap.update()
       return progress >= 1

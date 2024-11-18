@@ -1,5 +1,5 @@
 import { createFillBlock, createTitleText } from '../shared'
-import { Box, etoile } from '../etoile'
+import { Box, Layer, etoile } from '../etoile'
 import type { EventMethods } from './event'
 import { bindParentForModule, findRelativeNodeById } from './struct'
 import type { Module, NativeModule } from './struct'
@@ -104,7 +104,7 @@ export class TreemapLayout extends Schedule {
   data: NativeModule[]
   layoutNodes: LayoutModule[]
   decorator: RenderDecorator
-  private bgBox: Box
+  private bgLayer: Layer
   private fgBox: Box
   fontsCaches: Record<string, number>
   ellispsisWidthCache: Record<string, number>
@@ -112,7 +112,7 @@ export class TreemapLayout extends Schedule {
     super(...args)
     this.data = []
     this.layoutNodes = []
-    this.bgBox = new Box()
+    this.bgLayer = new Layer()
     this.fgBox = new Box()
     this.decorator = Object.create(null)
     this.fontsCaches = Object.create(null)
@@ -123,7 +123,7 @@ export class TreemapLayout extends Schedule {
     const [x, y, w, h] = node.layout
     const fill = this.decorator.color.mappings[node.node.id]
     const s = createFillBlock(x, y, w, h, { fill })
-    this.bgBox.add(s)
+    this.bgLayer.add(s)
     for (const child of node.children) {
       this.drawBackgroundNode(child)
     }
@@ -166,15 +166,15 @@ export class TreemapLayout extends Schedule {
   }
 
   reset() {
-    this.bgBox.destory()
+    this.bgLayer.destory()
     this.fgBox.destory()
-    this.remove(this.bgBox, this.fgBox)
+    this.remove(this.bgLayer, this.fgBox)
     this.render.ctx.textBaseline = 'middle'
     for (const node of this.layoutNodes) {
       this.drawBackgroundNode(node)
-      this.drawForegroundNode(node)
+      // this.drawForegroundNode(node)
     }
-    this.add(this.bgBox, this.fgBox)
+    this.add(this.bgLayer, this.fgBox)
   }
 
   get api() {

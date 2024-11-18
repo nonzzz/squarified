@@ -169,13 +169,13 @@ export class TreemapLayout extends Schedule {
   reset() {
     this.fgBox.destory()
     this.remove(this.bgLayer, this.fgBox)
-    this.render.ctx.textBaseline = 'middle'
     if (!this.bgLayer.__refresh__) {
       this.bgLayer.destory()
       for (const node of this.layoutNodes) {
         this.drawBackgroundNode(node)
       }
     }
+    this.render.ctx.textBaseline = 'middle'
     for (const node of this.layoutNodes) {
       this.drawForegroundNode(node)
     }

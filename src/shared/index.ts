@@ -1,3 +1,4 @@
+import { Matrix2D } from '../etoile/native/matrix'
 import type { RectStyleOptions } from '../etoile/graph/rect'
 import { Rect, Text } from '../etoile'
 
@@ -45,4 +46,8 @@ export const raf = window.requestAnimationFrame
 
 export function createCanvasElement() {
   return document.createElement('canvas')
+}
+
+export function applyCanvasTransform(ctx: CanvasRenderingContext2D, matrix: Matrix2D, dpr: number) {
+  ctx.setTransform(matrix.a * dpr, matrix.b * dpr, matrix.c * dpr, matrix.d * dpr, matrix.e * dpr, matrix.f * dpr)
 }

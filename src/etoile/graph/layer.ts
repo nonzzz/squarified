@@ -1,3 +1,4 @@
+import { applyCanvasTransform } from '../../shared'
 import { Canvas, writeBoundingRectForCanvas } from '../schedule/render'
 import type { RenderViewportOptions } from '../schedule/render'
 import { C } from './box'
@@ -44,18 +45,13 @@ export class Layer extends C implements S {
   }
 
   setCacheSnapshot(c: HTMLCanvasElement) {
+    const dpr = this.options.devicePixelRatio || 1
     const matrix = this.matrix.create({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 })
     matrix.transform(this.x, this.y, this.scaleX, this.scaleY, this.rotation, this.skewX, this.skewY)
-    const { devicePixelRatio: pixel } = this.options
-    this.c.c.ctx.setTransform(
-      matrix.a * pixel,
-      matrix.b * pixel,
-      matrix.c * pixel,
-      matrix.d * pixel,
-      matrix.e * pixel,
-      matrix.f * pixel
-    )
-    this.c.c.ctx.drawImage(c, 0, 0)
+    applyCanvasTransform(this.ctx, matrix, dpr)
+    this.ctx.clearRect(0, 0, this.options.width, this.options.height)
+    this.ctx.drawImage(c, 0, 0, this.options.width / dpr, this.options.height / dpr)
+    this.__refresh__ = true
   }
 
   initLoc(options: Partial<LocOptions> = {}) {
@@ -69,7 +65,10 @@ export class Layer extends C implements S {
   }
 
   draw(ctx: CanvasRenderingContext2D) {
-    ctx.drawImage(this.c.c.canvas, 0, 0)
+    const matrix = this.matrix.create({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 })
+    matrix.transform(this.x, this.y, this.scaleX, this.scaleY, this.rotation, this.skewX, this.skewY)
+    applyCanvasTransform(ctx, matrix, this.options.devicePixelRatio || 1)
+    ctx.drawImage(this.canvas, 0, 0)
   }
 
   get canvas() {

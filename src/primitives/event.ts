@@ -5,8 +5,8 @@
 
 import { createFillBlock } from '../shared'
 import { Display, S } from '../etoile/graph/display'
-import { Render, Event as _Event, easing, etoile } from '../etoile'
-import type { BindThisParameter } from '../etoile'
+import { Render, Schedule, Event as _Event, easing, etoile } from '../etoile'
+import { BindThisParameter } from '../etoile'
 import type { ColorDecoratorResultRGB } from '../etoile/native/runtime'
 import { applyForOpacity, createEffectScope } from './animation'
 import { TreemapLayout, resetLayout } from './component'
@@ -78,21 +78,22 @@ function smoothDrawing(c: SelfEventContenxt) {
       const elapsed = Date.now() - startTime
       const progress = Math.min(elapsed / animationDuration, 1)
       const easedProgress = easing.cubicInOut(progress)
+      self.highlight.destory()
       const mask = createFillBlock(x, y, w, h, { fill, opacity: 0.4 })
-      treemap.reset()
-      setupGraphTransform(treemap.backgroundLayer, 0, 0, 0)
+      self.highlight.render.canvas.style.zIndex = '1'
       applyForOpacity(mask, 0.4, 0.4, easedProgress)
-      // @ts-expect-error
-      treemap.fgBox.add(mask)
-      applyGraphTransform(treemap.elements, self.translateX, self.translateY, self.scaleRatio)
+      self.highlight.add(mask)
+      setupGraphTransform(mask, self.translateX, self.translateY, self.scaleRatio)
+      self.highlight.update()
       setupGraphTransform(treemap.backgroundLayer, self.translateX, self.translateY, self.scaleRatio)
-      treemap.update()
+
       return progress >= 1
     })
   } else {
-    treemap.reset()
+    self.highlight.destory()
+    // self.highlight.render.canvas.style.zIndex = '0'
+    self.highlight.update()
     applyGraphTransform(treemap.elements, self.translateX, self.translateY, self.scaleRatio)
-    treemap.update()
   }
 }
 
@@ -175,6 +176,7 @@ export class SelfEvent extends RegisterModule {
   isDragging: boolean
   draggingState: DraggingState
   event: _Event<SelfEventDefinition>
+  highlight: Schedule
   constructor() {
     super()
     this.currentNode = null
@@ -187,6 +189,7 @@ export class SelfEvent extends RegisterModule {
     this.layoutHeight = 0
     this.draggingState = { x: 0, y: 0 }
     this.event = new _Event<SelfEventDefinition>()
+    this.highlight = null!
   }
 
   ondragstart(this: SelfEventContenxt, metadata: PrimitiveEventMetadata<'mousedown'>) {
@@ -252,12 +255,19 @@ export class SelfEvent extends RegisterModule {
     smoothDrawing(this)
   }
 
-  onmouseout(this: SelfEventContenxt) {
+  onmouseout(this: SelfEventContenxt, metadata: PrimitiveEventMetadata<'mouseout'>) {
     const { self } = this
     self.currentNode = null
     self.forceDestroy = true
-    self.isDragging = false
+    // const { module: node } = metadata
+    // if (self.currentNode !== node) {
+    //   self.currentNode = node
+    //   self.highlight.destory()
+    //   self.highlight.update()
+    //   self.highlight.render.canvas.style.zIndex = '0'
+    // }
     smoothDrawing(this)
+    self.isDragging = false
   }
 
   onwheel(this: SelfEventContenxt, metadata: PrimitiveEventMetadata<'wheel'>) {
@@ -324,6 +334,20 @@ export class SelfEvent extends RegisterModule {
     selfEvt('wheel', this.onwheel)
 
     applyZoomEvent({ treemap, self: this })
+
+    treemap.event.on('onload:selfevent', ({ width, height, root }) => {
+      if (!this.highlight) {
+        this.highlight = new etoile.Schedule(root, { width, height, shaow: true })
+        this.highlight.render.canvas.style.position = 'absolute'
+        root.insertBefore(this.highlight.render.canvas, root.firstChild)
+      } else {
+        this.highlight.render.initOptions({ width, height, devicePixelRatio: window.devicePixelRatio })
+        this.highlight.render.canvas.style.position = 'absolute'
+        this.highlight.render.canvas.style.zIndex = '0'
+        this.highlight.destory()
+        this.highlight.update()
+      }
+    })
 
     treemap.event.on('cleanup:selfevent', () => {
       this.currentNode = null

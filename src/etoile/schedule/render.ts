@@ -11,6 +11,7 @@ export interface RenderViewportOptions {
   width: number
   height: number
   devicePixelRatio: number
+  shaow: boolean
 }
 
 export class Canvas {
@@ -34,7 +35,7 @@ export class Render {
     this.c = new Canvas(options)
     this.options = options
     this.initOptions(options)
-    to.appendChild(this.canvas)
+    !options.shaow && to.appendChild(this.canvas)
   }
 
   clear(width: number, height: number) {

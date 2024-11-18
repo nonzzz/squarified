@@ -228,6 +228,9 @@ export function createTreemap() {
     const { width, height } = root.getBoundingClientRect()
     treemap.backgroundLayer.__refresh__ = false
     treemap.render.initOptions({ height, width, devicePixelRatio: window.devicePixelRatio })
+    treemap.backgroundLayer.setCanvasOptions(treemap.render.options)
+    treemap.backgroundLayer.initLoc()
+    treemap.backgroundLayer.matrix = treemap.backgroundLayer.matrix.create({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 })
     treemap.fontsCaches = Object.create(null)
     treemap.event.emit('cleanup:selfevent')
     resetLayout(treemap, width, height)

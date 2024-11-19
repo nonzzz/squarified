@@ -11,7 +11,7 @@ export interface RenderViewportOptions {
   width: number
   height: number
   devicePixelRatio: number
-  shaow: boolean
+  shaow?: boolean
 }
 
 export class Canvas {

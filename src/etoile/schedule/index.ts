@@ -36,25 +36,25 @@ export class Schedule extends Box {
     render.ctx.save()
     if (asserts.isLayer(graph) && graph.__refresh__) {
       graph.draw(render.ctx)
-      return
-    }
-    if (asserts.isBox(graph) || asserts.isLayer(graph)) {
-      const elements = graph.elements
-      const cap = elements.length
-      for (let i = 0; i < cap; i++) {
-        const element = elements[i]
-        this.execute(render, element)
+    } else {
+      if (asserts.isBox(graph) || asserts.isLayer(graph)) {
+        const elements = graph.elements
+        const cap = elements.length
+        for (let i = 0; i < cap; i++) {
+          const element = elements[i]
+          this.execute(render, element)
+        }
+        if (asserts.isLayer(graph)) {
+          graph.setCacheSnapshot(render.canvas)
+        }
       }
-      if (asserts.isLayer(graph)) {
-        graph.setCacheSnapshot(render.canvas)
-      }
-    }
 
-    if (asserts.isGraph(graph)) {
-      const matrix = graph.matrix.create({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 })
-      matrix.transform(graph.x, graph.y, graph.scaleX, graph.scaleY, graph.rotation, graph.skewX, graph.skewY)
-      applyCanvasTransform(this.render.ctx, matrix, this.render.options.devicePixelRatio)
-      graph.render(render.ctx)
+      if (asserts.isGraph(graph)) {
+        const matrix = graph.matrix.create({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 })
+        matrix.transform(graph.x, graph.y, graph.scaleX, graph.scaleY, graph.rotation, graph.skewX, graph.skewY)
+        applyCanvasTransform(this.render.ctx, matrix, this.render.options.devicePixelRatio)
+        graph.render(render.ctx)
+      }
     }
     render.ctx.restore()
   }

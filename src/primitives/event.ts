@@ -78,22 +78,20 @@ function smoothDrawing(c: SelfEventContenxt) {
       const elapsed = Date.now() - startTime
       const progress = Math.min(elapsed / animationDuration, 1)
       const easedProgress = easing.cubicInOut(progress)
-      self.highlight.destory()
+      self.highlight.reset()
       const mask = createFillBlock(x, y, w, h, { fill, opacity: 0.4 })
-      self.highlight.render.canvas.style.zIndex = '1'
+      self.highlight.highlight.add(mask)
+      self.highlight.highlight.render.canvas.style.zIndex = '1'
       applyForOpacity(mask, 0.4, 0.4, easedProgress)
-      self.highlight.add(mask)
       setupGraphTransform(mask, self.translateX, self.translateY, self.scaleRatio)
-      self.highlight.update()
+      self.highlight.highlight.update()
       setupGraphTransform(treemap.backgroundLayer, self.translateX, self.translateY, self.scaleRatio)
-
       return progress >= 1
     })
   } else {
-    self.highlight.destory()
-    // self.highlight.render.canvas.style.zIndex = '0'
-    self.highlight.update()
-    applyGraphTransform(treemap.elements, self.translateX, self.translateY, self.scaleRatio)
+    self.highlight.reset()
+    self.highlight.highlight.render.canvas.style.zIndex = '0'
+    self.highlight.highlight.update()
   }
 }
 
@@ -138,12 +136,12 @@ function captureBoxXY(c: HTMLCanvasElement, evt: unknown, a: number, d: number, 
 }
 
 function bindPrimitiveEvent(
+  c: HTMLCanvasElement,
   ctx: SelfEventContenxt,
   evt: PrimitiveEvent | (string & {}),
   bus: _Event<SelfEventDefinition>
 ) {
   const { treemap, self } = ctx
-  const c = treemap.render.canvas
   const handler = (e: unknown) => {
     const { x, y } = captureBoxXY(
       c,
@@ -176,7 +174,8 @@ export class SelfEvent extends RegisterModule {
   isDragging: boolean
   draggingState: DraggingState
   event: _Event<SelfEventDefinition>
-  highlight: Schedule
+  // eslint-disable-next-line no-use-before-define
+  highlight: HighlightContext
   constructor() {
     super()
     this.currentNode = null
@@ -189,7 +188,7 @@ export class SelfEvent extends RegisterModule {
     this.layoutHeight = 0
     this.draggingState = { x: 0, y: 0 }
     this.event = new _Event<SelfEventDefinition>()
-    this.highlight = null!
+    this.highlight = createHighlight()
   }
 
   ondragstart(this: SelfEventContenxt, metadata: PrimitiveEventMetadata<'mousedown'>) {
@@ -213,6 +212,9 @@ export class SelfEvent extends RegisterModule {
       }
       return
     }
+    // If highlighting is triggered, it needs to be destroyed first
+    this.self.highlight.reset()
+    this.self.highlight.setDisplayLayerForHighlight()
     // @ts-expect-error
     this.self.event.off('mousemove', this.self.onmousemove)
     this.treemap.event.off('zoom')
@@ -244,9 +246,6 @@ export class SelfEvent extends RegisterModule {
 
   onmousemove(this: SelfEventContenxt, metadata: PrimitiveEventMetadata<'mousemove'>) {
     const { self } = this
-    if (self.isDragging) {
-      return
-    }
     const { module: node } = metadata
     self.forceDestroy = false
     if (self.currentNode !== node) {
@@ -259,15 +258,7 @@ export class SelfEvent extends RegisterModule {
     const { self } = this
     self.currentNode = null
     self.forceDestroy = true
-    // const { module: node } = metadata
-    // if (self.currentNode !== node) {
-    //   self.currentNode = node
-    //   self.highlight.destory()
-    //   self.highlight.update()
-    //   self.highlight.render.canvas.style.zIndex = '0'
-    // }
     smoothDrawing(this)
-    self.isDragging = false
   }
 
   onwheel(this: SelfEventContenxt, metadata: PrimitiveEventMetadata<'wheel'>) {
@@ -283,6 +274,8 @@ export class SelfEvent extends RegisterModule {
     }
     self.forceDestroy = true
     treemap.reset()
+    this.self.highlight.reset()
+    this.self.highlight.setDisplayLayerForHighlight()
     setupGraphTransform(treemap.backgroundLayer, 0, 0, 0)
     const factor = absWheelDelta > 3 ? 1.4 : absWheelDelta > 1 ? 1.2 : 1.1
     const delta = wheelDelta > 0 ? factor : 1 / factor
@@ -319,34 +312,33 @@ export class SelfEvent extends RegisterModule {
     RegisterModule.mixin(app, methods)
     const selfEvents = [...primitiveEvents, 'wheel'] as const
     selfEvents.forEach((evt) => {
-      nativeEvents.push(bindPrimitiveEvent({ treemap, self: this }, evt, event))
+      nativeEvents.push(bindPrimitiveEvent(treemap.render.canvas, { treemap, self: this }, evt, event))
     })
     const selfEvt = event.bindWithContext<SelfEventContenxt>({ treemap, self: this })
     selfEvt('mousedown', this.ondragstart)
     selfEvt('mousemove', this.ondragmove)
     selfEvt('mouseup', this.ondragend)
 
-    // highlight
-    selfEvt('mousemove', this.onmousemove)
-    selfEvt('mouseout', this.onmouseout)
-
     // wheel
     selfEvt('wheel', this.onwheel)
 
     applyZoomEvent({ treemap, self: this })
 
+    let installHightlightEvent = false
+
     treemap.event.on('onload:selfevent', ({ width, height, root }) => {
-      if (!this.highlight) {
-        this.highlight = new etoile.Schedule(root, { width, height, shaow: true })
-        this.highlight.render.canvas.style.position = 'absolute'
-        root.insertBefore(this.highlight.render.canvas, root.firstChild)
-      } else {
-        this.highlight.render.initOptions({ width, height, devicePixelRatio: window.devicePixelRatio })
-        this.highlight.render.canvas.style.position = 'absolute'
-        this.highlight.render.canvas.style.zIndex = '0'
-        this.highlight.destory()
-        this.highlight.update()
+      this.highlight.init(width, height, root)
+
+      if (!installHightlightEvent) {
+        bindPrimitiveEvent(this.highlight.highlight.render.canvas, { treemap, self: this }, 'mousemove', event)
+        bindPrimitiveEvent(this.highlight.highlight.render.canvas, { treemap, self: this }, 'mouseout', event)
+        // highlight
+        selfEvt('mousemove', this.onmousemove)
+        selfEvt('mouseout', this.onmouseout)
+        installHightlightEvent = true
+        this.highlight.setDisplayLayerForHighlight()
       }
+      this.highlight.reset()
     })
 
     treemap.event.on('cleanup:selfevent', () => {
@@ -462,4 +454,45 @@ interface DuckE {
 // Only works for mouseup and mousedown events
 function isScrollWheelOrRightButtonOnMouseupAndDown<E extends DuckE = DuckE>(e: E) {
   return e.which === 2 || e.which === 3
+}
+
+interface HighlightContext {
+  init: (w: number, h: number, root: HTMLElement) => void
+  reset: () => void
+  setDisplayLayerForHighlight: () => void
+  get highlight(): Schedule
+}
+
+function createHighlight(): HighlightContext {
+  let s: Schedule | null = null
+
+  const setDisplayLayerForHighlight = () => {
+    if (!s) return
+    const c = s.render.canvas
+    c.style.position = 'absolute'
+    c.style.zIndex = '-1'
+    c.style.pointerEvents = 'none'
+  }
+
+  const init: HighlightContext['init'] = (w, h, root) => {
+    if (!s) {
+      s = new Schedule(root, { width: w, height: h })
+    }
+    setDisplayLayerForHighlight()
+  }
+
+  const reset = () => {
+    if (!s) return
+    s.destory()
+    s.update()
+  }
+
+  return {
+    init,
+    reset,
+    setDisplayLayerForHighlight,
+    get highlight() {
+      return s!
+    }
+  }
 }

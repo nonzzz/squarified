@@ -3,16 +3,16 @@
 // If one day etoile need to build as a useful library. Pls rewrite it!
 // All of implementation don't want to consider the compatibility of the browser.
 
-import { createFillBlock } from '../shared'
+import { createFillBlock, mixin } from '../shared'
 import { Display, S } from '../etoile/graph/display'
 import { Render, Schedule, Event as _Event, easing, etoile } from '../etoile'
-import { BindThisParameter } from '../etoile'
+import type { BindThisParameter } from '../etoile'
 import type { ColorDecoratorResultRGB } from '../etoile/native/runtime'
+import type { InheritedCollections } from '../shared'
 import { applyForOpacity, createEffectScope } from './animation'
 import { TreemapLayout, resetLayout } from './component'
 import type { App, TreemapInstanceAPI } from './component'
 import { RegisterModule } from './registry'
-import type { InheritedCollections } from './registry'
 import type { LayoutModule } from './squarify'
 import { findRelativeNode, findRelativeNodeById } from './struct'
 import type { NativeModule } from './struct'
@@ -73,6 +73,8 @@ function smoothDrawing(c: SelfEventContenxt) {
     run(() => {
       if (self.forceDestroy) {
         stop()
+        self.highlight.reset()
+        self.highlight.setDisplayLayerForHighlight()
         return true
       }
       const elapsed = Date.now() - startTime
@@ -81,7 +83,7 @@ function smoothDrawing(c: SelfEventContenxt) {
       self.highlight.reset()
       const mask = createFillBlock(x, y, w, h, { fill, opacity: 0.4 })
       self.highlight.highlight.add(mask)
-      self.highlight.highlight.render.canvas.style.zIndex = '1'
+      self.highlight.setDisplayLayerForHighlight('1')
       applyForOpacity(mask, 0.4, 0.4, easedProgress)
       setupGraphTransform(mask, self.translateX, self.translateY, self.scaleRatio)
       self.highlight.highlight.update()
@@ -89,8 +91,7 @@ function smoothDrawing(c: SelfEventContenxt) {
     })
   } else {
     self.highlight.reset()
-    self.highlight.highlight.render.canvas.style.zIndex = '0'
-    self.highlight.highlight.update()
+    self.highlight.setDisplayLayerForHighlight()
   }
 }
 
@@ -206,12 +207,12 @@ export class SelfEvent extends RegisterModule {
       if ('zoom' in this.treemap.event.eventCollections) {
         const condit = this.treemap.event.eventCollections.zoom.length > 0
         if (!condit) {
-          // applyZoomEvent(this)
+          applyZoomEvent(this)
         }
       }
       return
     }
-    // // If highlighting is triggered, it needs to be destroyed first
+    // If highlighting is triggered, it needs to be destroyed first
     this.self.highlight.reset()
     this.self.highlight.setDisplayLayerForHighlight()
     // @ts-expect-error
@@ -310,7 +311,7 @@ export class SelfEvent extends RegisterModule {
         fn: () => event.emit.bind(event)
       }
     ]
-    RegisterModule.mixin(app, methods)
+    mixin(app, methods)
     const selfEvents = [...primitiveEvents, 'wheel'] as const
     selfEvents.forEach((evt) => {
       nativeEvents.push(bindPrimitiveEvent(treemap.render.canvas, { treemap, self: this }, evt, event))
@@ -403,6 +404,7 @@ function applyGraphTransform(graphs: Display[], translateX: number, translateY: 
 function onZoom(ctx: SelfEventContenxt, node: LayoutModule, root: LayoutModule | null) {
   if (!node) return
   const { treemap, self } = ctx
+  self.forceDestroy = true
   const c = treemap.render.canvas
   const boundingClientRect = c.getBoundingClientRect()
   const [w, h] = estimateZoomingArea(node, root, boundingClientRect.width, boundingClientRect.height)
@@ -425,12 +427,15 @@ function onZoom(ctx: SelfEventContenxt, node: LayoutModule, root: LayoutModule |
     }
     const { run, stop } = createEffectScope()
     run(() => {
+      treemap.backgroundLayer.__refresh__ = false
       const elapsed = Date.now() - startTime
       const progress = Math.min(elapsed / animationDuration, 1)
       if (progress >= 1) {
         stop()
         self.layoutWidth = w
         self.layoutHeight = h
+        self.forceDestroy = false
+        return true
       }
       const easedProgress = easing.cubicInOut(progress)
       const scaleRatio = initialScale + (scale - initialScale) * easedProgress
@@ -439,9 +444,8 @@ function onZoom(ctx: SelfEventContenxt, node: LayoutModule, root: LayoutModule |
       self.scaleRatio = scaleRatio
       treemap.reset()
       applyGraphTransform(treemap.elements, self.translateX, self.translateY, scaleRatio)
-      setupGraphTransform(treemap.backgroundLayer, self.translateX, self.translateY, self.scaleRatio)
+      setupGraphTransform(treemap.backgroundLayer, self.translateX, self.translateY, scaleRatio)
       treemap.update()
-
       return progress >= 1
     })
   }
@@ -460,19 +464,17 @@ function isScrollWheelOrRightButtonOnMouseupAndDown<E extends DuckE = DuckE>(e: 
 interface HighlightContext {
   init: (w: number, h: number, root: HTMLElement) => void
   reset: () => void
-  setDisplayLayerForHighlight: () => void
+  setDisplayLayerForHighlight: (layer?: string) => void
   get highlight(): Schedule
 }
 
 function createHighlight(): HighlightContext {
   let s: Schedule | null = null
 
-  const setDisplayLayerForHighlight = () => {
+  const setDisplayLayerForHighlight = (layer: string = '-1') => {
     if (!s) return
     const c = s.render.canvas
-    c.style.position = 'absolute'
-    c.style.zIndex = '-1'
-    c.style.pointerEvents = 'none'
+    c.style.zIndex = layer
   }
 
   const init: HighlightContext['init'] = (w, h, root) => {
@@ -480,6 +482,8 @@ function createHighlight(): HighlightContext {
       s = new Schedule(root, { width: w, height: h })
     }
     setDisplayLayerForHighlight()
+    s.render.canvas.style.position = 'absolute'
+    s.render.canvas.style.pointerEvents = 'none'
   }
 
   const reset = () => {

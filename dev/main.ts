@@ -1,13 +1,16 @@
 import { c2m, createTreemap, presetDecorator, sortChildrenByKey } from '../src'
-import data from './data.json' assert { type: 'json' }
 
 const root = document.querySelector('#app')!
 
 const treemap = createTreemap()
 treemap.use('decorator', presetDecorator)
 
-function main() {
-  treemap.init(root)
+function loadData() {
+  return fetch('./data.json').then((res) => res.json()).then((data: any[]) => data)
+}
+
+async function main() {
+  const data = await loadData()
   const sortedData = sortChildrenByKey(
     data.map((item) => c2m({ ...item, groups: item.stats }, 'statSize', (d) => ({ ...d, id: d.label }))),
     'weight'
@@ -18,10 +21,12 @@ function main() {
   })
 }
 
+treemap.init(root)
+
 main()
 
 treemap.on('click', function(metadata) {
-  this.zoom(metadata.module)
+  // this.zoom(metadata.module)
 })
 
 new ResizeObserver(() => treemap.resize()).observe(root)

@@ -97,10 +97,7 @@ export function resetLayout(treemap: TreemapLayout, w: number, h: number) {
   treemap.reset()
 }
 
-// https://www.typescriptlang.org/docs/handbook/mixins.html
-class Schedule extends etoile.Schedule {}
-
-export class TreemapLayout extends Schedule {
+export class TreemapLayout extends etoile.Schedule {
   data: NativeModule[]
   layoutNodes: LayoutModule[]
   decorator: RenderDecorator
@@ -108,7 +105,7 @@ export class TreemapLayout extends Schedule {
   private fgBox: Box
   fontsCaches: Record<string, number>
   ellispsisWidthCache: Record<string, number>
-  constructor(...args: ConstructorParameters<typeof Schedule>) {
+  constructor(...args: ConstructorParameters<typeof etoile.Schedule>) {
     super(...args)
     this.data = []
     this.layoutNodes = []
@@ -214,6 +211,13 @@ export function createTreemap() {
     treemap = new TreemapLayout(el)
     root = el
     ;(root as HTMLDivElement).style.position = 'relative'
+
+    if (!installed) {
+      for (const registry of defaultRegistries) {
+        registry(context, treemap, treemap.render)
+      }
+      installed = true
+    }
   }
   function dispose() {
     if (root && treemap) {
@@ -245,13 +249,6 @@ export function createTreemap() {
       throw new Error('Treemap not initialized')
     }
     treemap.data = bindParentForModule(options.data || [])
-
-    if (!installed) {
-      for (const registry of defaultRegistries) {
-        registry(context, treemap, treemap.render)
-      }
-      installed = true
-    }
 
     for (const use of uses) {
       use(treemap)

@@ -51,3 +51,17 @@ export function createCanvasElement() {
 export function applyCanvasTransform(ctx: CanvasRenderingContext2D, matrix: Matrix2D, dpr: number) {
   ctx.setTransform(matrix.a * dpr, matrix.b * dpr, matrix.c * dpr, matrix.d * dpr, matrix.e * dpr, matrix.f * dpr)
 }
+
+export interface InheritedCollections<T = {}> {
+  name: string
+  fn: (instance: T) => void
+}
+
+export function mixin<T>(app: T, methods: InheritedCollections<T>[]) {
+  methods.forEach(({ name, fn }) => {
+    Object.defineProperty(app, name, {
+      value: fn(app),
+      writable: false
+    })
+  })
+}

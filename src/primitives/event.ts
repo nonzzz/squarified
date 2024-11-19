@@ -63,7 +63,7 @@ interface DraggingState {
 const fill = <ColorDecoratorResultRGB> { desc: { r: 255, g: 255, b: 255 }, mode: 'rgb' }
 
 function smoothDrawing(c: SelfEventContenxt) {
-  const { self, treemap } = c
+  const { self } = c
   const currentNode = self.currentNode
   if (currentNode) {
     const { run, stop } = createEffectScope()
@@ -85,7 +85,6 @@ function smoothDrawing(c: SelfEventContenxt) {
       applyForOpacity(mask, 0.4, 0.4, easedProgress)
       setupGraphTransform(mask, self.translateX, self.translateY, self.scaleRatio)
       self.highlight.highlight.update()
-      setupGraphTransform(treemap.backgroundLayer, self.translateX, self.translateY, self.scaleRatio)
       return progress >= 1
     })
   } else {
@@ -212,7 +211,7 @@ export class SelfEvent extends RegisterModule {
       }
       return
     }
-    // If highlighting is triggered, it needs to be destroyed first
+    // // If highlighting is triggered, it needs to be destroyed first
     this.self.highlight.reset()
     this.self.highlight.setDisplayLayerForHighlight()
     // @ts-expect-error
@@ -241,6 +240,8 @@ export class SelfEvent extends RegisterModule {
     }
     this.self.isDragging = false
     this.self.draggingState = { x: 0, y: 0 }
+    this.self.highlight.reset()
+    this.self.highlight.setDisplayLayerForHighlight()
     this.self.event.bindWithContext(this)('mousemove', this.self.onmousemove)
   }
 

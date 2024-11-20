@@ -12,7 +12,7 @@ function loadData() {
 async function main() {
   const data = await loadData()
   const sortedData = sortChildrenByKey(
-    data.map((item) => c2m({ ...item, groups: item.stats }, 'statSize', (d) => ({ ...d, id: d.label }))),
+    data.map((item) => c2m({ ...item, groups: item.stats }, 'statSize', (d) => ({ ...d, id: d.filename }))),
     'weight'
   )
 
@@ -26,7 +26,7 @@ treemap.init(root)
 main()
 
 treemap.on('click', function(metadata) {
-  // this.zoom(metadata.module)
+  this.zoom(metadata.module)
 })
 
 new ResizeObserver(() => treemap.resize()).observe(root)

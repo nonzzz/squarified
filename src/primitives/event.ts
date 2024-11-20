@@ -71,14 +71,14 @@ function smoothDrawing(c: SelfEventContenxt) {
     const animationDuration = 300
     const [x, y, w, h] = currentNode.layout
     run(() => {
-      if (self.forceDestroy) {
+      const elapsed = Date.now() - startTime
+      const progress = Math.min(elapsed / animationDuration, 1)
+      if (self.forceDestroy || progress >= 1) {
         stop()
         self.highlight.reset()
         self.highlight.setDisplayLayerForHighlight()
         return true
       }
-      const elapsed = Date.now() - startTime
-      const progress = Math.min(elapsed / animationDuration, 1)
       const easedProgress = easing.cubicInOut(progress)
       self.highlight.reset()
       const mask = createFillBlock(x, y, w, h, { fill, opacity: 0.4 })
@@ -87,7 +87,6 @@ function smoothDrawing(c: SelfEventContenxt) {
       applyForOpacity(mask, 0.4, 0.4, easedProgress)
       setupGraphTransform(mask, self.translateX, self.translateY, self.scaleRatio)
       self.highlight.highlight.update()
-      return progress >= 1
     })
   } else {
     self.highlight.reset()
@@ -402,54 +401,53 @@ function applyGraphTransform(graphs: Display[], translateX: number, translateY: 
 }
 
 function onZoom(ctx: SelfEventContenxt, node: LayoutModule, root: LayoutModule | null) {
-  if (!node) return
-  const { treemap, self } = ctx
-  self.forceDestroy = true
-  const c = treemap.render.canvas
-  const boundingClientRect = c.getBoundingClientRect()
-  const [w, h] = estimateZoomingArea(node, root, boundingClientRect.width, boundingClientRect.height)
-  resetLayout(treemap, w, h)
-  const module = findRelativeNodeById(node.node.id, treemap.layoutNodes)
-  if (module) {
-    const [mx, my, mw, mh] = module.layout
-    const scale = Math.min(boundingClientRect.width / mw, boundingClientRect.height / mh)
-    const translateX = (boundingClientRect.width / 2) - (mx + mw / 2) * scale
-    const translateY = (boundingClientRect.height / 2) - (my + mh / 2) * scale
-    const initialScale = self.scaleRatio
-    const initialTranslateX = self.translateX
-    const initialTranslateY = self.translateY
-    const startTime = Date.now()
-    const animationDuration = 300
-    if (self.layoutHeight !== w || self.layoutHeight !== h) {
-      // remove font caches
-      delete treemap.fontsCaches[module.node.id]
-      delete treemap.ellispsisWidthCache[module.node.id]
-    }
-    const { run, stop } = createEffectScope()
-    run(() => {
-      treemap.backgroundLayer.__refresh__ = false
-      const elapsed = Date.now() - startTime
-      const progress = Math.min(elapsed / animationDuration, 1)
-      if (progress >= 1) {
-        stop()
-        self.layoutWidth = w
-        self.layoutHeight = h
-        self.forceDestroy = false
-        return true
-      }
-      const easedProgress = easing.cubicInOut(progress)
-      const scaleRatio = initialScale + (scale - initialScale) * easedProgress
-      self.translateX = initialTranslateX + (translateX - initialTranslateX) * easedProgress
-      self.translateY = initialTranslateY + (translateY - initialTranslateY) * easedProgress
-      self.scaleRatio = scaleRatio
-      treemap.reset()
-      applyGraphTransform(treemap.elements, self.translateX, self.translateY, scaleRatio)
-      setupGraphTransform(treemap.backgroundLayer, self.translateX, self.translateY, scaleRatio)
-      treemap.update()
-      return progress >= 1
-    })
-  }
-  root = node
+  // if (!node) return
+  // const { treemap, self } = ctx
+  // self.forceDestroy = true
+  // const c = treemap.render.canvas
+  // const boundingClientRect = c.getBoundingClientRect()
+  // const [w, h] = estimateZoomingArea(node, root, boundingClientRect.width, boundingClientRect.height)
+  // resetLayout(treemap, w, h)
+  // const module = findRelativeNodeById(node.node.id, treemap.layoutNodes)
+  // if (module) {
+  //   const [mx, my, mw, mh] = module.layout
+  //   const scale = Math.min(boundingClientRect.width / mw, boundingClientRect.height / mh)
+  //   const translateX = (boundingClientRect.width / 2) - (mx + mw / 2) * scale
+  //   const translateY = (boundingClientRect.height / 2) - (my + mh / 2) * scale
+  //   const initialScale = self.scaleRatio
+  //   const initialTranslateX = self.translateX
+  //   const initialTranslateY = self.translateY
+  //   const startTime = Date.now()
+  //   const animationDuration = 300
+  //   if (self.layoutHeight !== w || self.layoutHeight !== h) {
+  //     // remove font caches
+  //     delete treemap.fontsCaches[module.node.id]
+  //     delete treemap.ellispsisWidthCache[module.node.id]
+  //   }
+  //   const { run, stop } = createEffectScope()
+  //   run(() => {
+  //     const elapsed = Date.now() - startTime
+  //     const progress = Math.min(elapsed / animationDuration, 1)
+  //     treemap.backgroundLayer.__refresh__ = false
+  //     // setupGraphTransform(treemap.backgroundLayer, 0, 0, 0)
+  //     if (progress >= 1) {
+  //       stop()
+  //       self.layoutWidth = w
+  //       self.layoutHeight = h
+  //       self.forceDestroy = false
+  //       return true
+  //     }
+  //     const easedProgress = easing.cubicInOut(progress)
+  //     const scaleRatio = initialScale + (scale - initialScale) * easedProgress
+  //     self.translateX = initialTranslateX + (translateX - initialTranslateX) * easedProgress
+  //     self.translateY = initialTranslateY + (translateY - initialTranslateY) * easedProgress
+  //     self.scaleRatio = scaleRatio
+  //     treemap.reset()
+  //     applyGraphTransform(treemap.elements, self.translateX, self.translateY, scaleRatio)
+  //     treemap.update()
+  //   })
+  // }
+  // root = node
 }
 
 interface DuckE {

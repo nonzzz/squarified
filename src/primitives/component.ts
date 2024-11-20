@@ -139,7 +139,7 @@ export class TreemapLayout extends etoile.Schedule {
     } else {
       optimalFontSize = evaluateOptimalFontSize(
         this.render.ctx,
-        node.node.id,
+        node.node.label,
         {
           range: fontSize,
           family: fontFamily
@@ -151,7 +151,7 @@ export class TreemapLayout extends etoile.Schedule {
     }
 
     this.render.ctx.font = `${optimalFontSize}px ${fontFamily}`
-    const result = getSafeText(this.render.ctx, node.node.id, w - (rectGap * 2), this.ellispsisWidthCache)
+    const result = getSafeText(this.render.ctx, node.node.label, w - (rectGap * 2), this.ellispsisWidthCache)
     if (!result) return
     if (result.width >= w || optimalFontSize >= h) return
     const { text, width } = result
@@ -164,7 +164,6 @@ export class TreemapLayout extends etoile.Schedule {
   }
 
   reset() {
-    this.fgBox.destory()
     this.remove(this.bgLayer, this.fgBox)
     if (!this.bgLayer.__refresh__) {
       this.bgLayer.destory()
@@ -172,9 +171,13 @@ export class TreemapLayout extends etoile.Schedule {
         this.drawBackgroundNode(node)
       }
     }
-    this.render.ctx.textBaseline = 'middle'
-    for (const node of this.layoutNodes) {
-      this.drawForegroundNode(node)
+    if (this.fgBox.elements.length) {
+      this.fgBox = this.fgBox.clone()
+    } else {
+      this.render.ctx.textBaseline = 'middle'
+      for (const node of this.layoutNodes) {
+        this.drawForegroundNode(node)
+      }
     }
     this.add(this.bgLayer, this.fgBox)
   }

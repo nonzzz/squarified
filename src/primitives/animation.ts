@@ -17,9 +17,7 @@ function createEffectRun(c: EffectScopeContext) {
   return (fn: () => boolean | void) => {
     const effect = () => {
       const done = fn()
-      if (done) {
-        c.animationFrameID = null
-      } else {
+      if (!done) {
         c.animationFrameID = raf(effect)
       }
     }

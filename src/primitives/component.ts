@@ -94,7 +94,7 @@ export function getSafeText(c: CanvasRenderingContext2D, text: string, width: nu
 
 export function resetLayout(treemap: TreemapLayout, w: number, h: number) {
   treemap.layoutNodes = squarify(treemap.data, { w, h, x: 0, y: 0 }, treemap.decorator.layout)
-  treemap.reset()
+  treemap.reset(true)
 }
 
 export class TreemapLayout extends etoile.Schedule {
@@ -163,7 +163,7 @@ export class TreemapLayout extends etoile.Schedule {
     }
   }
 
-  reset() {
+  reset(refresh = false) {
     this.remove(this.bgLayer, this.fgBox)
     if (!this.bgLayer.__refresh__) {
       this.bgLayer.destory()
@@ -171,13 +171,14 @@ export class TreemapLayout extends etoile.Schedule {
         this.drawBackgroundNode(node)
       }
     }
-    if (this.fgBox.elements.length) {
-      this.fgBox = this.fgBox.clone()
-    } else {
+    if (!this.fgBox.elements.length || refresh) {
       this.render.ctx.textBaseline = 'middle'
+      this.fgBox.destory()
       for (const node of this.layoutNodes) {
         this.drawForegroundNode(node)
       }
+    } else {
+      this.fgBox = this.fgBox.clone()
     }
     this.add(this.bgLayer, this.fgBox)
   }

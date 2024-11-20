@@ -1,5 +1,5 @@
 import { createFillBlock, createTitleText } from '../shared'
-import { Box, etoile } from '../etoile'
+import { Box, Layer, etoile } from '../etoile'
 import type { EventMethods } from './event'
 import { bindParentForModule, findRelativeNodeById } from './struct'
 import type { Module, NativeModule } from './struct'
@@ -97,33 +97,31 @@ export function resetLayout(treemap: TreemapLayout, w: number, h: number) {
   treemap.reset()
 }
 
-// https://www.typescriptlang.org/docs/handbook/mixins.html
-class Schedule extends etoile.Schedule {}
-
-export class TreemapLayout extends Schedule {
+export class TreemapLayout extends etoile.Schedule {
   data: NativeModule[]
   layoutNodes: LayoutModule[]
   decorator: RenderDecorator
-  private bgBox: Box
+  private bgLayer: Layer
   private fgBox: Box
   fontsCaches: Record<string, number>
   ellispsisWidthCache: Record<string, number>
-  constructor(...args: ConstructorParameters<typeof Schedule>) {
+  constructor(...args: ConstructorParameters<typeof etoile.Schedule>) {
     super(...args)
     this.data = []
     this.layoutNodes = []
-    this.bgBox = new Box()
+    this.bgLayer = new Layer()
     this.fgBox = new Box()
     this.decorator = Object.create(null)
     this.fontsCaches = Object.create(null)
     this.ellispsisWidthCache = Object.create(null)
+    this.bgLayer.setCanvasOptions(this.render.options)
   }
 
   drawBackgroundNode(node: LayoutModule) {
     const [x, y, w, h] = node.layout
     const fill = this.decorator.color.mappings[node.node.id]
     const s = createFillBlock(x, y, w, h, { fill })
-    this.bgBox.add(s)
+    this.bgLayer.add(s)
     for (const child of node.children) {
       this.drawBackgroundNode(child)
     }
@@ -141,7 +139,7 @@ export class TreemapLayout extends Schedule {
     } else {
       optimalFontSize = evaluateOptimalFontSize(
         this.render.ctx,
-        node.node.id,
+        node.node.label,
         {
           range: fontSize,
           family: fontFamily
@@ -153,7 +151,7 @@ export class TreemapLayout extends Schedule {
     }
 
     this.render.ctx.font = `${optimalFontSize}px ${fontFamily}`
-    const result = getSafeText(this.render.ctx, node.node.id, w - (rectGap * 2), this.ellispsisWidthCache)
+    const result = getSafeText(this.render.ctx, node.node.label, w - (rectGap * 2), this.ellispsisWidthCache)
     if (!result) return
     if (result.width >= w || optimalFontSize >= h) return
     const { text, width } = result
@@ -166,15 +164,22 @@ export class TreemapLayout extends Schedule {
   }
 
   reset() {
-    this.bgBox.destory()
-    this.fgBox.destory()
-    this.remove(this.bgBox, this.fgBox)
-    this.render.ctx.textBaseline = 'middle'
-    for (const node of this.layoutNodes) {
-      this.drawBackgroundNode(node)
-      this.drawForegroundNode(node)
+    this.remove(this.bgLayer, this.fgBox)
+    if (!this.bgLayer.__refresh__) {
+      this.bgLayer.destory()
+      for (const node of this.layoutNodes) {
+        this.drawBackgroundNode(node)
+      }
     }
-    this.add(this.bgBox, this.fgBox)
+    if (this.fgBox.elements.length) {
+      this.fgBox = this.fgBox.clone()
+    } else {
+      this.render.ctx.textBaseline = 'middle'
+      for (const node of this.layoutNodes) {
+        this.drawForegroundNode(node)
+      }
+    }
+    this.add(this.bgLayer, this.fgBox)
   }
 
   get api() {
@@ -183,6 +188,10 @@ export class TreemapLayout extends Schedule {
         this.event.emit('zoom', node)
       }
     }
+  }
+
+  get backgroundLayer() {
+    return this.bgLayer
   }
 }
 
@@ -204,6 +213,14 @@ export function createTreemap() {
   function init(el: Element) {
     treemap = new TreemapLayout(el)
     root = el
+    ;(root as HTMLDivElement).style.position = 'relative'
+
+    if (!installed) {
+      for (const registry of defaultRegistries) {
+        registry(context, treemap, treemap.render)
+      }
+      installed = true
+    }
   }
   function dispose() {
     if (root && treemap) {
@@ -217,9 +234,15 @@ export function createTreemap() {
   function resize() {
     if (!treemap || !root) return
     const { width, height } = root.getBoundingClientRect()
+    treemap.backgroundLayer.__refresh__ = false
     treemap.render.initOptions({ height, width, devicePixelRatio: window.devicePixelRatio })
+    ;(treemap.render.canvas as HTMLCanvasElement).style.position = 'absolute'
+    treemap.backgroundLayer.setCanvasOptions(treemap.render.options)
+    treemap.backgroundLayer.initLoc()
+    treemap.backgroundLayer.matrix = treemap.backgroundLayer.matrix.create({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 })
     treemap.fontsCaches = Object.create(null)
     treemap.event.emit('cleanup:selfevent')
+    treemap.event.emit('onload:selfevent', { width, height, root })
     resetLayout(treemap, width, height)
     treemap.update()
   }
@@ -229,13 +252,6 @@ export function createTreemap() {
       throw new Error('Treemap not initialized')
     }
     treemap.data = bindParentForModule(options.data || [])
-
-    if (!installed) {
-      for (const registry of defaultRegistries) {
-        registry(context, treemap, treemap.render)
-      }
-      installed = true
-    }
 
     for (const use of uses) {
       use(treemap)

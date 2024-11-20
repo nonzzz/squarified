@@ -1,4 +1,5 @@
 export { Box } from './box'
+export { Layer } from './layer'
 export { Rect } from './rect'
 export { Text } from './text'
 export * from './types'

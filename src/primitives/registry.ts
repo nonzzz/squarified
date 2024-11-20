@@ -3,21 +3,8 @@ import { log } from '../etoile/native/log'
 import { TreemapLayout } from './component'
 import type { App } from './component'
 
-export interface InheritedCollections<T = {}> {
-  name: string
-  fn: (instance: T) => void
-}
-
 export abstract class RegisterModule {
   abstract init(app: App, treemap: TreemapLayout, render: Render): void
-  static mixin<T>(app: T, methods: InheritedCollections<T>[]) {
-    methods.forEach(({ name, fn }) => {
-      Object.defineProperty(app, name, {
-        value: fn(app),
-        writable: false
-      })
-    })
-  }
 }
 
 export function registerModuleForSchedule(mod: RegisterModule) {

@@ -6,7 +6,7 @@ function traverse(graphs: Display[], handler: (graph: Graph) => void) {
   const len = graphs.length
   for (let i = 0; i < len; i++) {
     const graph = graphs[i]
-    if (asserts.isBox(graph)) {
+    if (asserts.isBox(graph) || asserts.isLayer(graph)) {
       traverse(graph.elements, handler)
     } else if (asserts.isGraph(graph)) {
       handler(graph)

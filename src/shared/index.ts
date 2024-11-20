@@ -1,26 +1,6 @@
+import { Matrix2D } from '../etoile/native/matrix'
 import type { RectStyleOptions } from '../etoile/graph/rect'
 import { Rect, Text } from '../etoile'
-
-export class Iter<T extends NonNullable<Record<string, any>>> {
-  private keys: (keyof T)[]
-  private data: T
-  constructor(data: T) {
-    this.data = data
-    this.keys = Object.keys(data)
-  }
-
-  // dprint-ignore
-  * [Symbol.iterator]() {
-        for (let i = 0; i < this.keys.length; i++) {
-          yield {
-            key: this.keys[i],
-            value: this.data[this.keys[i]] as T[keyof T],
-            index: i,
-            peek: () => this.keys[i + 1]
-          }
-        }
-      }
-}
 
 export function isObject(data: NonNullable<Record<string, any>>): data is object {
   return Object.prototype.toString.call(data) === '[object Object]'
@@ -63,3 +43,25 @@ export function createTitleText(text: string, x: number, y: number, font: string
 }
 
 export const raf = window.requestAnimationFrame
+
+export function createCanvasElement() {
+  return document.createElement('canvas')
+}
+
+export function applyCanvasTransform(ctx: CanvasRenderingContext2D, matrix: Matrix2D, dpr: number) {
+  ctx.setTransform(matrix.a * dpr, matrix.b * dpr, matrix.c * dpr, matrix.d * dpr, matrix.e * dpr, matrix.f * dpr)
+}
+
+export interface InheritedCollections<T = {}> {
+  name: string
+  fn: (instance: T) => void
+}
+
+export function mixin<T>(app: T, methods: InheritedCollections<T>[]) {
+  methods.forEach(({ name, fn }) => {
+    Object.defineProperty(app, name, {
+      value: fn(app),
+      writable: false
+    })
+  })
+}

@@ -1,12 +1,13 @@
 import { c2m, createTreemap, presetDecorator, sortChildrenByKey } from '../src'
 
-const root = document.querySelector('#app')!
+import './live-reload'
 
+const root = document.querySelector('#app')!
 const treemap = createTreemap()
 treemap.use('decorator', presetDecorator)
 
 function loadData() {
-  return fetch('./data.json').then((res) => res.json()).then((data: any[]) => data)
+  return fetch('data.json').then((res) => res.json()).then((data: any[]) => data)
 }
 
 async function main() {

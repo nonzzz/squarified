@@ -1,5 +1,15 @@
 JK = @pnpm exec jiek --root .
 
+FLAGS += --bundle
+FLAGS += --loader:.html=copy
+FLAGS += --loader:.json=copy
+FLAGS += --outdir=./display
+FLAGS += --target=chrome51
+FLAGS += ./dev/index.html
+FLAGS += ./dev/data.json
+FLAGS += ./dev/main.ts
+
+
 bootstrap:
 	@echo "Install dependiences"
 	corepack enable
@@ -19,8 +29,8 @@ build-pub: bootstrap build-lib
 
 dev-server:
 	@echo "Start dev server"
-	@pnpm exec vite
+	./node_modules/.bin/esbuild $(FLAGS) --define:LIVE_RELOAD=true --watch --servedir=./display
 
 build-server:
 	@echo "Build server"
-	@pnpm exec vite build
+	./node_modules/.bin/esbuild $(FLAGS) --define:LIVE_RELOAD=false

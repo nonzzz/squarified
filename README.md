@@ -4,20 +4,15 @@
 
 ![display](./data.gif)
 
+## Install
+
+```shell
+$ yarn add squarified
+```
+
 ## Usage
 
-```ts
-import { createTreemap, presetDecorator } from 'squarified'
-
-const root = document.querySelector('#app')
-
-const treemap = createTreemap()
-treemap.use('decorator', presetDecorator)
-
-treemap.init(root)
-
-treemap.setOptions({ data: [] })
-```
+See the dev directory for a minimal example.
 
 ### Auth
 

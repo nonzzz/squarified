@@ -1,6 +1,6 @@
+import { hashCode } from '../shared'
 import { type ColorDecoratorResult } from '../etoile/native/runtime'
 import { TreemapLayout } from './component'
-import { getNodeDepth } from './struct'
 import type { NativeModule } from './struct'
 
 export type ColorMappings = Record<string, ColorDecoratorResult>
@@ -58,66 +58,86 @@ export function presetDecorator(app: TreemapLayout) {
   Object.assign(app.decorator, {
     layout: defaultLayoutOptions,
     font: defaultFontOptions,
-    color: colorMappings(app)
+    color: { mappings: evaluateColorMappings(app.data) }
   })
 }
 
-interface HueState {
-  hue: number
-}
-
-function colorDecorator(node: NativeModule, state: HueState) {
-  const depth = getNodeDepth(node)
-  let baseHue = 0
-  let sweepAngle = Math.PI * 2
-  const totalHueRange = Math.PI
-  if (node.parent) {
-    sweepAngle = node.weight / node.parent.weight * sweepAngle
-    baseHue = state.hue + (sweepAngle / Math.PI * 180)
-  }
-
-  baseHue += sweepAngle
-
-  const depthHueOffset = depth + (totalHueRange / 10)
-  const finalHue = baseHue + depthHueOffset / 2
-
-  const saturation = 0.6 + 0.4 * Math.max(0, Math.cos(finalHue))
-  const lightness = 0.5 + 0.2 * Math.max(0, Math.cos(finalHue + Math.PI * 2 / 3))
-
-  state.hue = baseHue
-
-  return {
-    mode: 'hsl',
-    desc: {
-      h: finalHue,
-      s: Math.round(saturation * 100),
-      l: Math.round(lightness * 100)
-    }
-  } satisfies ColorDecoratorResult
-}
-
-function evaluateColorMappingByNode(node: NativeModule, state: HueState) {
+function evaluateColorMappings(data: NativeModule[]): ColorMappings {
   const colorMappings: ColorMappings = {}
-  if (node.groups && Array.isArray(node.groups)) {
-    for (const child of node.groups) {
-      Object.assign(colorMappings, evaluateColorMappingByNode(child, state))
+
+  const hashToHue = (id: string): number => {
+    const hash = Math.abs(hashCode(id))
+    return hash % 360
+  }
+
+  const lightScale = (depth: number) => 70 - depth * 5
+  const baseSaturation = 40
+  const siblingHueShift = 20
+
+  const rc = 0.2126
+  const gc = 0.7152
+  const bc = 0.0722
+
+  const hslToRgb = (h: number, s: number, l: number): { r: number; g: number; b: number } => {
+    const a = s * Math.min(l, 1 - l)
+    const f = (n: number) => {
+      const k = (n + h / 30) % 12
+      return l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1)
+    }
+    return { r: f(0), g: f(8), b: f(4) }
+  }
+
+  const calculateLuminance = (r: number, g: number, b: number): number => {
+    return rc * r + gc * g + bc * b
+  }
+
+  const calculateColor = (
+    module: NativeModule,
+    depth: number,
+    parentHue: number | null,
+    siblingIndex: number,
+    totalSiblings: number
+  ) => {
+    const nodeHue = hashToHue(module.id)
+    const hue = parentHue !== null
+      ? (parentHue + siblingHueShift * siblingIndex / totalSiblings) % 360
+      : nodeHue
+    const lightness = lightScale(depth)
+
+    const hslColor = {
+      h: hue,
+      s: baseSaturation,
+      l: lightness / 100
+    }
+    const { r, g, b } = hslToRgb(hslColor.h, hslColor.s / 100, hslColor.l)
+    const luminance = calculateLuminance(r, g, b)
+
+    if (luminance < 0.6) {
+      hslColor.l += 0.2
+    } else if (luminance > 0.8) {
+      hslColor.l -= 0.1
+    }
+
+    hslColor.l *= 100
+
+    colorMappings[module.id] = {
+      mode: 'hsl',
+      desc: hslColor
+    }
+
+    if (module.groups && Array.isArray(module.groups)) {
+      const totalChildren = module.groups.length
+      for (let i = 0; i < totalChildren; i++) {
+        const child = module.groups[i]
+        calculateColor(child, depth + 1, hue, i, totalChildren)
+      }
     }
   }
 
-  if (node.id) {
-    colorMappings[node.id] = colorDecorator(node, state)
+  for (let i = 0; i < data.length; i++) {
+    const module = data[i]
+    calculateColor(module, 0, null, i, data.length)
   }
 
   return colorMappings
-}
-
-function colorMappings(app: TreemapLayout) {
-  const colorMappings: ColorMappings = {}
-  const state: HueState = {
-    hue: 0
-  }
-  for (const node of app.data) {
-    Object.assign(colorMappings, evaluateColorMappingByNode(node, state))
-  }
-  return { mappings: colorMappings } satisfies RenderColor
 }

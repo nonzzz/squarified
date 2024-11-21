@@ -13,7 +13,7 @@ function loadData() {
 async function main() {
   const data = await loadData()
   const sortedData = sortChildrenByKey(
-    data.map((item) => c2m({ ...item, groups: item.stats }, 'statSize', (d) => ({ ...d, id: d.filename }))),
+    data.map((item) => c2m({ ...item, groups: item.children }, 'value', (d) => ({ ...d, id: d.path, label: d.name }))),
     'weight'
   )
 

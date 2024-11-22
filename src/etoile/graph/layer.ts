@@ -8,7 +8,7 @@ import type { LocOptions } from './display'
 export class Layer extends C implements S {
   private c: Canvas
   __refresh__: boolean
-  private options: RenderViewportOptions
+  options: RenderViewportOptions
   width: number
   height: number
   x: number
@@ -47,9 +47,9 @@ export class Layer extends C implements S {
   setCacheSnapshot(c: HTMLCanvasElement) {
     const dpr = this.options.devicePixelRatio || 1
     const matrix = this.matrix.create({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 })
+    this.ctx.clearRect(0, 0, this.options.width, this.options.height)
     matrix.transform(this.x, this.y, this.scaleX, this.scaleY, this.rotation, this.skewX, this.skewY)
     applyCanvasTransform(this.ctx, matrix, dpr)
-    this.ctx.clearRect(0, 0, this.options.width, this.options.height)
     this.ctx.drawImage(c, 0, 0, this.options.width / dpr, this.options.height / dpr)
     this.__refresh__ = true
   }

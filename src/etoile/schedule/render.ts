@@ -1,5 +1,4 @@
 import { createCanvasElement } from '../../shared'
-import { Schedule } from '../schedule'
 
 export function writeBoundingRectForCanvas(c: HTMLCanvasElement, w: number, h: number, dpr: number) {
   c.width = w * dpr
@@ -53,11 +52,6 @@ export class Render {
   initOptions(userOptions: Partial<RenderViewportOptions> = {}) {
     Object.assign(this.options, userOptions)
     writeBoundingRectForCanvas(this.canvas, this.options.width, this.options.height, this.options.devicePixelRatio)
-  }
-
-  update(schedule: Schedule) {
-    this.clear(this.options.width, this.options.height)
-    schedule.execute(this)
   }
 
   destory() {

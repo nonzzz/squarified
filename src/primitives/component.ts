@@ -1,11 +1,11 @@
 import { createFillBlock, createTitleText } from '../shared'
 import { Box, Layer, etoile } from '../etoile'
-import type { EventMethods } from './event'
+import type { EventMethods, InternalEventDefinition } from './event'
 import { bindParentForModule, findRelativeNodeById } from './struct'
 import type { Module, NativeModule } from './struct'
 import { squarify } from './squarify'
 import type { LayoutModule } from './squarify'
-import { SelfEvent } from './event'
+import { SelfEvent, internalEventMappings } from './event'
 import { registerModuleForSchedule } from './registry'
 import type { RenderDecorator, Series } from './decorator'
 
@@ -16,7 +16,7 @@ export interface TreemapOptions {
 export type Using = 'decorator'
 
 export interface App {
-  init: (el: Element) => void
+  init: (el: HTMLElement) => void
   dispose: () => void
   setOptions: (options: TreemapOptions) => void
   resize: () => void
@@ -37,6 +37,13 @@ interface OptimalFontOptions {
   range: Series<number>
   family: string
 }
+
+/**
+ * This interface isn't stable it might be remove at next few versions.
+ * If you want set custom decorator pls see 'presetDecorator' for details.
+ */
+// eslint-disable-next-line no-use-before-define
+export type unstable_use = (app: TreemapLayout) => void
 
 export function evaluateOptimalFontSize(
   c: CanvasRenderingContext2D,
@@ -97,7 +104,7 @@ export function resetLayout(treemap: TreemapLayout, w: number, h: number) {
   treemap.reset(true)
 }
 
-export class TreemapLayout extends etoile.Schedule {
+export class TreemapLayout extends etoile.Schedule<InternalEventDefinition> {
   data: NativeModule[]
   layoutNodes: LayoutModule[]
   decorator: RenderDecorator
@@ -186,7 +193,7 @@ export class TreemapLayout extends etoile.Schedule {
   get api() {
     return {
       zoom: (node: LayoutModule) => {
-        this.event.emit('zoom', node)
+        this.event.emit(internalEventMappings.ON_ZOOM, node)
       }
     }
   }
@@ -198,9 +205,9 @@ export class TreemapLayout extends etoile.Schedule {
 
 export function createTreemap() {
   let treemap: TreemapLayout | null = null
-  let root: Element | null = null
+  let root: HTMLElement | null = null
   let installed = false
-  const uses: any[] = []
+  const uses: unstable_use[] = []
 
   const context = {
     init,
@@ -211,7 +218,7 @@ export function createTreemap() {
     zoom
   }
 
-  function init(el: Element) {
+  function init(el: HTMLElement) {
     treemap = new TreemapLayout(el)
     root = el
     ;(root as HTMLDivElement).style.position = 'relative'
@@ -242,8 +249,8 @@ export function createTreemap() {
     treemap.backgroundLayer.initLoc()
     treemap.backgroundLayer.matrix = treemap.backgroundLayer.matrix.create({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 })
     treemap.fontsCaches = Object.create(null)
-    treemap.event.emit('cleanup:selfevent')
-    treemap.event.emit('onload:selfevent', { width, height, root })
+    treemap.event.emit(internalEventMappings.CLEAN_UP)
+    treemap.event.emit(internalEventMappings.ON_LOAD, width, height, root)
     resetLayout(treemap, width, height)
     treemap.update()
   }

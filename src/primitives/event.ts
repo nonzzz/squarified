@@ -60,6 +60,24 @@ interface DraggingState {
   y: number
 }
 
+export const internalEventMappings = {
+  CLEAN_UP: 'self:cleanup',
+  ON_LOAD: 'self:onload',
+  ON_ZOOM: 'zoom'
+} as const
+
+export type InternalEventType = typeof internalEventMappings[keyof typeof internalEventMappings]
+
+export interface InternalEventMappings {
+  [internalEventMappings.CLEAN_UP]: () => void
+  [internalEventMappings.ON_LOAD]: (width: number, height: number, root: HTMLElement) => void
+  [internalEventMappings.ON_ZOOM]: (node: LayoutModule) => void
+}
+
+export type InternalEventDefinition = {
+  [key in InternalEventType]: InternalEventMappings[key]
+}
+
 const fill = <ColorDecoratorResultRGB> { desc: { r: 255, g: 255, b: 255 }, mode: 'rgb' }
 
 function smoothDrawing(c: SelfEventContenxt) {
@@ -95,7 +113,7 @@ function smoothDrawing(c: SelfEventContenxt) {
 }
 
 function applyZoomEvent(ctx: SelfEventContenxt) {
-  ctx.treemap.event.on('zoom', (node: LayoutModule) => {
+  ctx.treemap.event.on(internalEventMappings.ON_ZOOM, (node: LayoutModule) => {
     const root: LayoutModule | null = null
     if (ctx.self.isDragging) return
     onZoom(ctx, node, root)
@@ -153,7 +171,7 @@ function bindPrimitiveEvent(
 
     const event = <PrimitiveEventMetadata<PrimitiveEvent>> {
       native: e,
-      module: findRelativeNode(c, { x, y }, treemap.layoutNodes)
+      module: findRelativeNode({ x, y }, treemap.layoutNodes)
     }
     // @ts-expect-error
     bus.emit(evt, event)
@@ -218,7 +236,7 @@ export class SelfEvent extends RegisterModule {
     this.self.highlight.setDisplayLayerForHighlight()
     // @ts-expect-error
     this.self.event.off('mousemove', this.self.onmousemove)
-    this.treemap.event.off('zoom')
+    this.treemap.event.off(internalEventMappings.ON_ZOOM)
     this.self.forceDestroy = true
     const { native } = metadata
     const x = native.offsetX
@@ -332,7 +350,7 @@ export class SelfEvent extends RegisterModule {
 
     let installHightlightEvent = false
 
-    treemap.event.on('onload:selfevent', ({ width, height, root }) => {
+    treemap.event.on(internalEventMappings.ON_LOAD, (width, height, root) => {
       this.highlight.init(width, height, root)
 
       if (!installHightlightEvent) {
@@ -347,7 +365,7 @@ export class SelfEvent extends RegisterModule {
       this.highlight.reset()
     })
 
-    treemap.event.on('cleanup:selfevent', () => {
+    treemap.event.on(internalEventMappings.CLEAN_UP, () => {
       this.currentNode = null
       this.scaleRatio = 1
       this.translateX = 0

@@ -60,19 +60,28 @@ export interface LocOptions {
 export interface GraphOptions extends LocOptions {
 }
 
-type Mod = [string, ...any[]]
+export interface InstructionAssignMappings {
+  fillStyle: (arg: string) => void
+  strokeStyle: (arg: string) => void
+  font: (arg: string) => void
+  lineWidth: (arg: number) => void
+  textAlign: (arg: CanvasTextAlign) => void
+  textBaseline: (arg: CanvasTextBaseline) => void
+}
 
-interface Instruction {
+export interface InstructionWithFunctionCall {
+  fillRect: (x: number, y: number, w: number, h: number) => void
+  strokeRect: (x: number, y: number, w: number, h: number) => void
+  fillText: (text: string, x: number, y: number, maxWidth?: number) => void
+}
+
+type Mod<
+  T extends InstructionAssignMappings & InstructionWithFunctionCall = InstructionAssignMappings & InstructionWithFunctionCall,
+  K extends keyof T = keyof T
+> = T[K] extends (...args: any) => any ? [K, Parameters<T[K]>] : never
+
+interface Instruction extends InstructionAssignMappings, InstructionWithFunctionCall {
   mods: Mod[]
-  fillStyle(...args: any[]): void
-  fillRect(...args: any[]): void
-  strokeStyle(...args: any[]): void
-  lineWidth(...args: any[]): void
-  strokeRect(...args: any[]): void
-  fillText(...args: any[]): void
-  font(...args: any[]): void
-  textBaseline(...args: any[]): void
-  textAlign(...args: any[]): void
 }
 
 const ASSIGN_MAPPINGS = {
@@ -87,19 +96,19 @@ const ASSIGN_MAPPINGS = {
 function createInstruction() {
   return <Instruction> {
     mods: [],
-    fillStyle(...args: any[]) {
+    fillStyle(...args) {
       this.mods.push(['fillStyle', args])
     },
-    fillRect(...args: any[]) {
+    fillRect(...args) {
       this.mods.push(['fillRect', args])
     },
-    strokeStyle(...args: any[]) {
+    strokeStyle(...args) {
       this.mods.push(['strokeStyle', args])
     },
-    lineWidth(...args: any[]) {
+    lineWidth(...args) {
       this.mods.push(['lineWidth', args])
     },
-    strokeRect(...args: any[]) {
+    strokeRect(...args) {
       this.mods.push(['strokeRect', args])
     },
     fillText(...args) {

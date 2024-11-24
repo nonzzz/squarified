@@ -2,6 +2,7 @@ import { applyCanvasTransform } from '../../shared'
 import { Box, asserts } from '../graph'
 import { Display } from '../graph/display'
 import { Event } from '../native/event'
+import type { DefaultEventDefinition } from '../native/event'
 import { log } from '../native/log'
 import { Render } from './render'
 
@@ -46,10 +47,10 @@ export function drawGraphIntoCanvas(
   ctx.restore()
 }
 
-export class Schedule extends Box {
+export class Schedule<D extends DefaultEventDefinition = DefaultEventDefinition> extends Box {
   render: Render
   to: Element
-  event: Event
+  event: Event<D>
   constructor(to: ApplyTo, renderOptions: Partial<RenderViewportOptions> = {}) {
     super()
     this.to = typeof to === 'string' ? document.querySelector(to)! : to
@@ -63,7 +64,8 @@ export class Schedule extends Box {
   }
 
   update() {
-    this.render.update(this)
+    this.render.clear(this.render.options.width, this.render.options.height)
+    this.execute(this.render, this)
     const matrix = this.matrix.create({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 })
     applyCanvasTransform(this.render.ctx, matrix, this.render.options.devicePixelRatio)
   }

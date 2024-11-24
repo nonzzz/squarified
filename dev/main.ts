@@ -2,7 +2,7 @@ import { c2m, createTreemap, presetDecorator, sortChildrenByKey } from '../src'
 
 import './live-reload'
 
-const root = document.querySelector('#app')!
+const root = document.querySelector<HTMLDivElement>('#app')!
 const treemap = createTreemap()
 treemap.use('decorator', presetDecorator)
 

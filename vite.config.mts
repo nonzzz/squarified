@@ -1,9 +1,0 @@
-import { defineConfig } from 'vite'
-
-export default defineConfig({
-  root: './dev',
-  base: './',
-  build: {
-    outDir: '../display'
-  }
-})

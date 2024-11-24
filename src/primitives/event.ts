@@ -251,7 +251,6 @@ export class SelfEvent extends RegisterModule {
       refreshBackgroundLayer(this)
     }
     this.treemap.reset()
-    stackMatrixTransform(this.treemap.backgroundLayer, 0, 0, 0)
     stackMatrixTransformWithGraphAndLayer(this.treemap.elements, this.self.translateX, this.self.translateY, this.self.scaleRatio)
     this.treemap.update()
   }
@@ -302,7 +301,6 @@ export class SelfEvent extends RegisterModule {
     treemap.reset()
     this.self.highlight.reset()
     this.self.highlight.setDisplayLayerForHighlight()
-    stackMatrixTransform(this.treemap.backgroundLayer, 0, 0, 0)
     const factor = absWheelDelta > 3 ? 1.4 : absWheelDelta > 1 ? 1.2 : 1.1
     const delta = wheelDelta > 0 ? factor : 1 / factor
     self.scaleRatio *= delta

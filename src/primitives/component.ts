@@ -177,6 +177,8 @@ export class TreemapLayout extends etoile.Schedule<InternalEventDefinition> {
       for (const node of this.layoutNodes) {
         this.drawBackgroundNode(node)
       }
+    } else {
+      this.bgLayer.initLoc()
     }
     if (!this.fgBox.elements.length || refresh) {
       this.render.ctx.textBaseline = 'middle'

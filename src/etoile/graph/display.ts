@@ -81,47 +81,52 @@ type Mod<
 > = T[K] extends (...args: any) => any ? [K, Parameters<T[K]>] : never
 
 interface Instruction extends InstructionAssignMappings, InstructionWithFunctionCall {
-  mods: Mod[]
+  mods: Array<{ mod: Mod; type: number }>
 }
 
 const ASSIGN_MAPPINGS = {
-  fillStyle: !0,
-  strokeStyle: !0,
-  font: !0,
-  lineWidth: !0,
-  textAlign: !0,
-  textBaseline: !0
-}
+  fillStyle: 0o1,
+  strokeStyle: 0o2,
+  font: 0o4,
+  lineWidth: 0o10,
+  textAlign: 0o20,
+  textBaseline: 0o40
+} as const
+
+export const ASSIGN_MAPPINGS_MODE = ASSIGN_MAPPINGS.fillStyle | ASSIGN_MAPPINGS.strokeStyle | ASSIGN_MAPPINGS.font |
+  ASSIGN_MAPPINGS.lineWidth | ASSIGN_MAPPINGS.textAlign | ASSIGN_MAPPINGS.textBaseline
+
+export const CALL_MAPPINGS_MODE = 0o0
 
 function createInstruction() {
   return <Instruction> {
     mods: [],
     fillStyle(...args) {
-      this.mods.push(['fillStyle', args])
+      this.mods.push({ mod: ['fillStyle', args], type: ASSIGN_MAPPINGS.fillStyle })
     },
     fillRect(...args) {
-      this.mods.push(['fillRect', args])
+      this.mods.push({ mod: ['fillRect', args], type: CALL_MAPPINGS_MODE })
     },
     strokeStyle(...args) {
-      this.mods.push(['strokeStyle', args])
+      this.mods.push({ mod: ['strokeStyle', args], type: ASSIGN_MAPPINGS.strokeStyle })
     },
     lineWidth(...args) {
-      this.mods.push(['lineWidth', args])
+      this.mods.push({ mod: ['lineWidth', args], type: ASSIGN_MAPPINGS.lineWidth })
     },
     strokeRect(...args) {
-      this.mods.push(['strokeRect', args])
+      this.mods.push({ mod: ['strokeRect', args], type: CALL_MAPPINGS_MODE })
     },
     fillText(...args) {
-      this.mods.push(['fillText', args])
+      this.mods.push({ mod: ['fillText', args], type: CALL_MAPPINGS_MODE })
     },
     font(...args) {
-      this.mods.push(['font', args])
+      this.mods.push({ mod: ['font', args], type: ASSIGN_MAPPINGS.font })
     },
     textBaseline(...args) {
-      this.mods.push(['textBaseline', args])
+      this.mods.push({ mod: ['textBaseline', args], type: ASSIGN_MAPPINGS.textBaseline })
     },
     textAlign(...args) {
-      this.mods.push(['textAlign', args])
+      this.mods.push({ mod: ['textAlign', args], type: ASSIGN_MAPPINGS.textAlign })
     }
   }
 }
@@ -168,9 +173,9 @@ export abstract class Graph extends S {
     const cap = this.instruction.mods.length
 
     for (let i = 0; i < cap; i++) {
-      const mod = this.instruction.mods[i]
+      const { mod, type } = this.instruction.mods[i]
       const [direct, ...args] = mod
-      if (direct in ASSIGN_MAPPINGS) {
+      if (type & ASSIGN_MAPPINGS_MODE) {
         // @ts-expect-error
         ctx[direct] = args[0]
         continue

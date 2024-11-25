@@ -178,6 +178,7 @@ export class TreemapLayout extends etoile.Schedule<InternalEventDefinition> {
         this.drawBackgroundNode(node)
       }
     } else {
+      // Unlike foreground layer, background laer don't need clone so we should reset the loc informaton
       this.bgLayer.initLoc()
     }
     if (!this.fgBox.elements.length || refresh) {

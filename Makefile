@@ -1,4 +1,4 @@
-JK = @pnpm exec jiek --root .
+JK = ./node_modules/.bin/jiek
 
 FLAGS += --bundle
 FLAGS += --loader:.html=copy
@@ -18,13 +18,12 @@ bootstrap:
 
 build-lib:
 	@echo "Build library"
-	-rm -rf dist
-	$(JK) build
+	$(JK) build --noMin .
 
 
 build-pub: bootstrap build-lib
 	@echo "Build publish"
-	$(JK) pub -no-b
+	$(JK) publish -no-b
 
 
 dev-server:

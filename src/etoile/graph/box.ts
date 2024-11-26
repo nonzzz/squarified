@@ -85,25 +85,25 @@ export class Box extends C {
   clone() {
     const box = new Box()
     if (this.elements.length) {
-      const traverse = (elements: Display[], parent: Box) => {
-        const els: Display[] = []
+      const stack: { elements: Display[]; parent: Box }[] = [{ elements: this.elements, parent: box }]
+
+      while (stack.length > 0) {
+        const { elements, parent } = stack.pop()!
         const cap = elements.length
         for (let i = 0; i < cap; i++) {
           const element = elements[i]
           if (asserts.isBox(element)) {
-            const box = new Box()
-            box.parent = parent
-            box.add(...traverse(element.elements, box))
-            els.push(box)
+            const newBox = new Box()
+            newBox.parent = parent
+            parent.add(newBox)
+            stack.push({ elements: element.elements, parent: newBox })
           } else if (asserts.isGraph(element)) {
             const el = element.clone()
             el.parent = parent
-            els.push(el)
+            parent.add(el)
           }
         }
-        return els
       }
-      box.add(...traverse(this.elements, box))
     }
     return box
   }

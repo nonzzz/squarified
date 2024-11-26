@@ -529,9 +529,9 @@ function refreshBackgroundLayer(c: SelfEventContenxt): boolean | void {
   const { canvas, ctx, options: { width: ow, height: oh } } = render
   const { layoutWidth: sw, layoutHeight: sh, scaleRatio: ss } = self
 
-  const capture = sw * ss >= ow || sh * ss >= oh
+  const capture = sw * ss >= ow && sh * ss >= oh
   backgroundLayer.__refresh__ = false
-  if (!capture) {
+  if (!capture && !self.forceDestroy) {
     resetLayout(treemap, sw * ss, sh * ss)
     render.clear(ow, oh)
     const { dpr } = backgroundLayer.cleanCacheSnapshot()

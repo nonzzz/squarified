@@ -21,9 +21,9 @@ build-lib:
 	$(JK) build --noMin .
 
 
-build-pub: bootstrap build-lib
+build-pub: bootstrap
 	@echo "Build publish"
-	$(JK) publish -no-b
+	@$(MAKE) build-lib && $(JK) prepublish && $(JK) publish -no-b && $(JK) postpublish
 
 
 dev-server:

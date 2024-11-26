@@ -1,3 +1,7 @@
+## 0.2.2
+
+Fix error build
+
 ## 0.2.1
 
 Optimize render and cache.

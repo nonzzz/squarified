@@ -2,10 +2,6 @@ import { Matrix2D } from '../etoile/native/matrix'
 import type { RectStyleOptions } from '../etoile/graph/rect'
 import { Rect, Text } from '../etoile'
 
-export function isObject(data: NonNullable<Record<string, any>>): data is object {
-  return Object.prototype.toString.call(data) === '[object Object]'
-}
-
 export function hashCode(str: string) {
   let hash = 0
   for (let i = 0; i < str.length; i++) {
@@ -23,11 +19,6 @@ export function perferNumeric(s: string | number) {
 }
 
 export function noop() {}
-
-export function replaceString<S extends string, From extends string, To extends string>(str: S, searchValue: From, replaceValue: To) {
-  return str.replace(searchValue, replaceValue) as S extends `${infer L}${From extends '' ? never : From}${infer R}` ? `${L}${To}${R}`
-    : S
-}
 
 export function createFillBlock(x: number, y: number, width: number, height: number, style?: Partial<RectStyleOptions>) {
   return new Rect({ width, height, x, y, style })

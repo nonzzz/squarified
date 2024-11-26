@@ -1,3 +1,7 @@
+## 0.2.1
+
+Optimize render and cache.
+
 # 0.2.0
 
 Break preset color scheme. Add cache

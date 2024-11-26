@@ -44,10 +44,15 @@ export class Layer extends C implements S {
     writeBoundingRectForCanvas(this.c.c.canvas, options.width || 0, options.height || 0, options.devicePixelRatio || 1)
   }
 
-  setCacheSnapshot(c: HTMLCanvasElement) {
+  cleanCacheSnapshot() {
     const dpr = this.options.devicePixelRatio || 1
     const matrix = this.matrix.create({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 })
     this.ctx.clearRect(0, 0, this.options.width, this.options.height)
+    return { dpr, matrix }
+  }
+
+  setCacheSnapshot(c: HTMLCanvasElement) {
+    const { matrix, dpr } = this.cleanCacheSnapshot()
     matrix.transform(this.x, this.y, this.scaleX, this.scaleY, this.rotation, this.skewX, this.skewY)
     applyCanvasTransform(this.ctx, matrix, dpr)
     this.ctx.drawImage(c, 0, 0, this.options.width / dpr, this.options.height / dpr)

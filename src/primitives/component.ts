@@ -177,6 +177,9 @@ export class TreemapLayout extends etoile.Schedule<InternalEventDefinition> {
       for (const node of this.layoutNodes) {
         this.drawBackgroundNode(node)
       }
+    } else {
+      // Unlike foreground layer, background laer don't need clone so we should reset the loc informaton
+      this.bgLayer.initLoc()
     }
     if (!this.fgBox.elements.length || refresh) {
       this.render.ctx.textBaseline = 'middle'

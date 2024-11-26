@@ -5,7 +5,7 @@
 
 import { createFillBlock, mixin } from '../shared'
 import { Display, S } from '../etoile/graph/display'
-import { Schedule, Event as _Event, easing, etoile } from '../etoile'
+import { Schedule, Event as _Event, asserts, drawGraphIntoCanvas, easing, etoile } from '../etoile'
 import type { BindThisParameter } from '../etoile'
 import type { ColorDecoratorResultRGB } from '../etoile/native/runtime'
 import type { InheritedCollections } from '../shared'
@@ -251,7 +251,6 @@ export class SelfEvent extends RegisterModule {
       refreshBackgroundLayer(this)
     }
     this.treemap.reset()
-    stackMatrixTransform(this.treemap.backgroundLayer, 0, 0, 0)
     stackMatrixTransformWithGraphAndLayer(this.treemap.elements, this.self.translateX, this.self.translateY, this.self.scaleRatio)
     this.treemap.update()
   }
@@ -302,7 +301,6 @@ export class SelfEvent extends RegisterModule {
     treemap.reset()
     this.self.highlight.reset()
     this.self.highlight.setDisplayLayerForHighlight()
-    stackMatrixTransform(this.treemap.backgroundLayer, 0, 0, 0)
     const factor = absWheelDelta > 3 ? 1.4 : absWheelDelta > 1 ? 1.2 : 1.1
     const delta = wheelDelta > 0 ? factor : 1 / factor
     self.scaleRatio *= delta
@@ -431,6 +429,11 @@ function onZoom(ctx: SelfEventContenxt, node: LayoutModule, root: LayoutModule |
   const c = treemap.render.canvas
   const boundingClientRect = c.getBoundingClientRect()
   const [w, h] = estimateZoomingArea(node, root, boundingClientRect.width, boundingClientRect.height)
+  if (self.layoutHeight !== w || self.layoutHeight !== h) {
+    // remove font caches
+    delete treemap.fontsCaches[node.node.id]
+    delete treemap.ellispsisWidthCache[node.node.id]
+  }
   resetLayout(treemap, w, h)
   const module = findRelativeNodeById(node.node.id, treemap.layoutNodes)
   if (module) {
@@ -443,11 +446,7 @@ function onZoom(ctx: SelfEventContenxt, node: LayoutModule, root: LayoutModule |
     const initialTranslateY = self.translateY
     const startTime = Date.now()
     const animationDuration = 300
-    if (self.layoutHeight !== w || self.layoutHeight !== h) {
-      // remove font caches
-      delete treemap.fontsCaches[module.node.id]
-      delete treemap.ellispsisWidthCache[module.node.id]
-    }
+
     const { run, stop } = createEffectScope()
     run(() => {
       const elapsed = Date.now() - startTime
@@ -524,9 +523,24 @@ function createHighlight(): HighlightContext {
   }
 }
 
-// TODO: cache the background layer
-function refreshBackgroundLayer(c: SelfEventContenxt) {
-  const { treemap } = c
-  const { backgroundLayer } = treemap
+function refreshBackgroundLayer(c: SelfEventContenxt): boolean | void {
+  const { treemap, self } = c
+  const { backgroundLayer, render } = treemap
+  const { canvas, ctx, options: { width: ow, height: oh } } = render
+  const { layoutWidth: sw, layoutHeight: sh, scaleRatio: ss } = self
+
+  const capture = sw * ss >= ow || sh * ss >= oh
   backgroundLayer.__refresh__ = false
+  if (!capture) {
+    resetLayout(treemap, sw * ss, sh * ss)
+    render.clear(ow, oh)
+    const { dpr } = backgroundLayer.cleanCacheSnapshot()
+    drawGraphIntoCanvas(backgroundLayer, { c: canvas, ctx, dpr }, (opts, graph) => {
+      if (asserts.isLayer(graph) && !graph.__refresh__) {
+        graph.setCacheSnapshot(opts.c)
+      }
+    })
+    self.triggerZoom = false
+    return true
+  }
 }

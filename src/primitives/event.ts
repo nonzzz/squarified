@@ -334,7 +334,8 @@ export class SelfEvent extends RegisterModule {
     // For MacOS, we should inject two finger event
     if (isMacOS()) {
       useMagicTrackpad(treemap.render.canvas, {
-        ongesturestart: () => {},
+        ongesturestart: () => {
+        },
         ongesturemove: (metadata) => {
           if (!metadata.isPanGesture) {
             this.onwheel.bind(selfContext)({ native: metadata.native, module: Object.create(null) })

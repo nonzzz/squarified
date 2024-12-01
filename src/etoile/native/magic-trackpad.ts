@@ -13,11 +13,17 @@ export interface WheelGesture {
   translation: { x: number; y: number }
 }
 
-export type Ongesturestar = (metadata: WheelGesture, e: WheelEvent) => void
+export interface GestureMetadata {
+  native: WheelEvent
+  isPanGesture: boolean
+  data: WheelGesture
+}
 
-export type Ongesturemove = (metadata: WheelGesture, e: WheelEvent) => void
+export type Ongesturestar = (metadata: GestureMetadata) => void
 
-export type Ongestureend = (metadata: WheelGesture, e: WheelEvent) => void
+export type Ongesturemove = (metadata: GestureMetadata) => void
+
+export type Ongestureend = (metadata: GestureMetadata) => void
 
 export interface MagicTrackpadContext {
   ongesturestart: Ongesturestar
@@ -61,6 +67,7 @@ export function useMagicTrackpad(el: HTMLElement, c: MagicTrackpadContext) {
     if (e.cancelable !== false) {
       e.preventDefault()
     }
+    const isPanGesture = !e.ctrlKey
     const [dx, dy] = normalizeWheel(e)
     if (!wheelGesture) {
       wheelGesture = {
@@ -68,7 +75,7 @@ export function useMagicTrackpad(el: HTMLElement, c: MagicTrackpadContext) {
         scale: 1,
         translation: { x: 0, y: 0 }
       }
-      c.ongesturestart(wheelGesture, e)
+      c.ongesturestart({ data: wheelGesture, isPanGesture, native: e })
     }
     if (e.ctrlKey) {
       // pinch-zoom gesture
@@ -93,13 +100,13 @@ export function useMagicTrackpad(el: HTMLElement, c: MagicTrackpadContext) {
         }
       }
     }
-    c.ongesturemove(wheelGesture, e)
+    c.ongesturemove({ data: wheelGesture, isPanGesture, native: e })
 
     effect.run(() => {
       const now = Date.now()
       if (now - lastTime >= 200) {
         if (wheelGesture) {
-          c.ongestureend(wheelGesture, e)
+          c.ongestureend({ data: wheelGesture, isPanGesture, native: e })
           wheelGesture = null as unknown as WheelGesture
         }
       } else {

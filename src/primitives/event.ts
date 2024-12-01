@@ -267,23 +267,38 @@ export class SelfEvent extends RegisterModule {
       return
     }
     self.forceDestroy = true
-    if (self.triggerZoom) {
-      refreshBackgroundLayer(this)
-    }
-    treemap.reset()
+
     this.self.highlight.reset()
     this.self.highlight.setDisplayLayerForHighlight()
     const factor = absWheelDelta > 3 ? 1.4 : absWheelDelta > 1 ? 1.2 : 1.1
     const delta = wheelDelta > 0 ? factor : 1 / factor
-    self.scaleRatio *= delta
-
+    const targetScaleRatio = self.scaleRatio * delta
     const translateX = offsetX - (offsetX - self.translateX) * delta
     const translateY = offsetY - (offsetY - self.translateY) * delta
-    self.translateX = translateX
-    self.translateY = translateY
-    stackMatrixTransformWithGraphAndLayer(this.treemap.elements, this.self.translateX, this.self.translateY, this.self.scaleRatio)
-    treemap.update()
-    self.forceDestroy = false
+    const effect = createEffectScope()
+
+    const animationDuration = 300
+    const startTime = Date.now()
+
+    effect.run(() => {
+      const elapsed = Date.now() - startTime
+      const progress = Math.min(elapsed / animationDuration, 1)
+      if (progress >= 1) {
+        effect.stop()
+        self.forceDestroy = false
+        return true
+      }
+      if (self.triggerZoom) {
+        refreshBackgroundLayer(this)
+      }
+      treemap.reset()
+      const easedProgress = easing.quadraticOut(progress)
+      self.scaleRatio = self.scaleRatio + (targetScaleRatio - self.scaleRatio) * easedProgress
+      self.translateX = self.translateX + (translateX - self.translateX) * easedProgress
+      self.translateY = self.translateY + (translateY - self.translateY) * easedProgress
+      stackMatrixTransformWithGraphAndLayer(this.treemap.elements, self.translateX, self.translateY, self.scaleRatio)
+      treemap.update()
+    })
   }
 
   init(app: App, treemap: TreemapLayout): void {
@@ -305,10 +320,11 @@ export class SelfEvent extends RegisterModule {
     ]
     mixin(app, methods)
     const selfEvents = [...primitiveEvents, 'wheel'] as const
+    const selfContext = { treemap, self: this }
     selfEvents.forEach((evt) => {
-      nativeEvents.push(bindPrimitiveEvent(treemap.render.canvas, { treemap, self: this }, evt, event))
+      nativeEvents.push(bindPrimitiveEvent(treemap.render.canvas, selfContext, evt, event))
     })
-    const selfEvt = event.bindWithContext<SelfEventContenxt>({ treemap, self: this })
+    const selfEvt = event.bindWithContext<SelfEventContenxt>(selfContext)
     // Regular drag event binding for windows/linux users or
     // other Darwin users who don't use Magic Trackpad or use three finger drag
     selfEvt('mousedown', this.ondragstart)
@@ -317,7 +333,19 @@ export class SelfEvent extends RegisterModule {
 
     // For MacOS, we should inject two finger event
     if (isMacOS()) {
-      useMagicTrackpad()
+      useMagicTrackpad(treemap.render.canvas, {
+        ongesturestart: () => {},
+        ongesturemove: (metadata) => {
+          if (!metadata.isPanGesture) {
+            this.onwheel.bind(selfContext)({ native: metadata.native, module: Object.create(null) })
+          } else {
+            //
+          }
+        },
+        ongestureend: () => {
+          console.log('end')
+        }
+      })
     } else {
       // wheel
       selfEvt('wheel', this.onwheel)

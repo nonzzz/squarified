@@ -4,13 +4,15 @@
 // All of implementation don't want to consider the compatibility of the browser.
 // Currently, it doesn't support moving with two finger on a Magic Trackpad.
 
-import { createFillBlock, mixin } from '../shared'
+import { useMagicTrackpad } from '../etoile/native/magic-trackpad'
+import { captureBoxXY, createEffectScope } from '../etoile/native/dom'
+import { createFillBlock, isMacOS, mixin } from '../shared'
 import { Display, S } from '../etoile/graph/display'
 import { Schedule, Event as _Event, asserts, drawGraphIntoCanvas, easing, etoile } from '../etoile'
 import type { BindThisParameter } from '../etoile'
 import type { ColorDecoratorResultRGB } from '../etoile/native/runtime'
 import type { InheritedCollections } from '../shared'
-import { applyForOpacity, createEffectScope } from './animation'
+import { applyForOpacity } from './animation'
 import { TreemapLayout, resetLayout } from './component'
 import type { App, TreemapInstanceAPI } from './component'
 import { RegisterModule } from './registry'
@@ -119,38 +121,6 @@ function applyZoomEvent(ctx: SelfEventContenxt) {
     if (ctx.self.isDragging) return
     onZoom(ctx, node, root)
   })
-}
-
-function getOffset(el: HTMLElement) {
-  let e = 0
-  let f = 0
-  if (document.documentElement.getBoundingClientRect && el.getBoundingClientRect) {
-    const { top, left } = el.getBoundingClientRect()
-    e = top
-    f = left
-  } else {
-    for (let elt: HTMLElement | null = el; elt; elt = el.offsetParent as HTMLElement | null) {
-      e += el.offsetLeft
-      f += el.offsetTop
-    }
-  }
-
-  return [
-    e + Math.max(document.documentElement.scrollLeft, document.body.scrollLeft),
-    f + Math.max(document.documentElement.scrollTop, document.body.scrollTop)
-  ]
-}
-
-function captureBoxXY(c: HTMLCanvasElement, evt: unknown, a: number, d: number, translateX: number, translateY: number) {
-  const boundingClientRect = c.getBoundingClientRect()
-  if (evt instanceof MouseEvent) {
-    const [e, f] = getOffset(c)
-    return {
-      x: ((evt.clientX - boundingClientRect.left - e - translateX) / a),
-      y: ((evt.clientY - boundingClientRect.top - f - translateY) / d)
-    }
-  }
-  return { x: 0, y: 0 }
 }
 
 function bindPrimitiveEvent(
@@ -286,11 +256,12 @@ export class SelfEvent extends RegisterModule {
 
   onwheel(this: SelfEventContenxt, metadata: PrimitiveEventMetadata<'wheel'>) {
     const { self, treemap } = this
+    const { native } = metadata
     // @ts-expect-error
-    const wheelDelta = metadata.native.wheelDelta
+    const wheelDelta = native.wheelDelta
     const absWheelDelta = Math.abs(wheelDelta)
-    const offsetX = metadata.native.offsetX
-    const offsetY = metadata.native.offsetY
+    const offsetX = native.offsetX
+    const offsetY = native.offsetY
 
     if (wheelDelta === 0) {
       return
@@ -338,12 +309,19 @@ export class SelfEvent extends RegisterModule {
       nativeEvents.push(bindPrimitiveEvent(treemap.render.canvas, { treemap, self: this }, evt, event))
     })
     const selfEvt = event.bindWithContext<SelfEventContenxt>({ treemap, self: this })
+    // Regular drag event binding for windows/linux users or
+    // other Darwin users who don't use Magic Trackpad or use three finger drag
     selfEvt('mousedown', this.ondragstart)
     selfEvt('mousemove', this.ondragmove)
     selfEvt('mouseup', this.ondragend)
 
-    // wheel
-    selfEvt('wheel', this.onwheel)
+    // For MacOS, we should inject two finger event
+    if (isMacOS()) {
+      useMagicTrackpad()
+    } else {
+      // wheel
+      selfEvt('wheel', this.onwheel)
+    }
 
     applyZoomEvent({ treemap, self: this })
 

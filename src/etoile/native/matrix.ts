@@ -42,19 +42,19 @@ export class Matrix2D implements MatrixLoc {
     return this
   }
 
-  private translation(x: number, y: number) {
+  translation(x: number, y: number) {
     this.e += x
     this.f += y
     return this
   }
 
-  private scale(a: number, d: number) {
+  scale(a: number, d: number) {
     this.a *= a
     this.d *= d
     return this
   }
 
-  private skew(x: number, y: number) {
+  skew(x: number, y: number) {
     const tanX = Math.tan(x * DEG_TO_RAD)
     const tanY = Math.tan(y * DEG_TO_RAD)
     const a = this.a + this.b * tanX
@@ -68,7 +68,7 @@ export class Matrix2D implements MatrixLoc {
     return this
   }
 
-  private roate(rotation: number) {
+  roate(rotation: number) {
     if (rotation > 0) {
       const rad = rotation * DEG_TO_RAD
       const cosTheta = Math.cos(rad)

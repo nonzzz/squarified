@@ -56,3 +56,7 @@ export function mixin<T>(app: T, methods: InheritedCollections<T>[]) {
     })
   })
 }
+
+export function isMacOS() {
+  return /Mac OS X/.test(navigator.userAgent)
+}

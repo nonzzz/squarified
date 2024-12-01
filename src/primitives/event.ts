@@ -2,6 +2,7 @@
 // So it's no need to implement a complex event algorithm or hit mode.
 // If one day etoile need to build as a useful library. Pls rewrite it!
 // All of implementation don't want to consider the compatibility of the browser.
+// Currently, it doesn't support moving with two finger on a Magic Trackpad.
 
 import { createFillBlock, mixin } from '../shared'
 import { Display, S } from '../etoile/graph/display'
@@ -99,7 +100,7 @@ function smoothDrawing(c: SelfEventContenxt) {
       }
       const easedProgress = easing.cubicInOut(progress)
       self.highlight.reset()
-      const mask = createFillBlock(x, y, w, h, { fill, opacity: 0.4 })
+      const mask = createFillBlock(x, y, w, h, { fill, opacity: 0.4, radius: 2, margin: 2 })
       self.highlight.highlight.add(mask)
       self.highlight.setDisplayLayerForHighlight('1')
       applyForOpacity(mask, 0.4, 0.4, easedProgress)

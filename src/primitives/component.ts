@@ -104,6 +104,13 @@ export function resetLayout(treemap: TreemapLayout, w: number, h: number) {
   treemap.reset(true)
 }
 
+// In the end, I want the UI looks like a little bit curved. It will look more beautiful.
+// Remove border using alpha channel can look like more hierarchical.
+
+// I want define it as two parts.
+// Background and Foreground.
+// Split as two parts can make it more flexible. (Such as do cache, do scale, and etc.)
+
 export class TreemapLayout extends etoile.Schedule<InternalEventDefinition> {
   data: NativeModule[]
   layoutNodes: LayoutModule[]

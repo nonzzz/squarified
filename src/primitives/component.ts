@@ -126,8 +126,13 @@ export class TreemapLayout extends etoile.Schedule<InternalEventDefinition> {
 
   drawBackgroundNode(node: LayoutModule) {
     const [x, y, w, h] = node.layout
+    const radius = 2
+    const margin = 2
+    if (w <= 2 * (radius + margin) || h <= 2 * (radius + margin)) {
+      return
+    }
     const fill = this.decorator.color.mappings[node.node.id]
-    const s = createFillBlock(x, y, w, h, { fill })
+    const s = createFillBlock(x, y, w, h, { fill, margin, radius })
     this.bgLayer.add(s)
     for (const child of node.children) {
       this.drawBackgroundNode(child)
@@ -137,9 +142,8 @@ export class TreemapLayout extends etoile.Schedule<InternalEventDefinition> {
   drawForegroundNode(node: LayoutModule) {
     const [x, y, w, h] = node.layout
     if (!w || !h) return
-    const { rectBorderWidth, titleHeight, rectGap } = node.decorator
+    const { titleHeight, rectGap } = node.decorator
     const { fontSize, fontFamily, color } = this.decorator.font
-    this.fgBox.add(createFillBlock(x + 0.5, y + 0.5, w, h, { stroke: '#222', lineWidth: rectBorderWidth }))
     let optimalFontSize
     if (node.node.id in this.fontsCaches) {
       optimalFontSize = this.fontsCaches[node.node.id]

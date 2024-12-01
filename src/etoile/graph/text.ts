@@ -1,4 +1,5 @@
-import { DisplayType, Graph } from './display'
+import { Graph } from './display'
+import { DisplayType } from './types'
 import type { GraphOptions, GraphStyleSheet } from './display'
 
 export interface TextOptions extends Omit<GraphOptions, 'style'> {

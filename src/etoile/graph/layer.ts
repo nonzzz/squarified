@@ -2,7 +2,8 @@ import { applyCanvasTransform } from '../../shared'
 import { Canvas, writeBoundingRectForCanvas } from '../schedule/render'
 import type { RenderViewportOptions } from '../schedule/render'
 import { C } from './box'
-import { DisplayType, S } from './display'
+import { S } from './display'
+import { DisplayType } from './types'
 import type { LocOptions } from './display'
 
 export class Layer extends C implements S {

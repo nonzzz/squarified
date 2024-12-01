@@ -1,6 +1,6 @@
 import { Matrix2D } from '../etoile/native/matrix'
-import type { RectStyleOptions } from '../etoile/graph/rect'
-import { Rect, Text } from '../etoile'
+import type { RoundRectStyleOptions } from '../etoile/graph/rect'
+import { RoundRect, Text } from '../etoile'
 
 export function hashCode(str: string) {
   let hash = 0
@@ -20,8 +20,8 @@ export function perferNumeric(s: string | number) {
 
 export function noop() {}
 
-export function createFillBlock(x: number, y: number, width: number, height: number, style?: Partial<RectStyleOptions>) {
-  return new Rect({ width, height, x, y, style })
+export function createFillBlock(x: number, y: number, width: number, height: number, style?: Partial<RoundRectStyleOptions>) {
+  return new RoundRect({ width, height, x, y, style })
 }
 
 export function createTitleText(text: string, x: number, y: number, font: string, color: string) {

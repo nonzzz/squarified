@@ -1,5 +1,5 @@
-import { Display, DisplayType } from './display'
-import { asserts } from './types'
+import { Display } from './display'
+import { DisplayType, asserts } from './types'
 
 export abstract class C extends Display {
   elements: Display[]

@@ -1,25 +1,13 @@
 /* eslint-disable no-use-before-define */
 
 import { Matrix2D } from '../native/matrix'
+import { DisplayType } from './types'
 
 const SELF_ID = {
   id: 0,
   get() {
     return this.id++
   }
-}
-
-export const enum DisplayType {
-  // eslint-disable-next-line no-unused-vars
-  Graph = 'Graph',
-  // eslint-disable-next-line no-unused-vars
-  Box = 'Box',
-  // eslint-disable-next-line no-unused-vars
-  Rect = 'Rect',
-  // eslint-disable-next-line no-unused-vars
-  Text = 'Text',
-  // eslint-disable-next-line no-unused-vars
-  Layer = 'Layer'
 }
 
 export abstract class Display {
@@ -73,6 +61,12 @@ export interface InstructionWithFunctionCall {
   fillRect: (x: number, y: number, w: number, h: number) => void
   strokeRect: (x: number, y: number, w: number, h: number) => void
   fillText: (text: string, x: number, y: number, maxWidth?: number) => void
+  beginPath: () => void
+  moveTo: (x: number, y: number) => void
+  arcTo: (x1: number, y1: number, x2: number, y2: number, radius: number) => void
+  closePath: () => void
+  fill: () => void
+  stroke: () => void
 }
 
 type Mod<
@@ -127,6 +121,24 @@ function createInstruction() {
     },
     textAlign(...args) {
       this.mods.push({ mod: ['textAlign', args], type: ASSIGN_MAPPINGS.textAlign })
+    },
+    beginPath() {
+      this.mods.push({ mod: ['beginPath', []], type: CALL_MAPPINGS_MODE })
+    },
+    moveTo(...args) {
+      this.mods.push({ mod: ['moveTo', args], type: CALL_MAPPINGS_MODE })
+    },
+    arcTo(...args) {
+      this.mods.push({ mod: ['arcTo', args], type: CALL_MAPPINGS_MODE })
+    },
+    closePath() {
+      this.mods.push({ mod: ['closePath', []], type: CALL_MAPPINGS_MODE })
+    },
+    fill() {
+      this.mods.push({ mod: ['fill', []], type: CALL_MAPPINGS_MODE })
+    },
+    stroke() {
+      this.mods.push({ mod: ['stroke', []], type: CALL_MAPPINGS_MODE })
     }
   }
 }

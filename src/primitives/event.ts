@@ -97,22 +97,20 @@ function smoothDrawing(c: SelfEventContenxt) {
       const progress = Math.min(elapsed / animationDuration, 1)
       if (self.forceDestroy || progress >= 1) {
         effect.stop()
-        self.highlight.reset()
-        self.highlight.setDisplayLayerForHighlight()
         return true
       }
       const easedProgress = easing.cubicInOut(progress)
       self.highlight.reset()
       const mask = createFillBlock(x, y, w, h, { fill, opacity: 0.4, radius: 2, margin: 2 })
       self.highlight.highlight.add(mask)
-      self.highlight.setDisplayLayerForHighlight('1')
+      self.highlight.setZIndexForHighlight('1')
       applyForOpacity(mask, 0.4, 0.4, easedProgress)
       stackMatrixTransform(mask, self.translateX, self.translateY, self.scaleRatio)
       self.highlight.highlight.update()
     })
   } else {
     self.highlight.reset()
-    self.highlight.setDisplayLayerForHighlight()
+    self.highlight.setZIndexForHighlight()
   }
 }
 
@@ -205,7 +203,7 @@ export class SelfEvent extends RegisterModule {
     }
     // If highlighting is triggered, it needs to be destroyed first
     this.self.highlight.reset()
-    this.self.highlight.setDisplayLayerForHighlight()
+    this.self.highlight.setZIndexForHighlight()
     // @ts-expect-error
     this.self.event.off('mousemove', this.self.onmousemove)
     this.treemap.event.off(internalEventMappings.ON_ZOOM)
@@ -234,6 +232,7 @@ export class SelfEvent extends RegisterModule {
       this.self.translateY += drawY
       this.self.draggingState = { x, y }
       stackMatrixTransformWithGraphAndLayer(this.treemap.elements, this.self.translateX, this.self.translateY, this.self.scaleRatio)
+
       this.treemap.update()
     })
   }
@@ -244,7 +243,7 @@ export class SelfEvent extends RegisterModule {
     }
     this.self.isDragging = false
     this.self.highlight.reset()
-    this.self.highlight.setDisplayLayerForHighlight()
+    this.self.highlight.setZIndexForHighlight()
     this.self.event.bindWithContext(this)('mousemove', this.self.onmousemove)
   }
 
@@ -280,7 +279,7 @@ export class SelfEvent extends RegisterModule {
     self.forceDestroy = true
 
     this.self.highlight.reset()
-    this.self.highlight.setDisplayLayerForHighlight()
+    this.self.highlight.setZIndexForHighlight()
     const factor = absWheelDelta > 3 ? 1.4 : absWheelDelta > 1 ? 1.2 : 1.1
     const delta = wheelDelta > 0 ? factor : 1 / factor
     const targetScaleRatio = self.scaleRatio * delta
@@ -371,13 +370,11 @@ export class SelfEvent extends RegisterModule {
       this.highlight.init(width, height, root)
 
       if (!installHightlightEvent) {
-        bindPrimitiveEvent(this.highlight.highlight.render.canvas, { treemap, self: this }, 'mousemove', event)
-        bindPrimitiveEvent(this.highlight.highlight.render.canvas, { treemap, self: this }, 'mouseout', event)
         // highlight
         selfEvt('mousemove', this.onmousemove)
         selfEvt('mouseout', this.onmouseout)
         installHightlightEvent = true
-        this.highlight.setDisplayLayerForHighlight()
+        this.highlight.setZIndexForHighlight()
       }
       this.highlight.reset()
     })
@@ -504,14 +501,14 @@ function isScrollWheelOrRightButtonOnMouseupAndDown<E extends DuckE = DuckE>(e: 
 interface HighlightContext {
   init: (w: number, h: number, root: HTMLElement) => void
   reset: () => void
-  setDisplayLayerForHighlight: (layer?: string) => void
+  setZIndexForHighlight: (layer?: string) => void
   get highlight(): Schedule
 }
 
 function createHighlight(): HighlightContext {
   let s: Schedule | null = null
 
-  const setDisplayLayerForHighlight = (layer: string = '-1') => {
+  const setZIndexForHighlight = (layer: string = '-1') => {
     if (!s) return
     const c = s.render.canvas
     c.style.zIndex = layer
@@ -521,7 +518,7 @@ function createHighlight(): HighlightContext {
     if (!s) {
       s = new Schedule(root, { width: w, height: h })
     }
-    setDisplayLayerForHighlight()
+    setZIndexForHighlight()
     s.render.canvas.style.position = 'absolute'
     s.render.canvas.style.pointerEvents = 'none'
   }
@@ -535,7 +532,7 @@ function createHighlight(): HighlightContext {
   return {
     init,
     reset,
-    setDisplayLayerForHighlight,
+    setZIndexForHighlight,
     get highlight() {
       return s!
     }

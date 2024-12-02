@@ -3,6 +3,7 @@
 // If one day etoile need to build as a useful library. Pls rewrite it!
 // All of implementation don't want to consider the compatibility of the browser.
 // Currently, it doesn't support moving with two finger on a Magic Trackpad.
+// Note: All events that need to trigger rendering should call 'createEffectScope'.
 
 import { useMagicTrackpad } from '../etoile/native/magic-trackpad'
 import { captureBoxXY, createEffectScope } from '../etoile/native/dom'
@@ -209,21 +210,32 @@ export class SelfEvent extends RegisterModule {
     this.self.event.off('mousemove', this.self.onmousemove)
     this.treemap.event.off(internalEventMappings.ON_ZOOM)
     this.self.forceDestroy = true
-    const { native } = metadata
-    const x = native.offsetX
-    const y = native.offsetY
-    const { x: lastX, y: lastY } = this.self.draggingState
-    const drawX = x - lastX
-    const drawY = y - lastY
-    this.self.translateX += drawX
-    this.self.translateY += drawY
-    this.self.draggingState = { x, y }
-    if (this.self.triggerZoom) {
-      refreshBackgroundLayer(this)
-    }
-    this.treemap.reset()
-    stackMatrixTransformWithGraphAndLayer(this.treemap.elements, this.self.translateX, this.self.translateY, this.self.scaleRatio)
-    this.treemap.update()
+
+    const effect = createEffectScope()
+    const animationDuration = 300
+    const startTime = Date.now()
+
+    effect.run(() => {
+      const elapsed = Date.now() - startTime
+      const progress = Math.min(elapsed / animationDuration, 1)
+      if (progress >= 1) {
+        effect.stop()
+        return true
+      }
+      if (this.self.triggerZoom) {
+        refreshBackgroundLayer(this)
+      }
+      const { offsetX: x, offsetY: y } = metadata.native
+      const { x: lastX, y: lastY } = this.self.draggingState
+      const drawX = x - lastX
+      const drawY = y - lastY
+      this.treemap.reset()
+      this.self.translateX += drawX
+      this.self.translateY += drawY
+      this.self.draggingState = { x, y }
+      stackMatrixTransformWithGraphAndLayer(this.treemap.elements, this.self.translateX, this.self.translateY, this.self.scaleRatio)
+      this.treemap.update()
+    })
   }
 
   ondragend(this: SelfEventContenxt) {
@@ -231,7 +243,6 @@ export class SelfEvent extends RegisterModule {
       return
     }
     this.self.isDragging = false
-    this.self.draggingState = { x: 0, y: 0 }
     this.self.highlight.reset()
     this.self.highlight.setDisplayLayerForHighlight()
     this.self.event.bindWithContext(this)('mousemove', this.self.onmousemove)
@@ -455,13 +466,13 @@ function onZoom(ctx: SelfEventContenxt, node: LayoutModule, root: LayoutModule |
     const startTime = Date.now()
     const animationDuration = 300
 
-    const { run, stop } = createEffectScope()
-    run(() => {
+    const effect = createEffectScope()
+    effect.run(() => {
       const elapsed = Date.now() - startTime
       const progress = Math.min(elapsed / animationDuration, 1)
       treemap.backgroundLayer.__refresh__ = false
       if (progress >= 1) {
-        stop()
+        effect.stop()
         self.layoutWidth = w
         self.layoutHeight = h
         self.forceDestroy = false

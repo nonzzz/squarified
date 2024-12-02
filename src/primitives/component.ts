@@ -113,12 +113,12 @@ export class Highlight extends etoile.Schedule<DOMEventDefinition> {
     return this.render.canvas
   }
 
-  setZIndexForHiglight(zIndex = '-1') {
+  setZIndexForHighlight(zIndex = '-1') {
     this.canvas.style.zIndex = zIndex
   }
 
   init() {
-    this.setZIndexForHiglight()
+    this.setZIndexForHighlight()
     this.canvas.style.position = 'absolute'
     this.canvas.style.pointerEvents = 'none'
   }
@@ -137,7 +137,7 @@ export class TreemapLayout extends etoile.Schedule<InternalEventDefinition> {
   decorator: RenderDecorator
   private bgLayer: Layer
   private fgBox: Box
-  higlight: Highlight
+  highlight: Highlight
   fontsCaches: Record<string, number>
   ellispsisWidthCache: Record<string, number>
   constructor(...args: ConstructorParameters<typeof etoile.Schedule>) {
@@ -150,7 +150,7 @@ export class TreemapLayout extends etoile.Schedule<InternalEventDefinition> {
     this.fontsCaches = Object.create(null)
     this.ellispsisWidthCache = Object.create(null)
     this.bgLayer.setCanvasOptions(this.render.options)
-    this.higlight = new Highlight(this.to, { width: this.render.options.width, height: this.render.options.height })
+    this.highlight = new Highlight(this.to, { width: this.render.options.width, height: this.render.options.height })
   }
 
   drawBackgroundNode(node: LayoutModule) {
@@ -283,9 +283,9 @@ export function createTreemap() {
     treemap.backgroundLayer.initLoc()
     treemap.backgroundLayer.matrix = treemap.backgroundLayer.matrix.create({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 })
     treemap.fontsCaches = Object.create(null)
-    treemap.higlight.render.initOptions({ height, width, devicePixelRatio: window.devicePixelRatio })
-    treemap.higlight.reset()
-    treemap.higlight.init()
+    treemap.highlight.render.initOptions({ height, width, devicePixelRatio: window.devicePixelRatio })
+    treemap.highlight.reset()
+    treemap.highlight.init()
     resetLayout(treemap, width, height)
     treemap.update()
   }

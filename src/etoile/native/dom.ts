@@ -1,4 +1,26 @@
 import { raf } from '../../shared'
+import { Event } from './event'
+import type { BindThisParameter } from './event'
+
+// primitive types
+export const DOM_EVENTS = ['click', 'mousedown', 'mousemove', 'mouseup', 'mouseover', 'mouseout', 'wheel'] as const
+
+export type DOMEventType = typeof DOM_EVENTS[number]
+
+export interface DOMLoc {
+  x: number
+  y: number
+}
+export interface DOMEventMetadata<T extends keyof HTMLElementEventMap = any> {
+  native: HTMLElementEventMap[T]
+  loc: DOMLoc
+}
+
+export type DOMEventCallback<T extends DOMEventType> = (metadata: DOMEventMetadata<T>) => void
+
+export type DOMEventDefinition<API = unknown> = {
+  [K in DOMEventType]: BindThisParameter<DOMEventCallback<K>, API>
+}
 
 export function getOffset(el: HTMLElement) {
   let e = 0
@@ -20,7 +42,7 @@ export function getOffset(el: HTMLElement) {
   ]
 }
 
-export function captureBoxXY(c: HTMLCanvasElement, evt: unknown, a: number, d: number, translateX: number, translateY: number) {
+export function captureBoxXY(c: HTMLElement, evt: unknown, a: number, d: number, translateX: number, translateY: number) {
   const boundingClientRect = c.getBoundingClientRect()
   if (evt instanceof MouseEvent) {
     const [e, f] = getOffset(c)
@@ -69,4 +91,24 @@ export function createEffectScope() {
   const stop = createEffectStop(c)
 
   return { run, stop }
+}
+
+export function bindDOMEvent(el: HTMLElement, evt: DOMEventType | (string & {}), bus: Event<DOMEventDefinition<any>>) {
+  const handler = (e: unknown) => {
+    const { x, y } = captureBoxXY(el, e, 1, 1, 0, 0)
+    // @ts-expect-error
+    bus.emit(evt, { native: e, loc: { x, y } })
+  }
+  el.addEventListener(evt, handler)
+  return handler
+}
+
+export class DOMEvent<API = unknown> extends Event<DOMEventDefinition<API>> {
+  el: HTMLElement | null
+  events: Array<ReturnType<typeof bindDOMEvent>>
+  constructor(el: HTMLElement) {
+    super()
+    this.el = el
+    this.events = DOM_EVENTS.map(evt => bindDOMEvent(this.el!, evt, this))
+  }
 }

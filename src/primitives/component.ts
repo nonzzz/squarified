@@ -1,13 +1,16 @@
+import type { DOMEventDefinition } from '../etoile/native/dom'
 import { createFillBlock, createTitleText } from '../shared'
 import { Box, Layer, etoile } from '../etoile'
-import type { EventMethods, InternalEventDefinition } from './event'
+import type { EventMethods, InternalEventDefinition } from './event2'
 import { bindParentForModule, findRelativeNodeById } from './struct'
 import type { Module, NativeModule } from './struct'
 import { squarify } from './squarify'
 import type { LayoutModule } from './squarify'
-import { SelfEvent, internalEventMappings } from './event'
-import { registerModuleForSchedule } from './registry'
+
+// import { SelfEvent, internalEventMappings } from './event2'
 import type { RenderDecorator, Series } from './decorator'
+import { register } from './registry'
+import { TreemapEvent } from './event'
 
 export interface TreemapOptions {
   data: Module[]
@@ -24,10 +27,6 @@ export interface App {
   use: (using: Using, register: (app: TreemapLayout) => void) => void
   zoom: (id: string) => void
 }
-
-const defaultRegistries = [
-  registerModuleForSchedule(new SelfEvent())
-]
 
 function measureTextWidth(c: CanvasRenderingContext2D, text: string) {
   return c.measureText(text).width
@@ -104,6 +103,27 @@ export function resetLayout(treemap: TreemapLayout, w: number, h: number) {
   treemap.reset(true)
 }
 
+export class Highlight extends etoile.Schedule<DOMEventDefinition> {
+  reset() {
+    this.destory()
+    this.update()
+  }
+
+  get canvas() {
+    return this.render.canvas
+  }
+
+  setZIndexForHiglight(zIndex = '-1') {
+    this.canvas.style.zIndex = zIndex
+  }
+
+  init() {
+    this.setZIndexForHiglight()
+    this.canvas.style.position = 'absolute'
+    this.canvas.style.pointerEvents = 'none'
+  }
+}
+
 // In the end, I want the UI looks like a little bit curved. It will look more beautiful.
 // Remove border using alpha channel can look like more hierarchical.
 
@@ -117,6 +137,7 @@ export class TreemapLayout extends etoile.Schedule<InternalEventDefinition> {
   decorator: RenderDecorator
   private bgLayer: Layer
   private fgBox: Box
+  higlight: Highlight
   fontsCaches: Record<string, number>
   ellispsisWidthCache: Record<string, number>
   constructor(...args: ConstructorParameters<typeof etoile.Schedule>) {
@@ -129,6 +150,7 @@ export class TreemapLayout extends etoile.Schedule<InternalEventDefinition> {
     this.fontsCaches = Object.create(null)
     this.ellispsisWidthCache = Object.create(null)
     this.bgLayer.setCanvasOptions(this.render.options)
+    this.higlight = new Highlight(this.to, { width: this.render.options.width, height: this.render.options.height })
   }
 
   drawBackgroundNode(node: LayoutModule) {
@@ -207,7 +229,7 @@ export class TreemapLayout extends etoile.Schedule<InternalEventDefinition> {
   get api() {
     return {
       zoom: (node: LayoutModule) => {
-        this.event.emit(internalEventMappings.ON_ZOOM, node)
+        // this.event.emit(internalEventMappings.ON_ZOOM, node)
       }
     }
   }
@@ -238,9 +260,7 @@ export function createTreemap() {
     ;(root as HTMLDivElement).style.position = 'relative'
 
     if (!installed) {
-      for (const registry of defaultRegistries) {
-        registry(context, treemap, treemap.render)
-      }
+      register(TreemapEvent)(context, treemap)
       installed = true
     }
   }
@@ -263,8 +283,9 @@ export function createTreemap() {
     treemap.backgroundLayer.initLoc()
     treemap.backgroundLayer.matrix = treemap.backgroundLayer.matrix.create({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 })
     treemap.fontsCaches = Object.create(null)
-    treemap.event.emit(internalEventMappings.CLEAN_UP)
-    treemap.event.emit(internalEventMappings.ON_LOAD, width, height, root)
+    treemap.higlight.render.initOptions({ height, width, devicePixelRatio: window.devicePixelRatio })
+    treemap.higlight.reset()
+    treemap.higlight.init()
     resetLayout(treemap, width, height)
     treemap.update()
   }

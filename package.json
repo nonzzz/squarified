@@ -25,8 +25,8 @@
     "@types/node": "^22.7.4",
     "dprint": "^0.47.2",
     "esbuild": "^0.24.0",
-    "eslint": "8",
-    "eslint-config-kagura": "^2.2.1",
+    "eslint": "^9.15.0",
+    "eslint-config-kagura": "^3.0.1",
     "jiek": "^2.1.13",
     "typescript": "^5.6.2",
     "vite-bundle-analyzer": "^0.15.2"

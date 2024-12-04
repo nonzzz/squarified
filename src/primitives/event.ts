@@ -2,14 +2,18 @@
 // So it's no need to implement a complex event algorithm or hit mode.
 // If one day etoile need to build as a useful library. Pls rewrite it!
 // All of implementation don't want to consider the compatibility of the browser.
+// Currently, it doesn't support moving with two finger on a Magic Trackpad.
+// Note: All events that need to trigger rendering should call 'createEffectScope'.
 
-import { createFillBlock, mixin } from '../shared'
+import { useMagicTrackpad } from '../etoile/native/magic-trackpad'
+import { captureBoxXY, createEffectScope } from '../etoile/native/dom'
+import { createFillBlock, isMacOS, mixin } from '../shared'
 import { Display, S } from '../etoile/graph/display'
 import { Schedule, Event as _Event, asserts, drawGraphIntoCanvas, easing, etoile } from '../etoile'
 import type { BindThisParameter } from '../etoile'
 import type { ColorDecoratorResultRGB } from '../etoile/native/runtime'
 import type { InheritedCollections } from '../shared'
-import { applyForOpacity, createEffectScope } from './animation'
+import { applyForOpacity } from './animation'
 import { TreemapLayout, resetLayout } from './component'
 import type { App, TreemapInstanceAPI } from './component'
 import { RegisterModule } from './registry'
@@ -93,22 +97,20 @@ function smoothDrawing(c: SelfEventContenxt) {
       const progress = Math.min(elapsed / animationDuration, 1)
       if (self.forceDestroy || progress >= 1) {
         effect.stop()
-        self.highlight.reset()
-        self.highlight.setDisplayLayerForHighlight()
         return true
       }
       const easedProgress = easing.cubicInOut(progress)
       self.highlight.reset()
-      const mask = createFillBlock(x, y, w, h, { fill, opacity: 0.4 })
+      const mask = createFillBlock(x, y, w, h, { fill, opacity: 0.4, radius: 2, margin: 2 })
       self.highlight.highlight.add(mask)
-      self.highlight.setDisplayLayerForHighlight('1')
+      self.highlight.setZIndexForHighlight('1')
       applyForOpacity(mask, 0.4, 0.4, easedProgress)
       stackMatrixTransform(mask, self.translateX, self.translateY, self.scaleRatio)
       self.highlight.highlight.update()
     })
   } else {
     self.highlight.reset()
-    self.highlight.setDisplayLayerForHighlight()
+    self.highlight.setZIndexForHighlight()
   }
 }
 
@@ -118,38 +120,6 @@ function applyZoomEvent(ctx: SelfEventContenxt) {
     if (ctx.self.isDragging) return
     onZoom(ctx, node, root)
   })
-}
-
-function getOffset(el: HTMLElement) {
-  let e = 0
-  let f = 0
-  if (document.documentElement.getBoundingClientRect && el.getBoundingClientRect) {
-    const { top, left } = el.getBoundingClientRect()
-    e = top
-    f = left
-  } else {
-    for (let elt: HTMLElement | null = el; elt; elt = el.offsetParent as HTMLElement | null) {
-      e += el.offsetLeft
-      f += el.offsetTop
-    }
-  }
-
-  return [
-    e + Math.max(document.documentElement.scrollLeft, document.body.scrollLeft),
-    f + Math.max(document.documentElement.scrollTop, document.body.scrollTop)
-  ]
-}
-
-function captureBoxXY(c: HTMLCanvasElement, evt: unknown, a: number, d: number, translateX: number, translateY: number) {
-  const boundingClientRect = c.getBoundingClientRect()
-  if (evt instanceof MouseEvent) {
-    const [e, f] = getOffset(c)
-    return {
-      x: ((evt.clientX - boundingClientRect.left - e - translateX) / a),
-      y: ((evt.clientY - boundingClientRect.top - f - translateY) / d)
-    }
-  }
-  return { x: 0, y: 0 }
 }
 
 function bindPrimitiveEvent(
@@ -233,26 +203,38 @@ export class SelfEvent extends RegisterModule {
     }
     // If highlighting is triggered, it needs to be destroyed first
     this.self.highlight.reset()
-    this.self.highlight.setDisplayLayerForHighlight()
+    this.self.highlight.setZIndexForHighlight()
     // @ts-expect-error
     this.self.event.off('mousemove', this.self.onmousemove)
     this.treemap.event.off(internalEventMappings.ON_ZOOM)
     this.self.forceDestroy = true
-    const { native } = metadata
-    const x = native.offsetX
-    const y = native.offsetY
-    const { x: lastX, y: lastY } = this.self.draggingState
-    const drawX = x - lastX
-    const drawY = y - lastY
-    this.self.translateX += drawX
-    this.self.translateY += drawY
-    this.self.draggingState = { x, y }
-    if (this.self.triggerZoom) {
-      refreshBackgroundLayer(this)
-    }
-    this.treemap.reset()
-    stackMatrixTransformWithGraphAndLayer(this.treemap.elements, this.self.translateX, this.self.translateY, this.self.scaleRatio)
-    this.treemap.update()
+
+    const effect = createEffectScope()
+    const animationDuration = 300
+    const startTime = Date.now()
+
+    effect.run(() => {
+      const elapsed = Date.now() - startTime
+      const progress = Math.min(elapsed / animationDuration, 1)
+      if (progress >= 1) {
+        effect.stop()
+        return true
+      }
+      if (this.self.triggerZoom) {
+        refreshBackgroundLayer(this)
+      }
+      const { offsetX: x, offsetY: y } = metadata.native
+      const { x: lastX, y: lastY } = this.self.draggingState
+      const drawX = x - lastX
+      const drawY = y - lastY
+      this.treemap.reset()
+      this.self.translateX += drawX
+      this.self.translateY += drawY
+      this.self.draggingState = { x, y }
+      stackMatrixTransformWithGraphAndLayer(this.treemap.elements, this.self.translateX, this.self.translateY, this.self.scaleRatio)
+
+      this.treemap.update()
+    })
   }
 
   ondragend(this: SelfEventContenxt) {
@@ -260,9 +242,8 @@ export class SelfEvent extends RegisterModule {
       return
     }
     this.self.isDragging = false
-    this.self.draggingState = { x: 0, y: 0 }
     this.self.highlight.reset()
-    this.self.highlight.setDisplayLayerForHighlight()
+    this.self.highlight.setZIndexForHighlight()
     this.self.event.bindWithContext(this)('mousemove', this.self.onmousemove)
   }
 
@@ -285,33 +266,49 @@ export class SelfEvent extends RegisterModule {
 
   onwheel(this: SelfEventContenxt, metadata: PrimitiveEventMetadata<'wheel'>) {
     const { self, treemap } = this
+    const { native } = metadata
     // @ts-expect-error
-    const wheelDelta = metadata.native.wheelDelta
+    const wheelDelta = native.wheelDelta
     const absWheelDelta = Math.abs(wheelDelta)
-    const offsetX = metadata.native.offsetX
-    const offsetY = metadata.native.offsetY
+    const offsetX = native.offsetX
+    const offsetY = native.offsetY
 
     if (wheelDelta === 0) {
       return
     }
     self.forceDestroy = true
-    if (self.triggerZoom) {
-      refreshBackgroundLayer(this)
-    }
-    treemap.reset()
+
     this.self.highlight.reset()
-    this.self.highlight.setDisplayLayerForHighlight()
+    this.self.highlight.setZIndexForHighlight()
     const factor = absWheelDelta > 3 ? 1.4 : absWheelDelta > 1 ? 1.2 : 1.1
     const delta = wheelDelta > 0 ? factor : 1 / factor
-    self.scaleRatio *= delta
-
+    const targetScaleRatio = self.scaleRatio * delta
     const translateX = offsetX - (offsetX - self.translateX) * delta
     const translateY = offsetY - (offsetY - self.translateY) * delta
-    self.translateX = translateX
-    self.translateY = translateY
-    stackMatrixTransformWithGraphAndLayer(this.treemap.elements, this.self.translateX, this.self.translateY, this.self.scaleRatio)
-    treemap.update()
-    self.forceDestroy = false
+    const effect = createEffectScope()
+
+    const animationDuration = 300
+    const startTime = Date.now()
+
+    effect.run(() => {
+      const elapsed = Date.now() - startTime
+      const progress = Math.min(elapsed / animationDuration, 1)
+      if (progress >= 1) {
+        effect.stop()
+        self.forceDestroy = false
+        return true
+      }
+      if (self.triggerZoom) {
+        refreshBackgroundLayer(this)
+      }
+      treemap.reset()
+      const easedProgress = easing.quadraticOut(progress)
+      self.scaleRatio = self.scaleRatio + (targetScaleRatio - self.scaleRatio) * easedProgress
+      self.translateX = self.translateX + (translateX - self.translateX) * easedProgress
+      self.translateY = self.translateY + (translateY - self.translateY) * easedProgress
+      stackMatrixTransformWithGraphAndLayer(this.treemap.elements, self.translateX, self.translateY, self.scaleRatio)
+      treemap.update()
+    })
   }
 
   init(app: App, treemap: TreemapLayout): void {
@@ -333,16 +330,37 @@ export class SelfEvent extends RegisterModule {
     ]
     mixin(app, methods)
     const selfEvents = [...primitiveEvents, 'wheel'] as const
+    const selfContext = { treemap, self: this }
     selfEvents.forEach((evt) => {
-      nativeEvents.push(bindPrimitiveEvent(treemap.render.canvas, { treemap, self: this }, evt, event))
+      nativeEvents.push(bindPrimitiveEvent(treemap.render.canvas, selfContext, evt, event))
     })
-    const selfEvt = event.bindWithContext<SelfEventContenxt>({ treemap, self: this })
+    const selfEvt = event.bindWithContext<SelfEventContenxt>(selfContext)
+    // Regular drag event binding for windows/linux users or
+    // other Darwin users who don't use Magic Trackpad or use three finger drag
     selfEvt('mousedown', this.ondragstart)
     selfEvt('mousemove', this.ondragmove)
     selfEvt('mouseup', this.ondragend)
 
-    // wheel
-    selfEvt('wheel', this.onwheel)
+    // For MacOS, we should inject two finger event
+    if (isMacOS()) {
+      useMagicTrackpad(treemap.render.canvas, {
+        ongesturestart: () => {
+        },
+        ongesturemove: (metadata) => {
+          if (!metadata.isPanGesture) {
+            this.onwheel.bind(selfContext)({ native: metadata.native, module: Object.create(null) })
+          } else {
+            //
+          }
+        },
+        ongestureend: () => {
+          console.log('end')
+        }
+      })
+    } else {
+      // wheel
+      selfEvt('wheel', this.onwheel)
+    }
 
     applyZoomEvent({ treemap, self: this })
 
@@ -352,13 +370,11 @@ export class SelfEvent extends RegisterModule {
       this.highlight.init(width, height, root)
 
       if (!installHightlightEvent) {
-        bindPrimitiveEvent(this.highlight.highlight.render.canvas, { treemap, self: this }, 'mousemove', event)
-        bindPrimitiveEvent(this.highlight.highlight.render.canvas, { treemap, self: this }, 'mouseout', event)
         // highlight
         selfEvt('mousemove', this.onmousemove)
         selfEvt('mouseout', this.onmouseout)
         installHightlightEvent = true
-        this.highlight.setDisplayLayerForHighlight()
+        this.highlight.setZIndexForHighlight()
       }
       this.highlight.reset()
     })
@@ -447,13 +463,13 @@ function onZoom(ctx: SelfEventContenxt, node: LayoutModule, root: LayoutModule |
     const startTime = Date.now()
     const animationDuration = 300
 
-    const { run, stop } = createEffectScope()
-    run(() => {
+    const effect = createEffectScope()
+    effect.run(() => {
       const elapsed = Date.now() - startTime
       const progress = Math.min(elapsed / animationDuration, 1)
       treemap.backgroundLayer.__refresh__ = false
       if (progress >= 1) {
-        stop()
+        effect.stop()
         self.layoutWidth = w
         self.layoutHeight = h
         self.forceDestroy = false
@@ -485,14 +501,14 @@ function isScrollWheelOrRightButtonOnMouseupAndDown<E extends DuckE = DuckE>(e: 
 interface HighlightContext {
   init: (w: number, h: number, root: HTMLElement) => void
   reset: () => void
-  setDisplayLayerForHighlight: (layer?: string) => void
+  setZIndexForHighlight: (layer?: string) => void
   get highlight(): Schedule
 }
 
 function createHighlight(): HighlightContext {
   let s: Schedule | null = null
 
-  const setDisplayLayerForHighlight = (layer: string = '-1') => {
+  const setZIndexForHighlight = (layer: string = '-1') => {
     if (!s) return
     const c = s.render.canvas
     c.style.zIndex = layer
@@ -502,7 +518,7 @@ function createHighlight(): HighlightContext {
     if (!s) {
       s = new Schedule(root, { width: w, height: h })
     }
-    setDisplayLayerForHighlight()
+    setZIndexForHighlight()
     s.render.canvas.style.position = 'absolute'
     s.render.canvas.style.pointerEvents = 'none'
   }
@@ -516,7 +532,7 @@ function createHighlight(): HighlightContext {
   return {
     init,
     reset,
-    setDisplayLayerForHighlight,
+    setZIndexForHighlight,
     get highlight() {
       return s!
     }

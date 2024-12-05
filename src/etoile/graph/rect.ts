@@ -10,7 +10,7 @@ export class Rect extends Graph {
   style: Required<RectStyleOptions>
   constructor(options: Partial<RectOptions> = {}) {
     super(options)
-    this.style = options.style || Object.create(null)
+    this.style = (options.style || Object.create(null)) as Required<RectStyleOptions>
   }
 
   get __shape__() {

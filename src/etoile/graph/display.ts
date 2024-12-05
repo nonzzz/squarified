@@ -10,15 +10,14 @@ const SELF_ID = {
 }
 
 export const enum DisplayType {
-  // eslint-disable-next-line no-unused-vars
   Graph = 'Graph',
-  // eslint-disable-next-line no-unused-vars
+
   Box = 'Box',
-  // eslint-disable-next-line no-unused-vars
+
   Rect = 'Rect',
-  // eslint-disable-next-line no-unused-vars
+
   Text = 'Text',
-  // eslint-disable-next-line no-unused-vars
+
   Layer = 'Layer'
 }
 
@@ -26,7 +25,7 @@ export abstract class Display {
   parent: Display | null
   id: number
   matrix: Matrix2D
-  abstract get __instanceOf__(): string
+  abstract get __instanceOf__(): DisplayType
   constructor() {
     this.parent = null
     this.id = SELF_ID.get()
@@ -58,6 +57,7 @@ export interface LocOptions {
 }
 
 export interface GraphOptions extends LocOptions {
+  [key: string]: unknown
 }
 
 export interface InstructionAssignMappings {
@@ -78,10 +78,11 @@ export interface InstructionWithFunctionCall {
 type Mod<
   T extends InstructionAssignMappings & InstructionWithFunctionCall = InstructionAssignMappings & InstructionWithFunctionCall,
   K extends keyof T = keyof T
-> = T[K] extends (...args: any) => any ? [K, Parameters<T[K]>] : never
+> // eslint-disable-next-line @typescript-eslint/no-explicit-any
+ = T[K] extends (...args: any) => any ? [K, Parameters<T[K]>] : never
 
 interface Instruction extends InstructionAssignMappings, InstructionWithFunctionCall {
-  mods: Array<{ mod: Mod; type: number }>
+  mods: Array<{ mod: Mod, type: number }>
 }
 
 const ASSIGN_MAPPINGS = {
@@ -166,7 +167,7 @@ export abstract class Graph extends S {
   }
   abstract create(): void
   abstract clone(): Graph
-  abstract get __shape__(): string
+  abstract get __shape__(): DisplayType
 
   render(ctx: CanvasRenderingContext2D) {
     this.create()
@@ -176,12 +177,15 @@ export abstract class Graph extends S {
       const { mod, type } = this.instruction.mods[i]
       const [direct, ...args] = mod
       if (type & ASSIGN_MAPPINGS_MODE) {
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-expect-error
         ctx[direct] = args[0]
         continue
       }
 
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-expect-error
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
       ctx[direct].apply(ctx, ...args)
     }
   }

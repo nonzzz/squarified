@@ -35,7 +35,7 @@ declare function getNodeDepth(node: NativeModule): number
 declare function visit<T extends AnyObject>(data: T[], fn: (data: T) => boolean | void): T | null
 
 declare function findRelativeNode(p: {
-  x: number
+  x: number,
   y: number
 }, layoutNodes: LayoutModule[]): LayoutModule | null
 

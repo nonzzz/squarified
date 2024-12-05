@@ -1,14 +1,15 @@
-import { hashCode } from '../shared'
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { type ColorDecoratorResult } from '../etoile/native/runtime'
+import { hashCode } from '../shared'
 import { TreemapLayout } from './component'
 import type { NativeModule } from './struct'
 
 export type ColorMappings = Record<string, ColorDecoratorResult>
 
-export type Rect = { w: number; h: number }
+export type Rect = { w: number, h: number }
 
 export type Series<T> = {
-  max: T
+  max: T,
   min: T
 }
 
@@ -78,7 +79,7 @@ function evaluateColorMappings(data: NativeModule[]): ColorMappings {
   const gc = 0.7152
   const bc = 0.0722
 
-  const hslToRgb = (h: number, s: number, l: number): { r: number; g: number; b: number } => {
+  const hslToRgb = (h: number, s: number, l: number): { r: number, g: number, b: number } => {
     const a = s * Math.min(l, 1 - l)
     const f = (n: number) => {
       const k = (n + h / 30) % 12
@@ -129,6 +130,7 @@ function evaluateColorMappings(data: NativeModule[]): ColorMappings {
       const totalChildren = module.groups.length
       for (let i = 0; i < totalChildren; i++) {
         const child = module.groups[i]
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         calculateColor(child, depth + 1, hue, i, totalChildren)
       }
     }

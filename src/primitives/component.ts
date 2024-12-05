@@ -1,13 +1,13 @@
-import { createFillBlock, createTitleText } from '../shared'
 import { Box, Layer, etoile } from '../etoile'
+import { createFillBlock, createTitleText } from '../shared'
+import type { RenderDecorator, Series } from './decorator'
 import type { EventMethods, InternalEventDefinition } from './event'
-import { bindParentForModule, findRelativeNodeById } from './struct'
-import type { Module, NativeModule } from './struct'
-import { squarify } from './squarify'
-import type { LayoutModule } from './squarify'
 import { SelfEvent, internalEventMappings } from './event'
 import { registerModuleForSchedule } from './registry'
-import type { RenderDecorator, Series } from './decorator'
+import { squarify } from './squarify'
+import type { LayoutModule } from './squarify'
+import { bindParentForModule, findRelativeNodeById } from './struct'
+import type { Module, NativeModule } from './struct'
 
 export interface TreemapOptions {
   data: Module[]
@@ -57,7 +57,7 @@ export function evaluateOptimalFontSize(
   const { range, family } = font
   let min = range.min
   let max = range.max
-  const cache = new Map<number, { width: number; height: number }>()
+  const cache = new Map<number, { width: number, height: number }>()
 
   while (max - min >= 1) {
     const current = min + (max - min) / 2
@@ -118,9 +118,9 @@ export class TreemapLayout extends etoile.Schedule<InternalEventDefinition> {
     this.layoutNodes = []
     this.bgLayer = new Layer()
     this.fgBox = new Box()
-    this.decorator = Object.create(null)
-    this.fontsCaches = Object.create(null)
-    this.ellispsisWidthCache = Object.create(null)
+    this.decorator = Object.create(null) as RenderDecorator
+    this.fontsCaches = Object.create(null) as Record<string, number>
+    this.ellispsisWidthCache = Object.create(null) as Record<string, number>
     this.bgLayer.setCanvasOptions(this.render.options)
   }
 
@@ -136,7 +136,7 @@ export class TreemapLayout extends etoile.Schedule<InternalEventDefinition> {
 
   drawForegroundNode(node: LayoutModule) {
     const [x, y, w, h] = node.layout
-    if (!w || !h) return
+    if (!w || !h) { return }
     const { rectBorderWidth, titleHeight, rectGap } = node.decorator
     const { fontSize, fontFamily, color } = this.decorator.font
     this.fgBox.add(createFillBlock(x + 0.5, y + 0.5, w, h, { stroke: '#222', lineWidth: rectBorderWidth }))
@@ -146,6 +146,7 @@ export class TreemapLayout extends etoile.Schedule<InternalEventDefinition> {
     } else {
       optimalFontSize = evaluateOptimalFontSize(
         this.render.ctx,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         node.node.label,
         {
           range: fontSize,
@@ -158,9 +159,10 @@ export class TreemapLayout extends etoile.Schedule<InternalEventDefinition> {
     }
 
     this.render.ctx.font = `${optimalFontSize}px ${fontFamily}`
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     const result = getSafeText(this.render.ctx, node.node.label, w - (rectGap * 2), this.ellispsisWidthCache)
-    if (!result) return
-    if (result.width >= w || optimalFontSize >= h) return
+    if (!result) { return }
+    if (result.width >= w || optimalFontSize >= h) { return }
     const { text, width } = result
     const textX = x + Math.round((w - width) / 2)
     const textY = y + (node.children.length ? Math.round(titleHeight / 2) : Math.round(h / 2))
@@ -243,14 +245,15 @@ export function createTreemap() {
   }
 
   function resize() {
-    if (!treemap || !root) return
+    if (!treemap || !root) { return }
     const { width, height } = root.getBoundingClientRect()
     treemap.backgroundLayer.__refresh__ = false
     treemap.render.initOptions({ height, width, devicePixelRatio: window.devicePixelRatio })
-    ;(treemap.render.canvas as HTMLCanvasElement).style.position = 'absolute'
+    treemap.render.canvas.style.position = 'absolute'
     treemap.backgroundLayer.setCanvasOptions(treemap.render.options)
     treemap.backgroundLayer.initLoc()
     treemap.backgroundLayer.matrix = treemap.backgroundLayer.matrix.create({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 })
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     treemap.fontsCaches = Object.create(null)
     treemap.event.emit(internalEventMappings.CLEAN_UP)
     treemap.event.emit(internalEventMappings.ON_LOAD, width, height, root)
@@ -283,7 +286,9 @@ export function createTreemap() {
       throw new Error("treemap don't init.")
     }
     const node = findRelativeNodeById(id, treemap.layoutNodes)
-    node && treemap.api.zoom(node)
+    if (node) {
+      treemap.api.zoom(node)
+    }
   }
 
   return context as App & EventMethods

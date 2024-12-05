@@ -35,7 +35,7 @@ export abstract class C extends Display {
   }
 
   destory() {
-    this.elements.forEach(element => element.parent = null)
+    this.elements.forEach((element) => element.parent = null)
     this.elements.length = 0
   }
 }
@@ -74,7 +74,7 @@ export class Box extends C {
   }
 
   destory() {
-    this.elements.forEach(element => element.parent = null)
+    this.elements.forEach((element) => element.parent = null)
     this.elements.length = 0
   }
 
@@ -85,7 +85,7 @@ export class Box extends C {
   clone() {
     const box = new Box()
     if (this.elements.length) {
-      const stack: { elements: Display[]; parent: Box }[] = [{ elements: this.elements, parent: box }]
+      const stack: { elements: Display[], parent: Box }[] = [{ elements: this.elements, parent: box }]
 
       while (stack.length > 0) {
         const { elements, parent } = stack.pop()!

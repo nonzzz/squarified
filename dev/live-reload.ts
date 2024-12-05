@@ -1,7 +1,10 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 declare const LIVE_RELOAD: boolean
 
 if (LIVE_RELOAD) {
-  new EventSource('/esbuild').addEventListener('change', e => {
+  new EventSource('/esbuild').addEventListener('change', (e) => {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     const { added, removed, updated } = JSON.parse(e.data)
 
     if (!added.length && !removed.length && updated.length === 1) {

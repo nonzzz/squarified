@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { perferNumeric } from '../shared'
 import type { LayoutModule } from './squarify'
 
@@ -9,13 +12,13 @@ export function sortChildrenByKey<T extends AnyObject, K extends keyof T = 'weig
       const v = a[key]
       const v2 = b[key]
       if (perferNumeric(v) && perferNumeric(v2)) {
-        if (v2 > v) return 1
-        if (v2 < v) return -1
+        if (v2 > v) { return 1 }
+        if (v2 < v) { return -1 }
         continue
       }
       // Not numeric, compare as string
       const comparison = ('' + v).localeCompare('' + v2)
-      if (comparison !== 0) return comparison
+      if (comparison !== 0) { return comparison }
     }
     return 0
   })
@@ -27,10 +30,10 @@ export function c2m<T extends AnyObject & { groups: any[] }, K extends keyof T>(
   modifier?: (data: T) => T
 ): T & { weight: number } {
   if (Array.isArray(data.groups)) {
-    data.groups = sortChildrenByKey(data.groups.map(d => c2m(d as T, key as string, modifier)), 'weight')
+    data.groups = sortChildrenByKey(data.groups.map((d) => c2m(d as T, key as string, modifier)), 'weight')
   }
   const obj = { ...data, weight: data[key] }
-  if (modifier) return modifier(obj) as any
+  if (modifier) { return modifier(obj) as any }
   return obj
 }
 
@@ -49,7 +52,7 @@ export function flatten<T extends AnyObject & { groups: T[] }>(data: T[]) {
 export type Module = ReturnType<typeof c2m>
 
 export function bindParentForModule<T extends Module & { parent: Module }>(modules: Module[], parent?: Module) {
-  return modules.map(module => {
+  return modules.map((module) => {
     const next = { ...module }
     next.parent = parent
     if (next.groups && Array.isArray(next.groups)) {
@@ -60,8 +63,8 @@ export function bindParentForModule<T extends Module & { parent: Module }>(modul
 }
 
 export type NativeModule = ReturnType<typeof bindParentForModule>[number] & {
-  id: string
-  parent: NativeModule
+  id: string,
+  parent: NativeModule,
   groups: NativeModule[]
 }
 
@@ -75,19 +78,19 @@ export function getNodeDepth(node: NativeModule) {
 }
 
 export function visit<T extends AnyObject>(data: T[], fn: (data: T) => boolean | void): T | null {
-  if (!data) return null
+  if (!data) { return null }
   for (const d of data) {
     if (d.children) {
       const result = visit(d.children, fn)
-      if (result) return result
+      if (result) { return result }
     }
     const stop = fn(d)
-    if (stop) return d
+    if (stop) { return d }
   }
   return null
 }
 
-export function findRelativeNode(p: { x: number; y: number }, layoutNodes: LayoutModule[]) {
+export function findRelativeNode(p: { x: number, y: number }, layoutNodes: LayoutModule[]) {
   return visit(layoutNodes, (node) => {
     const [x, y, w, h] = node.layout
     if (p.x >= x && p.y >= y && p.x < x + w && p.y < y + h) {

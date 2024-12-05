@@ -23,7 +23,7 @@ export class Layer extends C implements S {
     super()
     this.c = new Canvas({ width: 0, height: 0, devicePixelRatio: 1 })
     this.__refresh__ = false
-    this.options = Object.create(null)
+    this.options = Object.create(null) as RenderViewportOptions
     this.width = options.width || 0
     this.height = options.height || 0
     this.x = options.x || 0

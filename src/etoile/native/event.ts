@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 type EventCallback<P = any[]> = P extends any[] ? (...args: P) => any : never
 
 export type DefaultEventDefinition = Record<string, EventCallback>
@@ -20,7 +21,7 @@ export class Event<EvtDefinition extends DefaultEventDefinition = DefaultEventDe
   eventCollections: EventCollections<EvtDefinition>
 
   constructor() {
-    this.eventCollections = Object.create(null)
+    this.eventCollections = Object.create(null) as EventCollections<EvtDefinition>
   }
 
   on<C, Evt extends keyof EvtDefinition>(evt: Evt, handler: BindThisParameter<EvtDefinition[Evt], unknown extends C ? this : C>, c?: C) {
@@ -47,7 +48,7 @@ export class Event<EvtDefinition extends DefaultEventDefinition = DefaultEventDe
   }
 
   emit(evt: keyof EvtDefinition, ...args: Parameters<EvtDefinition[keyof EvtDefinition]>) {
-    if (!this.eventCollections[evt]) return
+    if (!this.eventCollections[evt]) { return }
     const handlers = this.eventCollections[evt]
     if (handlers.length) {
       handlers.forEach((d) => {

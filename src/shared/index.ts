@@ -1,6 +1,6 @@
-import { Matrix2D } from '../etoile/native/matrix'
-import type { RectStyleOptions } from '../etoile/graph/rect'
 import { Rect, Text } from '../etoile'
+import type { RectStyleOptions } from '../etoile/graph/rect'
+import { Matrix2D } from '../etoile/native/matrix'
 
 export function hashCode(str: string) {
   let hash = 0
@@ -14,7 +14,7 @@ export function hashCode(str: string) {
 
 // For strings we only check the first character to determine if it's a number (I think it's enough)
 export function perferNumeric(s: string | number) {
-  if (typeof s === 'number') return true
+  if (typeof s === 'number') { return true }
   return s.charCodeAt(0) >= 48 && s.charCodeAt(0) <= 57
 }
 
@@ -43,7 +43,7 @@ export function applyCanvasTransform(ctx: CanvasRenderingContext2D, matrix: Matr
   ctx.setTransform(matrix.a * dpr, matrix.b * dpr, matrix.c * dpr, matrix.d * dpr, matrix.e * dpr, matrix.f * dpr)
 }
 
-export interface InheritedCollections<T = {}> {
+export interface InheritedCollections<T = object> {
   name: string
   fn: (instance: T) => void
 }

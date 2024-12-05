@@ -1,6 +1,6 @@
-import { raf } from '../shared'
 import { asserts } from '../etoile'
 import { Graph } from '../etoile/graph/display'
+import { raf } from '../shared'
 
 export function applyForOpacity(graph: Graph, lastState: number, nextState: number, easedProgress: number) {
   const alpha = lastState + (nextState - lastState) * easedProgress

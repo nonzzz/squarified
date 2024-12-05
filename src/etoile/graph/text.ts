@@ -5,10 +5,10 @@ export interface TextOptions extends Omit<GraphOptions, 'style'> {
   text: string
   style: Partial<
     GraphStyleSheet & {
-      font: string
-      textAlign: CanvasTextAlign
-      baseline: CanvasTextBaseline
-      lineWidth: number
+      font: string,
+      textAlign: CanvasTextAlign,
+      baseline: CanvasTextBaseline,
+      lineWidth: number,
       fill: string
     }
   >
@@ -20,7 +20,7 @@ export class Text extends Graph {
   constructor(options: Partial<TextOptions> = {}) {
     super(options)
     this.text = options.text || ''
-    this.style = options.style || Object.create(null)
+    this.style = (options.style || Object.create(null)) as Required<TextOptions['style']>
   }
 
   create() {

@@ -3,11 +3,11 @@
 // If one day etoile need to build as a useful library. Pls rewrite it!
 // All of implementation don't want to consider the compatibility of the browser.
 
-import { createFillBlock, mixin } from '../shared'
-import { Display, S } from '../etoile/graph/display'
-import { Schedule, Event as _Event, asserts, drawGraphIntoCanvas, easing, etoile } from '../etoile'
+import { Event as _Event, Schedule, asserts, drawGraphIntoCanvas, easing, etoile } from '../etoile'
 import type { BindThisParameter } from '../etoile'
+import { Display, S } from '../etoile/graph/display'
 import type { ColorDecoratorResultRGB } from '../etoile/native/runtime'
+import { createFillBlock, mixin } from '../shared'
 import type { InheritedCollections } from '../shared'
 import { applyForOpacity, createEffectScope } from './animation'
 import { TreemapLayout, resetLayout } from './component'
@@ -115,7 +115,7 @@ function smoothDrawing(c: SelfEventContenxt) {
 function applyZoomEvent(ctx: SelfEventContenxt) {
   ctx.treemap.event.on(internalEventMappings.ON_ZOOM, (node: LayoutModule) => {
     const root: LayoutModule | null = null
-    if (ctx.self.isDragging) return
+    if (ctx.self.isDragging) { return }
     onZoom(ctx, node, root)
   })
 }
@@ -423,7 +423,7 @@ function stackMatrixTransformWithGraphAndLayer(graphs: Display[], e: number, f: 
 }
 
 function onZoom(ctx: SelfEventContenxt, node: LayoutModule, root: LayoutModule | null) {
-  if (!node) return
+  if (!node) { return }
   const { treemap, self } = ctx
   self.forceDestroy = true
   const c = treemap.render.canvas
@@ -493,7 +493,7 @@ function createHighlight(): HighlightContext {
   let s: Schedule | null = null
 
   const setDisplayLayerForHighlight = (layer: string = '-1') => {
-    if (!s) return
+    if (!s) { return }
     const c = s.render.canvas
     c.style.zIndex = layer
   }
@@ -508,7 +508,7 @@ function createHighlight(): HighlightContext {
   }
 
   const reset = () => {
-    if (!s) return
+    if (!s) { return }
     s.destory()
     s.update()
   }

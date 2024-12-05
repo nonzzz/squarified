@@ -2,23 +2,23 @@ import type { RenderLayout } from './decorator'
 import type { NativeModule } from './struct'
 import { getNodeDepth } from './struct'
 
-type Rect = { w: number; h: number; x: number; y: number }
+type Rect = { w: number, h: number, x: number, y: number }
 
 export type LayoutModule = {
-  node: NativeModule
-  layout: [number, number, number, number]
-  children: LayoutModule[]
+  node: NativeModule,
+  layout: [number, number, number, number],
+  children: LayoutModule[],
   decorator: {
-    titleHeight: number
-    rectBorderRadius: number
-    rectGap: number
+    titleHeight: number,
+    rectBorderRadius: number,
+    rectGap: number,
     rectBorderWidth: number
   }
 }
 
 export function squarify(data: NativeModule[], rect: Rect, layoutDecorator: RenderLayout) {
   const result: LayoutModule[] = []
-  if (!data.length) return result
+  if (!data.length) { return result }
 
   const worst = (start: number, end: number, shortestSide: number, totalWeight: number, aspectRatio: number) => {
     const max = data[start].weight * aspectRatio
@@ -45,7 +45,7 @@ export function squarify(data: NativeModule[], rect: Rect, layoutDecorator: Rend
       while (end < data.length) {
         const area = data[end].weight * aspectRatio
         const newWorst = worst(start, end, shortestSide, areaInRun + area, aspectRatio)
-        if (end > start && oldWorst < newWorst) break
+        if (end > start && oldWorst < newWorst) { break }
         areaInRun += area
         oldWorst = newWorst
         end++

@@ -173,7 +173,7 @@ function bindPrimitiveEvent(
       native: e,
       module: findRelativeNode({ x, y }, treemap.layoutNodes)
     }
-    // @ts-expect-error
+    // @ts-expect-error safe
     bus.emit(evt, event)
   }
   c.addEventListener(evt, handler)
@@ -234,8 +234,7 @@ export class SelfEvent extends RegisterModule {
     // If highlighting is triggered, it needs to be destroyed first
     this.self.highlight.reset()
     this.self.highlight.setDisplayLayerForHighlight()
-    // @ts-expect-error
-    this.self.event.off('mousemove', this.self.onmousemove)
+    this.self.event.off('mousemove', this.self.onmousemove.bind(this))
     this.treemap.event.off(internalEventMappings.ON_ZOOM)
     this.self.forceDestroy = true
     const { native } = metadata
@@ -263,7 +262,7 @@ export class SelfEvent extends RegisterModule {
     this.self.draggingState = { x: 0, y: 0 }
     this.self.highlight.reset()
     this.self.highlight.setDisplayLayerForHighlight()
-    this.self.event.bindWithContext(this)('mousemove', this.self.onmousemove)
+    this.self.event.bindWithContext(this)('mousemove', this.self.onmousemove.bind(this))
   }
 
   onmousemove(this: SelfEventContenxt, metadata: PrimitiveEventMetadata<'mousemove'>) {
@@ -285,8 +284,9 @@ export class SelfEvent extends RegisterModule {
 
   onwheel(this: SelfEventContenxt, metadata: PrimitiveEventMetadata<'wheel'>) {
     const { self, treemap } = this
-    // @ts-expect-error
-    const wheelDelta = metadata.native.wheelDelta
+
+    // @ts-expect-error safe
+    const wheelDelta = metadata.native.wheelDelta as number
     const absWheelDelta = Math.abs(wheelDelta)
     const offsetX = metadata.native.offsetX
     const offsetY = metadata.native.offsetY
@@ -332,17 +332,18 @@ export class SelfEvent extends RegisterModule {
       }
     ]
     mixin(app, methods)
+    const selfCtx = { treemap, self: this }
     const selfEvents = [...primitiveEvents, 'wheel'] as const
     selfEvents.forEach((evt) => {
-      nativeEvents.push(bindPrimitiveEvent(treemap.render.canvas, { treemap, self: this }, evt, event))
+      nativeEvents.push(bindPrimitiveEvent(treemap.render.canvas, selfCtx, evt, event))
     })
-    const selfEvt = event.bindWithContext<SelfEventContenxt>({ treemap, self: this })
-    selfEvt('mousedown', this.ondragstart)
-    selfEvt('mousemove', this.ondragmove)
-    selfEvt('mouseup', this.ondragend)
+    const selfEvt = event.bindWithContext<SelfEventContenxt>(selfCtx)
+    selfEvt('mousedown', this.ondragstart.bind(selfCtx))
+    selfEvt('mousemove', this.ondragmove.bind(selfCtx))
+    selfEvt('mouseup', this.ondragend.bind(selfCtx))
 
     // wheel
-    selfEvt('wheel', this.onwheel)
+    selfEvt('wheel', this.onwheel.bind(selfCtx))
 
     applyZoomEvent({ treemap, self: this })
 
@@ -352,11 +353,9 @@ export class SelfEvent extends RegisterModule {
       this.highlight.init(width, height, root)
 
       if (!installHightlightEvent) {
-        bindPrimitiveEvent(this.highlight.highlight.render.canvas, { treemap, self: this }, 'mousemove', event)
-        bindPrimitiveEvent(this.highlight.highlight.render.canvas, { treemap, self: this }, 'mouseout', event)
         // highlight
-        selfEvt('mousemove', this.onmousemove)
-        selfEvt('mouseout', this.onmouseout)
+        selfEvt('mousemove', this.onmousemove.bind(selfCtx))
+        selfEvt('mouseout', this.onmouseout.bind(selfCtx))
         installHightlightEvent = true
         this.highlight.setDisplayLayerForHighlight()
       }
@@ -394,6 +393,7 @@ function estimateZoomingArea(node: LayoutModule, root: LayoutModule | null, w: n
     let siblingWeightSum = 0
 
     for (const sibling of siblings) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       siblingWeightSum += sibling.weight
     }
 

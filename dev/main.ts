@@ -1,3 +1,7 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { c2m, createTreemap, presetDecorator, sortChildrenByKey } from '../src'
 
 import './live-reload'
@@ -24,7 +28,7 @@ async function main() {
 
 treemap.init(root)
 
-main()
+main().catch(console.error)
 
 treemap.on('click', function(metadata) {
   this.zoom(metadata.module)

@@ -33,3 +33,7 @@ dev-server:
 build-server:
 	@echo "Build server"
 	./node_modules/.bin/esbuild $(FLAGS) --define:LIVE_RELOAD=false
+
+lint:
+	@echo "Lint"
+	./node_modules/.bin/eslint --fix .

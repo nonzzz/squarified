@@ -34,7 +34,9 @@ export class Render {
     this.c = new Canvas(options)
     this.options = options
     this.initOptions(options)
-    !options.shaow && to.appendChild(this.canvas)
+    if (!options.shaow) {
+      to.appendChild(this.canvas)
+    }
   }
 
   clear(width: number, height: number) {

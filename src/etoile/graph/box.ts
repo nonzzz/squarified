@@ -7,7 +7,7 @@ export abstract class C extends Display {
     super()
     this.elements = []
   }
-  abstract get __instanceOf__(): string
+  abstract get __instanceOf__(): DisplayType
 
   add(...elements: Display[]) {
     const cap = elements.length

@@ -1,5 +1,5 @@
-import { Rect, Text } from '../etoile'
-import type { RectStyleOptions } from '../etoile/graph/rect'
+import { Rect, RoundRect, Text } from '../etoile'
+import type { RectStyleOptions, RoundRectStyleOptions } from '../etoile/graph/rect'
 import { Matrix2D } from '../etoile/native/matrix'
 
 export function hashCode(str: string) {
@@ -22,6 +22,10 @@ export function noop() {}
 
 export function createFillBlock(x: number, y: number, width: number, height: number, style?: Partial<RectStyleOptions>) {
   return new Rect({ width, height, x, y, style })
+}
+
+export function createRoundBlock(x: number, y: number, width: number, height: number, style?: Partial<RoundRectStyleOptions>) {
+  return new RoundRect({ width, height, x, y, style: { ...style } })
 }
 
 export function createTitleText(text: string, x: number, y: number, font: string, color: string) {

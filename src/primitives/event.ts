@@ -7,7 +7,7 @@ import { Event as _Event, Schedule, asserts, drawGraphIntoCanvas, easing, etoile
 import type { BindThisParameter } from '../etoile'
 import { Display, S } from '../etoile/graph/display'
 import type { ColorDecoratorResultRGB } from '../etoile/native/runtime'
-import { createFillBlock, mixin } from '../shared'
+import { createRoundBlock, mixin } from '../shared'
 import type { InheritedCollections } from '../shared'
 import { applyForOpacity, createEffectScope } from './animation'
 import { TreemapLayout, resetLayout } from './component'
@@ -99,7 +99,7 @@ function smoothDrawing(c: SelfEventContenxt) {
       }
       const easedProgress = easing.cubicInOut(progress)
       self.highlight.reset()
-      const mask = createFillBlock(x, y, w, h, { fill, opacity: 0.4 })
+      const mask = createRoundBlock(x, y, w, h, { fill, opacity: 0.4, margin: 2, radius: 2 })
       self.highlight.highlight.add(mask)
       self.highlight.setDisplayLayerForHighlight('1')
       applyForOpacity(mask, 0.4, 0.4, easedProgress)

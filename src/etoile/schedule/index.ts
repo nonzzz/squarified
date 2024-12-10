@@ -40,6 +40,20 @@ export function drawGraphIntoCanvas(
   }
   if (asserts.isGraph(graph)) {
     const matrix = graph.matrix.create({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 })
+
+    if (asserts.isRoundRect(graph)) {
+      const effectiveWidth = graph.width - graph.style.margin * 2
+      const effectiveHeight = graph.height - graph.style.margin * 2
+      if (effectiveWidth <= 0 || effectiveHeight <= 0) {
+        ctx.restore()
+        return
+      }
+      if (graph.style.radius >= effectiveHeight / 2 || graph.style.radius >= effectiveWidth / 2) {
+        ctx.restore()
+        return
+      }
+    }
+
     matrix.transform(graph.x, graph.y, graph.scaleX, graph.scaleY, graph.rotation, graph.skewX, graph.skewY)
     applyCanvasTransform(ctx, matrix, dpr)
     graph.render(ctx)
@@ -73,13 +87,13 @@ export class Schedule<D extends DefaultEventDefinition = DefaultEventDefinition>
   // execute all graph elements
   execute(render: Render, graph: Display = this) {
     drawGraphIntoCanvas(graph, { c: render.canvas, ctx: render.ctx, dpr: render.options.devicePixelRatio }, (opts, graph) => {
-      if (asserts.isLayer(graph)) {
-        if (graph.__refresh__) {
-          graph.draw(opts.ctx)
-        } else {
-          graph.setCacheSnapshot(opts.c)
-        }
-      }
+      // if (asserts.isLayer(graph)) {
+      //   if (graph.__refresh__) {
+      //     graph.draw(opts.ctx)
+      //   } else {
+      //     graph.setCacheSnapshot(opts.c)
+      //   }
+      // }
     })
   }
 }

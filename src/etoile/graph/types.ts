@@ -1,7 +1,7 @@
 import { Box } from './box'
 import { Display, DisplayType, Graph } from './display'
 import { Layer } from './layer'
-import { Rect } from './rect'
+import { Rect, RoundRect } from './rect'
 import { Text } from './text'
 
 export function isGraph(display: Display): display is Graph {
@@ -14,6 +14,10 @@ export function isBox(display: Display): display is Box {
 
 export function isRect(display: Display): display is Rect {
   return isGraph(display) && display.__shape__ === DisplayType.Rect
+}
+
+export function isRoundRect(display: Display): display is RoundRect {
+  return isGraph(display) && display.__shape__ === DisplayType.RoundRect
 }
 
 export function isText(display: Display): display is Text {
@@ -29,5 +33,6 @@ export const asserts = {
   isBox,
   isRect,
   isText,
-  isLayer
+  isLayer,
+  isRoundRect
 }

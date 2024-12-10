@@ -18,7 +18,9 @@ export const enum DisplayType {
 
   Text = 'Text',
 
-  Layer = 'Layer'
+  Layer = 'Layer',
+
+  RoundRect = 'RoundRect'
 }
 
 export abstract class Display {
@@ -73,6 +75,12 @@ export interface InstructionWithFunctionCall {
   fillRect: (x: number, y: number, w: number, h: number) => void
   strokeRect: (x: number, y: number, w: number, h: number) => void
   fillText: (text: string, x: number, y: number, maxWidth?: number) => void
+  beginPath: () => void
+  moveTo: (x: number, y: number) => void
+  arcTo: (x1: number, y1: number, x2: number, y2: number, radius: number) => void
+  closePath: () => void
+  fill: () => void
+  stroke: () => void
 }
 
 type Mod<
@@ -128,6 +136,24 @@ function createInstruction() {
     },
     textAlign(...args) {
       this.mods.push({ mod: ['textAlign', args], type: ASSIGN_MAPPINGS.textAlign })
+    },
+    beginPath() {
+      this.mods.push({ mod: ['beginPath', []], type: CALL_MAPPINGS_MODE })
+    },
+    moveTo(...args) {
+      this.mods.push({ mod: ['moveTo', args], type: CALL_MAPPINGS_MODE })
+    },
+    arcTo(...args) {
+      this.mods.push({ mod: ['arcTo', args], type: CALL_MAPPINGS_MODE })
+    },
+    closePath() {
+      this.mods.push({ mod: ['closePath', []], type: CALL_MAPPINGS_MODE })
+    },
+    fill() {
+      this.mods.push({ mod: ['fill', []], type: CALL_MAPPINGS_MODE })
+    },
+    stroke() {
+      this.mods.push({ mod: ['stroke', []], type: CALL_MAPPINGS_MODE })
     }
   }
 }

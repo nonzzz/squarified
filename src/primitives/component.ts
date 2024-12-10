@@ -2,9 +2,7 @@ import { Box, Layer, etoile } from '../etoile'
 import type { DOMEventDefinition } from '../etoile/native/dom'
 import { createRoundBlock, createTitleText } from '../shared'
 import type { RenderDecorator, Series } from './decorator'
-import type { EventMethods } from './deserted-event'
-import { internalEventMappings } from './deserted-event'
-import type { InternalEventDefinition } from './event'
+import type { ExposedEventMethods, InternalEventDefinition } from './event'
 import { INTERNAL_EVENT_MAPPINGS, TreemapEvent } from './event'
 import { register } from './registry'
 import { squarify } from './squarify'
@@ -222,7 +220,8 @@ export class TreemapLayout extends etoile.Schedule<InternalEventDefinition> {
 
   get api() {
     return {
-      zoom: (node: LayoutModule) => {
+      zoom: (node: LayoutModule | null) => {
+        if (!node) { return }
         this.event.emit(INTERNAL_EVENT_MAPPINGS.ON_ZOOM, node)
       }
     }
@@ -254,9 +253,6 @@ export function createTreemap() {
     ;(root as HTMLDivElement).style.position = 'relative'
 
     if (!installed) {
-      // for (const registry of defaultRegistries) {
-      //   registry(context, treemap, treemap.render)
-      // }
       register(TreemapEvent)(context, treemap)
 
       installed = true
@@ -282,8 +278,7 @@ export function createTreemap() {
     treemap.backgroundLayer.matrix = treemap.backgroundLayer.matrix.create({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 })
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     treemap.fontsCaches = Object.create(null)
-    treemap.event.emit(internalEventMappings.CLEAN_UP)
-    treemap.event.emit(internalEventMappings.ON_LOAD, width, height, root)
+    treemap.event.emit(INTERNAL_EVENT_MAPPINGS.ON_CLEANUP)
     treemap.highlight.render.initOptions({ height, width, devicePixelRatio: window.devicePixelRatio })
     treemap.highlight.reset()
     treemap.highlight.init()
@@ -321,7 +316,7 @@ export function createTreemap() {
     }
   }
 
-  return context as App & EventMethods
+  return context as App & ExposedEventMethods
 }
 
 export type TreemapInstanceAPI = TreemapLayout['api']

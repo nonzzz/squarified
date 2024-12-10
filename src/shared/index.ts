@@ -71,3 +71,7 @@ type StrJoin<T extends string[], F extends string> = T extends readonly [] ? ''
 export function prettyStrJoin<T extends string[]>(...s: T) {
   return s.join('') as StrJoin<T, T[0]>
 }
+
+export function isMacOS() {
+  return /Mac OS X/.test(navigator.userAgent)
+}

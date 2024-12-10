@@ -87,13 +87,13 @@ export class Schedule<D extends DefaultEventDefinition = DefaultEventDefinition>
   // execute all graph elements
   execute(render: Render, graph: Display = this) {
     drawGraphIntoCanvas(graph, { c: render.canvas, ctx: render.ctx, dpr: render.options.devicePixelRatio }, (opts, graph) => {
-      if (asserts.isLayer(graph)) {
-        if (graph.__refresh__) {
-          graph.draw(opts.ctx)
-        } else {
-          graph.setCacheSnapshot(opts.c)
-        }
-      }
+      // if (asserts.isLayer(graph)) {
+      //   if (graph.__refresh__) {
+      //     graph.draw(opts.ctx)
+      //   } else {
+      //     graph.setCacheSnapshot(opts.c)
+      //   }
+      // }
     })
   }
 }

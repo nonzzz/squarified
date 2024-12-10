@@ -20,12 +20,12 @@ export interface DrawGraphIntoCanvasOptions {
 export function drawGraphIntoCanvas(
   graph: Display,
   opts: DrawGraphIntoCanvasOptions,
-  callback: (opt: DrawGraphIntoCanvasOptions, graph: Display) => boolean | void
+  callback?: (opt: DrawGraphIntoCanvasOptions, graph: Display) => boolean | void
 ) {
   const { ctx, dpr } = opts
   ctx.save()
   if (asserts.isLayer(graph) && graph.__refresh__) {
-    callback(opts, graph)
+    callback?.(opts, graph)
     return
   }
   if (asserts.isLayer(graph) || asserts.isBox(graph)) {
@@ -36,14 +36,14 @@ export function drawGraphIntoCanvas(
       const element = elements[i]
       drawGraphIntoCanvas(element, opts, callback)
     }
-    callback(opts, graph)
+    callback?.(opts, graph)
   }
   if (asserts.isGraph(graph)) {
     const matrix = graph.matrix.create({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 })
 
     if (asserts.isRoundRect(graph)) {
-      const effectiveWidth = graph.width - graph.style.margin * 2
-      const effectiveHeight = graph.height - graph.style.margin * 2
+      const effectiveWidth = graph.width - graph.style.padding * 2
+      const effectiveHeight = graph.height - graph.style.padding * 2
       if (effectiveWidth <= 0 || effectiveHeight <= 0) {
         ctx.restore()
         return
@@ -55,6 +55,7 @@ export function drawGraphIntoCanvas(
     }
 
     matrix.transform(graph.x, graph.y, graph.scaleX, graph.scaleY, graph.rotation, graph.skewX, graph.skewY)
+    graph.initAABB()
     applyCanvasTransform(ctx, matrix, dpr)
     graph.render(ctx)
   }
@@ -86,14 +87,8 @@ export class Schedule<D extends DefaultEventDefinition = DefaultEventDefinition>
 
   // execute all graph elements
   execute(render: Render, graph: Display = this) {
-    drawGraphIntoCanvas(graph, { c: render.canvas, ctx: render.ctx, dpr: render.options.devicePixelRatio }, (opts, graph) => {
-      // if (asserts.isLayer(graph)) {
-      //   if (graph.__refresh__) {
-      //     graph.draw(opts.ctx)
-      //   } else {
-      //     graph.setCacheSnapshot(opts.c)
-      //   }
-      // }
-    })
+    drawGraphIntoCanvas(graph, { c: render.canvas, ctx: render.ctx, dpr: render.options.devicePixelRatio })
   }
 }
+
+// export function AABBIntersect(rect: RoundRect, rect2: RoundRect) {}

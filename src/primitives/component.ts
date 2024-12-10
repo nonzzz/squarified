@@ -1,4 +1,4 @@
-import { Box, Layer, etoile } from '../etoile'
+import { Box, etoile } from '../etoile'
 import type { DOMEventDefinition } from '../etoile/native/dom'
 import { createRoundBlock, createTitleText } from '../shared'
 import type { RenderDecorator, Series } from './decorator'
@@ -126,7 +126,7 @@ export class TreemapLayout extends etoile.Schedule<InternalEventDefinition> {
   data: NativeModule[]
   layoutNodes: LayoutModule[]
   decorator: RenderDecorator
-  private bgLayer: Layer
+  private bgBox: Box
   private fgBox: Box
   fontsCaches: Record<string, number>
   ellispsisWidthCache: Record<string, number>
@@ -135,24 +135,22 @@ export class TreemapLayout extends etoile.Schedule<InternalEventDefinition> {
     super(...args)
     this.data = []
     this.layoutNodes = []
-    this.bgLayer = new Layer()
+    this.bgBox = new Box()
     this.fgBox = new Box()
     this.decorator = Object.create(null) as RenderDecorator
     this.fontsCaches = Object.create(null) as Record<string, number>
     this.ellispsisWidthCache = Object.create(null) as Record<string, number>
-    this.bgLayer.setCanvasOptions(this.render.options)
     this.highlight = new Highlight(this.to, { width: this.render.options.width, height: this.render.options.height })
   }
 
   drawBackgroundNode(node: LayoutModule) {
     const [x, y, w, h] = node.layout
-    const margin = 2
-    if (w - margin * 2 <= 0 || h - margin * 2 <= 0) {
+    const padding = 2
+    if (w - padding * 2 <= 0 || h - padding * 2 <= 0) {
       return
     }
     const fill = this.decorator.color.mappings[node.node.id]
-    const s = createRoundBlock(x, y, w, h, { fill, margin, radius: 2 })
-    this.bgLayer.add(s)
+    this.bgBox.add(createRoundBlock(x, y, w, h, { fill, padding, radius: 2 }))
     for (const child of node.children) {
       this.drawBackgroundNode(child)
     }
@@ -196,15 +194,19 @@ export class TreemapLayout extends etoile.Schedule<InternalEventDefinition> {
   }
 
   reset(refresh = false) {
-    this.remove(this.bgLayer, this.fgBox)
-    if (!this.bgLayer.__refresh__) {
-      this.bgLayer.destory()
-      for (const node of this.layoutNodes) {
-        this.drawBackgroundNode(node)
-      }
-    } else {
-      // Unlike foreground layer, background laer don't need clone so we should reset the loc informaton
-      this.bgLayer.initLoc()
+    this.remove(this.bgBox, this.fgBox)
+    // if (!this.bgLayer.__refresh__) {
+    //   // this.bgLayer.destory()
+    //   for (const node of this.layoutNodes) {
+    //     this.drawBackgroundNode(node)
+    //   }
+    // } else {
+    //   // Unlike foreground layer, background laer don't need clone so we should reset the loc informaton
+    //   this.bgLayer.initLoc()
+    // }
+    this.bgBox.destory()
+    for (const node of this.layoutNodes) {
+      this.drawBackgroundNode(node)
     }
     if (!this.fgBox.elements.length || refresh) {
       this.render.ctx.textBaseline = 'middle'
@@ -215,7 +217,7 @@ export class TreemapLayout extends etoile.Schedule<InternalEventDefinition> {
     } else {
       this.fgBox = this.fgBox.clone()
     }
-    this.add(this.bgLayer, this.fgBox)
+    this.add(this.bgBox, this.fgBox)
   }
 
   get api() {
@@ -225,10 +227,6 @@ export class TreemapLayout extends etoile.Schedule<InternalEventDefinition> {
         this.event.emit(INTERNAL_EVENT_MAPPINGS.ON_ZOOM, node)
       }
     }
-  }
-
-  get backgroundLayer() {
-    return this.bgLayer
   }
 }
 
@@ -270,12 +268,12 @@ export function createTreemap() {
   function resize() {
     if (!treemap || !root) { return }
     const { width, height } = root.getBoundingClientRect()
-    treemap.backgroundLayer.__refresh__ = false
+    // treemap.backgroundLayer.__refresh__ = false
     treemap.render.initOptions({ height, width, devicePixelRatio: window.devicePixelRatio })
     treemap.render.canvas.style.position = 'absolute'
-    treemap.backgroundLayer.setCanvasOptions(treemap.render.options)
-    treemap.backgroundLayer.initLoc()
-    treemap.backgroundLayer.matrix = treemap.backgroundLayer.matrix.create({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 })
+    // treemap.backgroundLayer.setCanvasOptions(treemap.render.options)
+    // treemap.backgroundLayer.initLoc()
+    // treemap.backgroundLayer.matrix = treemap.backgroundLayer.matrix.create({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 })
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     treemap.fontsCaches = Object.create(null)
     treemap.event.emit(INTERNAL_EVENT_MAPPINGS.ON_CLEANUP)
@@ -284,6 +282,7 @@ export function createTreemap() {
     treemap.highlight.init()
     resetLayout(treemap, width, height)
     treemap.update()
+    console.log(treemap.elements)
   }
 
   function setOptions(options: TreemapOptions) {

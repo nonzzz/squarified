@@ -163,6 +163,7 @@ export abstract class S extends Display {
   rotation: number
   skewX: number
   skewY: number
+
   constructor(options: Partial<LocOptions> = {}) {
     super()
     this.width = options.width || 0
@@ -177,14 +178,20 @@ export abstract class S extends Display {
   }
 }
 
+// For performance. we need impl AABB Check for render.
+
 export abstract class Graph extends S {
   instruction: ReturnType<typeof createInstruction>
   __options__: Partial<LocOptions>
   abstract style: GraphStyleSheet
+  AABB: [number, number, number, number]
+  rectPoints: { x: number, y: number }[]
   constructor(options: Partial<GraphOptions> = {}) {
     super(options)
     this.instruction = createInstruction()
     this.__options__ = options
+    this.AABB = [0, 0, 0, 0]
+    this.rectPoints = []
   }
   abstract create(): void
   abstract clone(): Graph
@@ -213,5 +220,60 @@ export abstract class Graph extends S {
 
   get __instanceOf__(): DisplayType.Graph {
     return DisplayType.Graph
+  }
+
+  initAABB() {
+    const xA = this.width * this.matrix.a
+    const xB = this.width * this.matrix.b
+    const yC = this.height * this.matrix.c
+    const yD = this.height * this.matrix.d
+    const xE = this.matrix.e
+    const yF = this.matrix.f
+
+    let minX = xE
+    let maxX = xE
+    let minY = yF
+    let maxY = yF
+
+    let x, y
+
+    if ((x = xA + xE) < minX) {
+      minX = x
+    } else if (x > maxX) {
+      maxX = x
+    }
+    if ((x = xA + yC + xE) < minX) {
+      minX = x
+    } else if (x > maxX) {
+      maxX = x
+    }
+    if ((x = yC + xE) < minX) {
+      minX = x
+    } else if (x > maxX) {
+      maxX = x
+    }
+    if ((y = xB + yF) < minY) {
+      minY = y
+    } else if (y > maxY) {
+      maxY = y
+    }
+    if ((y = xB + yD + yF) < minY) {
+      minY = y
+    } else if (y > maxY) {
+      maxY = y
+    }
+    if ((y = yD + yF) < minY) {
+      minY = y
+    } else if (y > maxY) {
+      maxY = y
+    }
+
+    this.AABB = [minX, minY, maxX - minX, maxY - minY]
+    this.rectPoints = [
+      { x: xE, y: yF },
+      { x: xA + xE, y: xB + yF },
+      { x: xA + yC + xE, y: xB + yD + yF },
+      { x: yC + xE, y: yD + yF }
+    ]
   }
 }

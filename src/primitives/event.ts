@@ -112,7 +112,7 @@ function drawHighlight(treemap: TreemapLayout, evt: TreemapEvent) {
     runEffect((progress) => {
       const easedProgress = easing.cubicInOut(progress)
       highlight.reset()
-      const mask = createRoundBlock(x, y, w, h, { fill, opacity: 0.4, radius: 2, margin: 2 })
+      const mask = createRoundBlock(x, y, w, h, { fill, opacity: 0.4, radius: 2, padding: 2 })
       highlight.add(mask)
       highlight.setZIndexForHighlight('1')
       applyForOpacity(mask, 0.4, 0.4, easedProgress)

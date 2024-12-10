@@ -3,7 +3,7 @@ import type { ColorDecoratorResult } from '../native/runtime'
 import { DisplayType, Graph } from './display'
 import type { GraphOptions, GraphStyleSheet } from './display'
 
-export type RectStyleOptions = GraphStyleSheet & { fill: ColorDecoratorResult, margin?: number }
+export type RectStyleOptions = GraphStyleSheet & { fill: ColorDecoratorResult, padding?: number }
 
 export type RectOptions = GraphOptions & { style: Partial<RectStyleOptions> }
 export class Rect extends Graph {
@@ -18,11 +18,11 @@ export class Rect extends Graph {
   }
 
   create() {
-    const margin = this.style.margin || 0
+    const padding = this.style.padding || 0
     const x = 0
     const y = 0
-    const width = this.width - margin * 2
-    const height = this.height - margin * 2
+    const width = this.width - padding * 2
+    const height = this.height - padding * 2
     if (this.style.fill) {
       this.instruction.fillStyle(runtime.evaluateFillStyle(this.style.fill, this.style.opacity))
       this.instruction.fillRect(x, y, width, height)
@@ -57,11 +57,11 @@ export class RoundRect extends Graph {
   }
 
   create() {
-    const margin = this.style.margin
+    const padding = this.style.padding
     const x = 0
     const y = 0
-    const width = this.width - margin * 2
-    const height = this.height - margin * 2
+    const width = this.width - padding * 2
+    const height = this.height - padding * 2
     const radius = this.style.radius || 0
     this.instruction.beginPath()
     this.instruction.moveTo(x + radius, y)

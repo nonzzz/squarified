@@ -1,9 +1,12 @@
 import { Box, Layer, etoile } from '../etoile'
+import type { DOMEventDefinition } from '../etoile/native/dom'
 import { createRoundBlock, createTitleText } from '../shared'
 import type { RenderDecorator, Series } from './decorator'
-import type { EventMethods, InternalEventDefinition } from './event'
-import { SelfEvent, internalEventMappings } from './event'
-import { registerModuleForSchedule } from './registry'
+import type { EventMethods } from './deserted-event'
+import { internalEventMappings } from './deserted-event'
+import type { InternalEventDefinition } from './event'
+import { INTERNAL_EVENT_MAPPINGS, TreemapEvent } from './event'
+import { register } from './registry'
 import { squarify } from './squarify'
 import type { LayoutModule } from './squarify'
 import { bindParentForModule, findRelativeNodeById } from './struct'
@@ -24,10 +27,6 @@ export interface App {
   use: (using: Using, register: (app: TreemapLayout) => void) => void
   zoom: (id: string) => void
 }
-
-const defaultRegistries = [
-  registerModuleForSchedule(new SelfEvent())
-]
 
 function measureTextWidth(c: CanvasRenderingContext2D, text: string) {
   return c.measureText(text).width
@@ -104,6 +103,27 @@ export function resetLayout(treemap: TreemapLayout, w: number, h: number) {
   treemap.reset(true)
 }
 
+export class Highlight extends etoile.Schedule<DOMEventDefinition> {
+  reset() {
+    this.destory()
+    this.update()
+  }
+
+  get canvas() {
+    return this.render.canvas
+  }
+
+  setZIndexForHighlight(zIndex = '-1') {
+    this.canvas.style.zIndex = zIndex
+  }
+
+  init() {
+    this.setZIndexForHighlight()
+    this.canvas.style.position = 'absolute'
+    this.canvas.style.pointerEvents = 'none'
+  }
+}
+
 export class TreemapLayout extends etoile.Schedule<InternalEventDefinition> {
   data: NativeModule[]
   layoutNodes: LayoutModule[]
@@ -112,6 +132,7 @@ export class TreemapLayout extends etoile.Schedule<InternalEventDefinition> {
   private fgBox: Box
   fontsCaches: Record<string, number>
   ellispsisWidthCache: Record<string, number>
+  highlight: Highlight
   constructor(...args: ConstructorParameters<typeof etoile.Schedule>) {
     super(...args)
     this.data = []
@@ -122,6 +143,7 @@ export class TreemapLayout extends etoile.Schedule<InternalEventDefinition> {
     this.fontsCaches = Object.create(null) as Record<string, number>
     this.ellispsisWidthCache = Object.create(null) as Record<string, number>
     this.bgLayer.setCanvasOptions(this.render.options)
+    this.highlight = new Highlight(this.to, { width: this.render.options.width, height: this.render.options.height })
   }
 
   drawBackgroundNode(node: LayoutModule) {
@@ -201,7 +223,7 @@ export class TreemapLayout extends etoile.Schedule<InternalEventDefinition> {
   get api() {
     return {
       zoom: (node: LayoutModule) => {
-        this.event.emit(internalEventMappings.ON_ZOOM, node)
+        this.event.emit(INTERNAL_EVENT_MAPPINGS.ON_ZOOM, node)
       }
     }
   }
@@ -232,9 +254,11 @@ export function createTreemap() {
     ;(root as HTMLDivElement).style.position = 'relative'
 
     if (!installed) {
-      for (const registry of defaultRegistries) {
-        registry(context, treemap, treemap.render)
-      }
+      // for (const registry of defaultRegistries) {
+      //   registry(context, treemap, treemap.render)
+      // }
+      register(TreemapEvent)(context, treemap)
+
       installed = true
     }
   }
@@ -260,6 +284,9 @@ export function createTreemap() {
     treemap.fontsCaches = Object.create(null)
     treemap.event.emit(internalEventMappings.CLEAN_UP)
     treemap.event.emit(internalEventMappings.ON_LOAD, width, height, root)
+    treemap.highlight.render.initOptions({ height, width, devicePixelRatio: window.devicePixelRatio })
+    treemap.highlight.reset()
+    treemap.highlight.init()
     resetLayout(treemap, width, height)
     treemap.update()
   }

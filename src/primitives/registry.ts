@@ -13,3 +13,9 @@ export function registerModuleForSchedule(mod: RegisterModule) {
   }
   throw new Error(log.error('The module is not a valid RegisterScheduleModule.'))
 }
+
+export function register<M>(Mod: new (app: App, treemap: TreemapLayout) => M) {
+  return (app: App, treemap: TreemapLayout) => {
+    new Mod(app, treemap)
+  }
+}

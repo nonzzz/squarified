@@ -11,15 +11,10 @@ const SELF_ID = {
 
 export const enum DisplayType {
   Graph = 'Graph',
-
   Box = 'Box',
-
   Rect = 'Rect',
-
   Text = 'Text',
-
   Layer = 'Layer',
-
   RoundRect = 'RoundRect'
 }
 

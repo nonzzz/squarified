@@ -8,7 +8,7 @@ export type {
   PrimitiveEventCallback,
   PrimitiveEventDefinition,
   PrimitiveEventMetadata
-} from './primitives/event'
+} from './primitives/deserted-event'
 export type { LayoutModule } from './primitives/squarify'
 export {
   c2m,

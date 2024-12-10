@@ -60,3 +60,14 @@ export function mixin<T>(app: T, methods: InheritedCollections<T>[]) {
     })
   })
 }
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+type Tail<T extends string[]> = T extends readonly [infer _, ...infer Rest] ? Rest : []
+
+type StrJoin<T extends string[], F extends string> = T extends readonly [] ? ''
+  : T extends readonly [infer FF] ? FF
+  : `${F}${StrJoin<Tail<T>, T[0]>}`
+
+export function prettyStrJoin<T extends string[]>(...s: T) {
+  return s.join('') as StrJoin<T, T[0]>
+}

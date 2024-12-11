@@ -126,8 +126,8 @@ export class TreemapLayout extends etoile.Schedule<InternalEventDefinition> {
   data: NativeModule[]
   layoutNodes: LayoutModule[]
   decorator: RenderDecorator
-  private bgBox: Box
-  private fgBox: Box
+  bgBox: Box
+  fgBox: Box
   fontsCaches: Record<string, number>
   ellispsisWidthCache: Record<string, number>
   highlight: Highlight
@@ -178,7 +178,6 @@ export class TreemapLayout extends etoile.Schedule<InternalEventDefinition> {
       )
       this.fontsCaches[node.node.id] = optimalFontSize
     }
-
     this.render.ctx.font = `${optimalFontSize}px ${fontFamily}`
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     const result = getSafeText(this.render.ctx, node.node.label, w - (rectGap * 2), this.ellispsisWidthCache)
@@ -195,15 +194,6 @@ export class TreemapLayout extends etoile.Schedule<InternalEventDefinition> {
 
   reset(refresh = false) {
     this.remove(this.bgBox, this.fgBox)
-    // if (!this.bgLayer.__refresh__) {
-    //   // this.bgLayer.destory()
-    //   for (const node of this.layoutNodes) {
-    //     this.drawBackgroundNode(node)
-    //   }
-    // } else {
-    //   // Unlike foreground layer, background laer don't need clone so we should reset the loc informaton
-    //   this.bgLayer.initLoc()
-    // }
     this.bgBox.destory()
     for (const node of this.layoutNodes) {
       this.drawBackgroundNode(node)
@@ -268,12 +258,8 @@ export function createTreemap() {
   function resize() {
     if (!treemap || !root) { return }
     const { width, height } = root.getBoundingClientRect()
-    // treemap.backgroundLayer.__refresh__ = false
     treemap.render.initOptions({ height, width, devicePixelRatio: window.devicePixelRatio })
     treemap.render.canvas.style.position = 'absolute'
-    // treemap.backgroundLayer.setCanvasOptions(treemap.render.options)
-    // treemap.backgroundLayer.initLoc()
-    // treemap.backgroundLayer.matrix = treemap.backgroundLayer.matrix.create({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 })
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     treemap.fontsCaches = Object.create(null)
     treemap.event.emit(INTERNAL_EVENT_MAPPINGS.ON_CLEANUP)
@@ -282,7 +268,6 @@ export function createTreemap() {
     treemap.highlight.init()
     resetLayout(treemap, width, height)
     treemap.update()
-    console.log(treemap.elements)
   }
 
   function setOptions(options: TreemapOptions) {

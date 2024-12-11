@@ -43,19 +43,21 @@ export interface TreemapEventContext {
 
 export interface TreemapEventState {
   isDragging: boolean
+  isWheeling: boolean
+  isZooming: boolean
   forceDestroy: boolean
   currentNode: LayoutModule | null
   dragX: number
   dragY: number
-  isWheeling: boolean
 }
 
 function createTreemapEventState() {
   return <TreemapEventState> {
     isDragging: false,
+    isWheeling: false,
+    isZooming: false,
     currentNode: null,
     forceDestroy: false,
-    isWheeling: false,
     dragX: 0,
     dragY: 0
   }
@@ -120,7 +122,7 @@ function drawHighlight(treemap: TreemapLayout, evt: TreemapEvent) {
       highlight.update()
     }, {
       duration: ANIMATION_DURATION,
-      stop: () => evt.state.isDragging || evt.state.isWheeling
+      stop: () => evt.state.isDragging || evt.state.isWheeling || evt.state.isZooming
     })
   } else {
     highlight.reset()
@@ -221,6 +223,32 @@ export class TreemapEvent extends DOMEvent {
     }
   }
 
+  private onmouseout(ctx: TreemapEventContext) {
+    this.state.currentNode = null
+    drawHighlight(ctx.treemap, this)
+  }
+
+  private onmousedown(ctx: TreemapEventContext, metadata: DOMEventMetadata<'mousedown'>) {
+    if (isScrollWheelOrRightButtonOnMouseupAndDown(metadata.native)) {
+      return
+    }
+    this.state.isDragging = true
+    this.state.dragX = metadata.native.offsetX
+    this.state.dragY = metadata.native.offsetY
+    this.state.forceDestroy = false
+  }
+
+  private onmouseup(ctx: TreemapEventContext) {
+    if (!this.state.isDragging) {
+      return
+    }
+    this.state.forceDestroy = true
+    this.state.isDragging = false
+    const { treemap } = ctx
+    treemap.highlight.reset()
+    treemap.highlight.setZIndexForHighlight()
+  }
+
   private onwheel(ctx: TreemapEventContext, metadata: DOMEventMetadata<'wheel'>) {
     const { native } = metadata
     const { treemap } = ctx
@@ -234,6 +262,7 @@ export class TreemapEvent extends DOMEvent {
     if (wheelDelta === 0) {
       return
     }
+
     this.state.forceDestroy = true
     treemap.highlight.reset()
     treemap.highlight.setZIndexForHighlight()
@@ -260,32 +289,6 @@ export class TreemapEvent extends DOMEvent {
         this.state.isWheeling = false
       }
     })
-  }
-
-  private onmouseout(ctx: TreemapEventContext) {
-    this.state.currentNode = null
-    drawHighlight(ctx.treemap, this)
-  }
-
-  private onmousedown(ctx: TreemapEventContext, metadata: DOMEventMetadata<'mousedown'>) {
-    if (isScrollWheelOrRightButtonOnMouseupAndDown(metadata.native)) {
-      return
-    }
-    this.state.isDragging = true
-    this.state.dragX = metadata.native.offsetX
-    this.state.dragY = metadata.native.offsetY
-    this.state.forceDestroy = false
-  }
-
-  private onmouseup(ctx: TreemapEventContext) {
-    if (!this.state.isDragging) {
-      return
-    }
-    this.state.forceDestroy = true
-    this.state.isDragging = false
-    const { treemap } = ctx
-    treemap.highlight.reset()
-    treemap.highlight.setZIndexForHighlight()
   }
 
   private onmacOSWheel(ctx: TreemapEventContext, metadata: DOMEventMetadata<'wheel'>) {
@@ -351,15 +354,12 @@ function estimateZoomingArea(node: LayoutModule, root: LayoutModule | null, w: n
 function createOnZoom(treemap: TreemapLayout, evt: TreemapEvent) {
   let root: LayoutModule | null = null
   return (node: LayoutModule) => {
-    evt.state.forceDestroy = true
+    evt.state.isZooming = true
     const c = treemap.render.canvas
     const boundingClientRect = c.getBoundingClientRect()
     const [w, h] = estimateZoomingArea(node, root, boundingClientRect.width, boundingClientRect.height)
-    // if (self.layoutHeight !== w || self.layoutHeight !== h) {
-    //   // remove font caches
-    //   delete treemap.fontsCaches[node.node.id]
-    //   delete treemap.ellispsisWidthCache[node.node.id]
-    // }
+    delete treemap.fontsCaches[node.node.id]
+    delete treemap.ellispsisWidthCache[node.node.id]
     resetLayout(treemap, w, h)
     const module = findRelativeNodeById(node.node.id, treemap.layoutNodes)
     if (module) {
@@ -384,7 +384,7 @@ function createOnZoom(treemap: TreemapLayout, evt: TreemapEvent) {
         duration: ANIMATION_DURATION,
         stop: () => false,
         onStop: () => {
-          evt.state.forceDestroy = false
+          evt.state.isZooming = false
         }
       })
     }

@@ -19,28 +19,22 @@ export interface DrawGraphIntoCanvasOptions {
 // First cleanup canvas
 export function drawGraphIntoCanvas(
   graph: Display,
-  opts: DrawGraphIntoCanvasOptions,
-  callback?: (opt: DrawGraphIntoCanvasOptions, graph: Display) => boolean | void
+  opts: DrawGraphIntoCanvasOptions
 ) {
   const { ctx, dpr } = opts
   ctx.save()
-  if (asserts.isLayer(graph) && graph.__refresh__) {
-    callback?.(opts, graph)
-    return
-  }
-  if (asserts.isLayer(graph) || asserts.isBox(graph)) {
+  if (asserts.isBox(graph)) {
     const elements = graph.elements
     const cap = elements.length
 
     for (let i = 0; i < cap; i++) {
       const element = elements[i]
-      drawGraphIntoCanvas(element, opts, callback)
+      drawGraphIntoCanvas(element, opts)
     }
-    callback?.(opts, graph)
   }
   if (asserts.isGraph(graph)) {
     const matrix = graph.matrix.create({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 })
-
+    matrix.transform(graph.x, graph.y, graph.scaleX, graph.scaleY, graph.rotation, graph.skewX, graph.skewY)
     if (asserts.isRoundRect(graph)) {
       const effectiveWidth = graph.width - graph.style.padding * 2
       const effectiveHeight = graph.height - graph.style.padding * 2
@@ -53,9 +47,6 @@ export function drawGraphIntoCanvas(
         return
       }
     }
-
-    matrix.transform(graph.x, graph.y, graph.scaleX, graph.scaleY, graph.rotation, graph.skewX, graph.skewY)
-    graph.initAABB()
     applyCanvasTransform(ctx, matrix, dpr)
     graph.render(ctx)
   }
@@ -90,5 +81,3 @@ export class Schedule<D extends DefaultEventDefinition = DefaultEventDefinition>
     drawGraphIntoCanvas(graph, { c: render.canvas, ctx: render.ctx, dpr: render.options.devicePixelRatio })
   }
 }
-
-// export function AABBIntersect(rect: RoundRect, rect2: RoundRect) {}

@@ -6,40 +6,6 @@ import type { GraphOptions, GraphStyleSheet } from './display'
 export type RectStyleOptions = GraphStyleSheet & { fill: ColorDecoratorResult, padding?: number }
 
 export type RectOptions = GraphOptions & { style: Partial<RectStyleOptions> }
-export class Rect extends Graph {
-  style: Required<RectStyleOptions>
-  constructor(options: Partial<RectOptions> = {}) {
-    super(options)
-    this.style = (options.style || Object.create(null)) as Required<RectStyleOptions>
-  }
-
-  get __shape__() {
-    return DisplayType.Rect
-  }
-
-  create() {
-    const padding = this.style.padding || 0
-    const x = 0
-    const y = 0
-    const width = this.width - padding * 2
-    const height = this.height - padding * 2
-    if (this.style.fill) {
-      this.instruction.fillStyle(runtime.evaluateFillStyle(this.style.fill, this.style.opacity))
-      this.instruction.fillRect(x, y, width, height)
-    }
-    if (this.style.stroke) {
-      this.instruction.strokeStyle(this.style.stroke)
-      if (typeof this.style.lineWidth === 'number') {
-        this.instruction.lineWidth(this.style.lineWidth)
-      }
-      this.instruction.strokeRect(x, y, width, height)
-    }
-  }
-
-  clone() {
-    return new Rect({ ...this.style, ...this.__options__ })
-  }
-}
 
 export type RoundRectStyleOptions = RectStyleOptions & { radius: number }
 

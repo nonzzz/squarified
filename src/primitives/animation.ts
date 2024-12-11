@@ -4,7 +4,7 @@ import { raf } from '../shared'
 
 export function applyForOpacity(graph: Graph, lastState: number, nextState: number, easedProgress: number) {
   const alpha = lastState + (nextState - lastState) * easedProgress
-  if (asserts.isRect(graph)) {
+  if (asserts.isRoundRect(graph)) {
     graph.style.opacity = alpha
   }
 }

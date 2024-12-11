@@ -38,8 +38,8 @@ export interface RenderDecorator {
 
 export const defaultLayoutOptions = {
   titleAreaHeight: {
-    max: 80,
-    min: 20
+    max: 60,
+    min: 30
   },
   rectGap: 5,
   rectBorderRadius: 0.5,
@@ -50,7 +50,7 @@ export const defaultFontOptions = {
   color: '#000',
   fontSize: {
     max: 38,
-    min: 7
+    min: 0
   },
   fontFamily: 'sans-serif'
 } satisfies RenderFont

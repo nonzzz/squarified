@@ -6,7 +6,8 @@ import { Event as _Event } from '../etoile/native/event'
 import type { BindThisParameter } from '../etoile/native/event'
 import { useMagicTrackPad } from '../etoile/native/magic-trackpad'
 import type { ColorDecoratorResultRGB } from '../etoile/native/runtime'
-import { type InheritedCollections, createRoundBlock, isMacOS, mixin, prettyStrJoin } from '../shared'
+import { createRoundBlock, isMacOS, mixin, prettyStrJoin } from '../shared'
+import type { InheritedCollections } from '../shared'
 import { applyForOpacity } from './animation'
 import type { App, TreemapInstanceAPI } from './component'
 import { TreemapLayout, resetLayout } from './component'
@@ -65,8 +66,8 @@ function createTreemapEventState() {
 
 interface EffectOptions {
   duration: number
-  stop: () => boolean
   onStop?: () => void
+  deps?: Array<() => boolean>
 }
 
 export const INTERNAL_EVENT_MAPPINGS = {
@@ -92,10 +93,18 @@ const fill = <ColorDecoratorResultRGB> { desc: { r: 255, g: 255, b: 255 }, mode:
 function runEffect(callback: (progress: number) => void, opts: EffectOptions) {
   const effect = createEffectScope()
   const startTime = Date.now()
+
+  const condtion = (process: number) => {
+    if (Array.isArray(opts.deps)) {
+      return opts.deps.some((dep) => dep())
+    }
+    return process >= 1
+  }
+
   effect.run(() => {
     const elapsed = Date.now() - startTime
     const progress = Math.min(elapsed / opts.duration, 1)
-    if (progress >= 1 || opts.stop()) {
+    if (condtion(progress)) {
       effect.stop()
       if (opts.onStop) {
         opts.onStop()
@@ -122,7 +131,7 @@ function drawHighlight(treemap: TreemapLayout, evt: TreemapEvent) {
       highlight.update()
     }, {
       duration: ANIMATION_DURATION,
-      stop: () => evt.state.isDragging || evt.state.isWheeling || evt.state.isZooming
+      deps: [() => evt.state.isDragging, () => evt.state.isWheeling, () => evt.state.isZooming]
     })
   } else {
     highlight.reset()
@@ -215,7 +224,7 @@ export class TreemapEvent extends DOMEvent {
         treemap.update()
       }, {
         duration: ANIMATION_DURATION,
-        stop: () => this.state.forceDestroy,
+        deps: [() => this.state.forceDestroy],
         onStop: () => {
           this.state.isDragging = false
         }
@@ -283,7 +292,6 @@ export class TreemapEvent extends DOMEvent {
       treemap.update()
     }, {
       duration: ANIMATION_DURATION,
-      stop: () => false,
       onStop: () => {
         this.state.forceDestroy = false
         this.state.isWheeling = false
@@ -382,10 +390,7 @@ function createOnZoom(treemap: TreemapLayout, evt: TreemapEvent) {
         treemap.update()
       }, {
         duration: ANIMATION_DURATION,
-        stop: () => false,
-        onStop: () => {
-          evt.state.isZooming = false
-        }
+        onStop: () => evt.state.isZooming = false
       })
     }
     root = node

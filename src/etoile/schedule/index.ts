@@ -8,7 +8,7 @@ import { Render } from './render'
 
 import type { RenderViewportOptions } from './render'
 
-export type ApplyTo = string | Element
+export type ApplyTo = string | HTMLElement
 
 export interface DrawGraphIntoCanvasOptions {
   c: HTMLCanvasElement
@@ -55,7 +55,7 @@ export function drawGraphIntoCanvas(
 
 export class Schedule<D extends DefaultEventDefinition = DefaultEventDefinition> extends Box {
   render: Render
-  to: Element
+  to: HTMLElement
   event: Event<D>
   constructor(to: ApplyTo, renderOptions: Partial<RenderViewportOptions> = {}) {
     super()

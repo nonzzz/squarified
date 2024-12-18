@@ -1,5 +1,5 @@
-import { easing, etoile } from '../etoile'
-import { Display, S } from '../etoile/graph/display'
+import { asserts, drawGraphIntoCanvas, easing, etoile } from '../etoile'
+import { Display, Graph, S } from '../etoile/graph/display'
 import { DOMEvent, DOM_EVENTS, createEffectScope } from '../etoile/native/dom'
 import type { DOMEventMetadata, DOMEventType } from '../etoile/native/dom'
 import { Event as _Event } from '../etoile/native/event'
@@ -8,9 +8,8 @@ import { useMagicTrackPad } from '../etoile/native/magic-trackpad'
 import type { ColorDecoratorResultRGB } from '../etoile/native/runtime'
 import { createRoundBlock, isMacOS, mixin, prettyStrJoin } from '../shared'
 import type { InheritedCollections } from '../shared'
-import { applyForOpacity } from './animation'
 import type { App, TreemapInstanceAPI } from './component'
-import { TreemapLayout, resetLayout } from './component'
+import { TreemapLayout, cleanCacheSnapshot, resetLayout, setCacheMetadata } from './component'
 import type { LayoutModule } from './squarify'
 import { findRelativeNode, findRelativeNodeById } from './struct'
 import type { NativeModule } from './struct'
@@ -115,6 +114,13 @@ function runEffect(callback: (progress: number) => void, opts: EffectOptions) {
   })
 }
 
+export function applyForOpacity(graph: Graph, lastState: number, nextState: number, easedProgress: number) {
+  const alpha = lastState + (nextState - lastState) * easedProgress
+  if (asserts.isRoundRect(graph)) {
+    graph.style.opacity = alpha
+  }
+}
+
 function drawHighlight(treemap: TreemapLayout, evt: TreemapEvent) {
   const { highlight } = treemap
   const { currentNode } = evt.state
@@ -154,6 +160,8 @@ export class TreemapEvent extends DOMEvent {
     ]
 
     const macOS = isMacOS()
+
+    useCache(treemap, this)
 
     DOM_EVENTS.forEach((evt) => {
       this.on(evt, (metadata: DOMEventMetadata<DOMEventType>) => {
@@ -394,5 +402,27 @@ function createOnZoom(treemap: TreemapLayout, evt: TreemapEvent) {
       })
     }
     root = node
+  }
+}
+
+function useCache(treemap: TreemapLayout, evt: TreemapEvent) {
+  // if (evt.state.isZooming) {
+  //   treemap.useCache = false
+  // } else {
+  //   if (!treemap.useCache) { treemap.useCache = true }
+  // }
+  if (!treemap.useCache) {
+    // Do cache
+    const { fg, bg } = treemap.caches
+    cleanCacheSnapshot(fg.ctx)
+    cleanCacheSnapshot(bg.ctx)
+    setCacheMetadata(fg.canvas, treemap.render.options)
+    setCacheMetadata(bg.canvas, treemap.render.options)
+    drawGraphIntoCanvas(treemap.bgBox, { c: bg.canvas, ctx: bg.ctx, dpr: treemap.render.options.devicePixelRatio })
+    drawGraphIntoCanvas(treemap.fgBox, { c: fg.canvas, ctx: fg.ctx, dpr: treemap.render.options.devicePixelRatio })
+    fg.bitmap.bitmap = fg.canvas
+    bg.bitmap.bitmap = bg.canvas
+    // drawGraphIntoCanvas
+    treemap.useCache = true
   }
 }

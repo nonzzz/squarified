@@ -13,7 +13,8 @@ export const enum DisplayType {
   Graph = 'Graph',
   Box = 'Box',
   Text = 'Text',
-  RoundRect = 'RoundRect'
+  RoundRect = 'RoundRect',
+  Bitmap = 'Bitmap'
 }
 
 export abstract class Display {
@@ -64,7 +65,7 @@ export interface InstructionAssignMappings {
   textBaseline: (arg: CanvasTextBaseline) => void
 }
 
-export interface InstructionWithFunctionCall {
+export interface InstructionWithFunctionCall extends CanvasDrawImage {
   fillRect: (x: number, y: number, w: number, h: number) => void
   strokeRect: (x: number, y: number, w: number, h: number) => void
   fillText: (text: string, x: number, y: number, maxWidth?: number) => void
@@ -147,6 +148,11 @@ function createInstruction() {
     },
     stroke() {
       this.mods.push({ mod: ['stroke', []], type: CALL_MAPPINGS_MODE })
+    },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    drawImage(this: Instruction, ...args: any[]) {
+      // @ts-expect-error safe
+      this.mods.push({ mod: ['drawImage', args], type: CALL_MAPPINGS_MODE })
     }
   }
 }

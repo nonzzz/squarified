@@ -1,6 +1,7 @@
-import { Box, etoile } from '../etoile'
+import { Bitmap, Box, etoile, writeBoundingRectForCanvas } from '../etoile'
+import type { RenderViewportOptions } from '../etoile'
 import type { DOMEventDefinition } from '../etoile/native/dom'
-import { createRoundBlock, createTitleText } from '../shared'
+import { createCanvasElement, createRoundBlock, createTitleText } from '../shared'
 import type { RenderDecorator, Series } from './decorator'
 import type { ExposedEventMethods, InternalEventDefinition } from './event'
 import { INTERNAL_EVENT_MAPPINGS, TreemapEvent } from './event'
@@ -122,6 +123,29 @@ export class Highlight extends etoile.Schedule<DOMEventDefinition> {
   }
 }
 
+function createCache() {
+  const canvas = createCanvasElement()
+  const ctx = canvas.getContext('2d')!
+  return {
+    bitmap: new Bitmap(),
+    canvas,
+    ctx
+  }
+}
+
+export function setCacheMetadata(canvas: HTMLCanvasElement, opts: RenderViewportOptions) {
+  writeBoundingRectForCanvas(canvas, opts.width, opts.height, opts.devicePixelRatio)
+}
+
+export function cleanCacheSnapshot(c: CanvasRenderingContext2D) {
+  c.clearRect(0, 0, c.canvas.width, c.canvas.height)
+}
+
+interface Caches {
+  fg: ReturnType<typeof createCache>
+  bg: ReturnType<typeof createCache>
+}
+
 export class TreemapLayout extends etoile.Schedule<InternalEventDefinition> {
   data: NativeModule[]
   layoutNodes: LayoutModule[]
@@ -131,12 +155,17 @@ export class TreemapLayout extends etoile.Schedule<InternalEventDefinition> {
   fontsCaches: Record<string, number>
   ellispsisWidthCache: Record<string, number>
   highlight: Highlight
+  caches: Caches
+  useCache: boolean
+
   constructor(...args: ConstructorParameters<typeof etoile.Schedule>) {
     super(...args)
     this.data = []
+    this.useCache = false
     this.layoutNodes = []
     this.bgBox = new Box()
     this.fgBox = new Box()
+    this.caches = { fg: createCache(), bg: createCache() }
     this.decorator = Object.create(null) as RenderDecorator
     this.fontsCaches = Object.create(null) as Record<string, number>
     this.ellispsisWidthCache = Object.create(null) as Record<string, number>
@@ -193,6 +222,11 @@ export class TreemapLayout extends etoile.Schedule<InternalEventDefinition> {
   }
 
   reset(refresh = false) {
+    if (this.useCache) {
+      // this.remove(this.bgBox, this.fgBox, this.caches.fg, this.caches.bg)
+      // this.add(this.caches.fg, this.caches.bg)
+      return
+    }
     this.remove(this.bgBox, this.fgBox)
     this.bgBox.destory()
     for (const node of this.layoutNodes) {
@@ -258,6 +292,7 @@ export function createTreemap() {
   function resize() {
     if (!treemap || !root) { return }
     const { width, height } = root.getBoundingClientRect()
+    treemap.useCache = false
     treemap.render.initOptions({ height, width, devicePixelRatio: window.devicePixelRatio })
     treemap.render.canvas.style.position = 'absolute'
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
@@ -304,3 +339,92 @@ export function createTreemap() {
 }
 
 export type TreemapInstanceAPI = TreemapLayout['api']
+
+/**
+ * import { applyCanvasTransform } from '../../shared'
+import { Canvas, writeBoundingRectForCanvas } from '../schedule/render'
+import type { RenderViewportOptions } from '../schedule/render'
+import { C } from './box'
+import { DisplayType, S } from './display'
+import type { LocOptions } from './display'
+
+export class Layer extends C implements S {
+  private c: Canvas
+  __refresh__: boolean
+  options: RenderViewportOptions
+  width: number
+  height: number
+  x: number
+  y: number
+  scaleX: number
+  scaleY: number
+  rotation: number
+  skewX: number
+  skewY: number
+
+  constructor(options: Partial<LocOptions> = {}) {
+    super()
+    this.c = new Canvas({ width: 0, height: 0, devicePixelRatio: 1 })
+    this.__refresh__ = false
+    this.options = Object.create(null) as RenderViewportOptions
+    this.width = options.width || 0
+    this.height = options.height || 0
+    this.x = options.x || 0
+    this.y = options.y || 0
+    this.scaleX = options.scaleX || 1
+    this.scaleY = options.scaleY || 1
+    this.rotation = options.rotation || 0
+    this.skewX = options.skewX || 0
+    this.skewY = options.skewY || 0
+  }
+
+  get __instanceOf__(): DisplayType.Layer {
+    return DisplayType.Layer
+  }
+
+  setCanvasOptions(options: Partial<RenderViewportOptions> = {}) {
+    Object.assign(this.options, options)
+    writeBoundingRectForCanvas(this.c.c.canvas, options.width || 0, options.height || 0, options.devicePixelRatio || 1)
+  }
+
+  cleanCacheSnapshot() {
+    const dpr = this.options.devicePixelRatio || 1
+    const matrix = this.matrix.create({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 })
+    this.ctx.clearRect(0, 0, this.options.width, this.options.height)
+    return { dpr, matrix }
+  }
+
+  setCacheSnapshot(c: HTMLCanvasElement) {
+    const { matrix, dpr } = this.cleanCacheSnapshot()
+    matrix.transform(this.x, this.y, this.scaleX, this.scaleY, this.rotation, this.skewX, this.skewY)
+    applyCanvasTransform(this.ctx, matrix, dpr)
+    this.ctx.drawImage(c, 0, 0, this.options.width / dpr, this.options.height / dpr)
+    this.__refresh__ = true
+  }
+
+  initLoc(options: Partial<LocOptions> = {}) {
+    this.x = options.x || 0
+    this.y = options.y || 0
+    this.scaleX = options.scaleX || 1
+    this.scaleY = options.scaleY || 1
+    this.rotation = options.rotation || 0
+    this.skewX = options.skewX || 0
+    this.skewY = options.skewY || 0
+  }
+
+  draw(ctx: CanvasRenderingContext2D) {
+    const matrix = this.matrix.create({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 })
+    matrix.transform(this.x, this.y, this.scaleX, this.scaleY, this.rotation, this.skewX, this.skewY)
+    applyCanvasTransform(ctx, matrix, this.options.devicePixelRatio || 1)
+    ctx.drawImage(this.canvas, 0, 0)
+  }
+
+  get canvas() {
+    return this.c.c.canvas
+  }
+
+  get ctx() {
+    return this.c.c.ctx
+  }
+}
+ */

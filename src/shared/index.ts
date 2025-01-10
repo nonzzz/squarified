@@ -1,5 +1,5 @@
-import { Rect, Text } from '../etoile'
-import type { RectStyleOptions } from '../etoile/graph/rect'
+import { RoundRect, Text } from '../etoile'
+import type { RoundRectStyleOptions } from '../etoile/graph/rect'
 import { Matrix2D } from '../etoile/native/matrix'
 
 export function hashCode(str: string) {
@@ -20,8 +20,8 @@ export function perferNumeric(s: string | number) {
 
 export function noop() {}
 
-export function createFillBlock(x: number, y: number, width: number, height: number, style?: Partial<RectStyleOptions>) {
-  return new Rect({ width, height, x, y, style })
+export function createRoundBlock(x: number, y: number, width: number, height: number, style?: Partial<RoundRectStyleOptions>) {
+  return new RoundRect({ width, height, x, y, style: { ...style } })
 }
 
 export function createTitleText(text: string, x: number, y: number, font: string, color: string) {
@@ -55,4 +55,19 @@ export function mixin<T>(app: T, methods: InheritedCollections<T>[]) {
       writable: false
     })
   })
+}
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+type Tail<T extends string[]> = T extends readonly [infer _, ...infer Rest] ? Rest : []
+
+type StrJoin<T extends string[], F extends string> = T extends readonly [] ? ''
+  : T extends readonly [infer FF] ? FF
+  : `${F}${StrJoin<Tail<T>, T[0]>}`
+
+export function prettyStrJoin<T extends string[]>(...s: T) {
+  return s.join('') as StrJoin<T, T[0]>
+}
+
+export function isMacOS() {
+  return /Mac OS X/.test(navigator.userAgent)
 }

@@ -1,9 +1,11 @@
-import { Box, Layer, etoile } from '../etoile'
-import { createFillBlock, createTitleText } from '../shared'
+import { Bitmap, Box, etoile, writeBoundingRectForCanvas } from '../etoile'
+import type { RenderViewportOptions } from '../etoile'
+import type { DOMEventDefinition } from '../etoile/native/dom'
+import { createCanvasElement, createRoundBlock, createTitleText } from '../shared'
 import type { RenderDecorator, Series } from './decorator'
-import type { EventMethods, InternalEventDefinition } from './event'
-import { SelfEvent, internalEventMappings } from './event'
-import { registerModuleForSchedule } from './registry'
+import type { ExposedEventMethods, InternalEventDefinition } from './event'
+import { INTERNAL_EVENT_MAPPINGS, TreemapEvent } from './event'
+import { register } from './registry'
 import { squarify } from './squarify'
 import type { LayoutModule } from './squarify'
 import { bindParentForModule, findRelativeNodeById } from './struct'
@@ -24,10 +26,6 @@ export interface App {
   use: (using: Using, register: (app: TreemapLayout) => void) => void
   zoom: (id: string) => void
 }
-
-const defaultRegistries = [
-  registerModuleForSchedule(new SelfEvent())
-]
 
 function measureTextWidth(c: CanvasRenderingContext2D, text: string) {
   return c.measureText(text).width
@@ -104,31 +102,84 @@ export function resetLayout(treemap: TreemapLayout, w: number, h: number) {
   treemap.reset(true)
 }
 
+export class Highlight extends etoile.Schedule<DOMEventDefinition> {
+  reset() {
+    this.destory()
+    this.update()
+  }
+
+  get canvas() {
+    return this.render.canvas
+  }
+
+  setZIndexForHighlight(zIndex = '-1') {
+    this.canvas.style.zIndex = zIndex
+  }
+
+  init() {
+    this.setZIndexForHighlight()
+    this.canvas.style.position = 'absolute'
+    this.canvas.style.pointerEvents = 'none'
+  }
+}
+
+function createCache() {
+  const canvas = createCanvasElement()
+  const ctx = canvas.getContext('2d')!
+  return {
+    bitmap: new Bitmap(),
+    canvas,
+    ctx
+  }
+}
+
+export function setCacheMetadata(canvas: HTMLCanvasElement, opts: RenderViewportOptions) {
+  writeBoundingRectForCanvas(canvas, opts.width, opts.height, opts.devicePixelRatio)
+}
+
+export function cleanCacheSnapshot(c: CanvasRenderingContext2D) {
+  c.clearRect(0, 0, c.canvas.width, c.canvas.height)
+}
+
+interface Caches {
+  fg: ReturnType<typeof createCache>
+  bg: ReturnType<typeof createCache>
+}
+
 export class TreemapLayout extends etoile.Schedule<InternalEventDefinition> {
   data: NativeModule[]
   layoutNodes: LayoutModule[]
   decorator: RenderDecorator
-  private bgLayer: Layer
-  private fgBox: Box
+  bgBox: Box
+  fgBox: Box
   fontsCaches: Record<string, number>
   ellispsisWidthCache: Record<string, number>
+  highlight: Highlight
+  caches: Caches
+  useCache: boolean
+
   constructor(...args: ConstructorParameters<typeof etoile.Schedule>) {
     super(...args)
     this.data = []
+    this.useCache = false
     this.layoutNodes = []
-    this.bgLayer = new Layer()
+    this.bgBox = new Box()
     this.fgBox = new Box()
+    this.caches = { fg: createCache(), bg: createCache() }
     this.decorator = Object.create(null) as RenderDecorator
     this.fontsCaches = Object.create(null) as Record<string, number>
     this.ellispsisWidthCache = Object.create(null) as Record<string, number>
-    this.bgLayer.setCanvasOptions(this.render.options)
+    this.highlight = new Highlight(this.to, { width: this.render.options.width, height: this.render.options.height })
   }
 
   drawBackgroundNode(node: LayoutModule) {
     const [x, y, w, h] = node.layout
+    const padding = 2
+    if (w - padding * 2 <= 0 || h - padding * 2 <= 0) {
+      return
+    }
     const fill = this.decorator.color.mappings[node.node.id]
-    const s = createFillBlock(x, y, w, h, { fill })
-    this.bgLayer.add(s)
+    this.bgBox.add(createRoundBlock(x, y, w, h, { fill, padding, radius: 2 }))
     for (const child of node.children) {
       this.drawBackgroundNode(child)
     }
@@ -137,9 +188,8 @@ export class TreemapLayout extends etoile.Schedule<InternalEventDefinition> {
   drawForegroundNode(node: LayoutModule) {
     const [x, y, w, h] = node.layout
     if (!w || !h) { return }
-    const { rectBorderWidth, titleHeight, rectGap } = node.decorator
+    const { titleHeight, rectGap } = node.decorator
     const { fontSize, fontFamily, color } = this.decorator.font
-    this.fgBox.add(createFillBlock(x + 0.5, y + 0.5, w, h, { stroke: '#222', lineWidth: rectBorderWidth }))
     let optimalFontSize
     if (node.node.id in this.fontsCaches) {
       optimalFontSize = this.fontsCaches[node.node.id]
@@ -157,7 +207,6 @@ export class TreemapLayout extends etoile.Schedule<InternalEventDefinition> {
       )
       this.fontsCaches[node.node.id] = optimalFontSize
     }
-
     this.render.ctx.font = `${optimalFontSize}px ${fontFamily}`
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     const result = getSafeText(this.render.ctx, node.node.label, w - (rectGap * 2), this.ellispsisWidthCache)
@@ -173,15 +222,15 @@ export class TreemapLayout extends etoile.Schedule<InternalEventDefinition> {
   }
 
   reset(refresh = false) {
-    this.remove(this.bgLayer, this.fgBox)
-    if (!this.bgLayer.__refresh__) {
-      this.bgLayer.destory()
-      for (const node of this.layoutNodes) {
-        this.drawBackgroundNode(node)
-      }
-    } else {
-      // Unlike foreground layer, background laer don't need clone so we should reset the loc informaton
-      this.bgLayer.initLoc()
+    if (this.useCache) {
+      // this.remove(this.bgBox, this.fgBox, this.caches.fg, this.caches.bg)
+      // this.add(this.caches.fg, this.caches.bg)
+      return
+    }
+    this.remove(this.bgBox, this.fgBox)
+    this.bgBox.destory()
+    for (const node of this.layoutNodes) {
+      this.drawBackgroundNode(node)
     }
     if (!this.fgBox.elements.length || refresh) {
       this.render.ctx.textBaseline = 'middle'
@@ -192,19 +241,16 @@ export class TreemapLayout extends etoile.Schedule<InternalEventDefinition> {
     } else {
       this.fgBox = this.fgBox.clone()
     }
-    this.add(this.bgLayer, this.fgBox)
+    this.add(this.bgBox, this.fgBox)
   }
 
   get api() {
     return {
-      zoom: (node: LayoutModule) => {
-        this.event.emit(internalEventMappings.ON_ZOOM, node)
+      zoom: (node: LayoutModule | null) => {
+        if (!node) { return }
+        this.event.emit(INTERNAL_EVENT_MAPPINGS.ON_ZOOM, node)
       }
     }
-  }
-
-  get backgroundLayer() {
-    return this.bgLayer
   }
 }
 
@@ -229,9 +275,8 @@ export function createTreemap() {
     ;(root as HTMLDivElement).style.position = 'relative'
 
     if (!installed) {
-      for (const registry of defaultRegistries) {
-        registry(context, treemap, treemap.render)
-      }
+      register(TreemapEvent)(context, treemap)
+
       installed = true
     }
   }
@@ -247,16 +292,15 @@ export function createTreemap() {
   function resize() {
     if (!treemap || !root) { return }
     const { width, height } = root.getBoundingClientRect()
-    treemap.backgroundLayer.__refresh__ = false
+    treemap.useCache = false
     treemap.render.initOptions({ height, width, devicePixelRatio: window.devicePixelRatio })
     treemap.render.canvas.style.position = 'absolute'
-    treemap.backgroundLayer.setCanvasOptions(treemap.render.options)
-    treemap.backgroundLayer.initLoc()
-    treemap.backgroundLayer.matrix = treemap.backgroundLayer.matrix.create({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 })
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     treemap.fontsCaches = Object.create(null)
-    treemap.event.emit(internalEventMappings.CLEAN_UP)
-    treemap.event.emit(internalEventMappings.ON_LOAD, width, height, root)
+    treemap.event.emit(INTERNAL_EVENT_MAPPINGS.ON_CLEANUP)
+    treemap.highlight.render.initOptions({ height, width, devicePixelRatio: window.devicePixelRatio })
+    treemap.highlight.reset()
+    treemap.highlight.init()
     resetLayout(treemap, width, height)
     treemap.update()
   }
@@ -291,7 +335,7 @@ export function createTreemap() {
     }
   }
 
-  return context as App & EventMethods
+  return context as App & ExposedEventMethods
 }
 
 export type TreemapInstanceAPI = TreemapLayout['api']

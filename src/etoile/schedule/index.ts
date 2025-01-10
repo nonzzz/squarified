@@ -8,7 +8,7 @@ import { Render } from './render'
 
 import type { RenderViewportOptions } from './render'
 
-export type ApplyTo = string | Element
+export type ApplyTo = string | HTMLElement
 
 export interface DrawGraphIntoCanvasOptions {
   c: HTMLCanvasElement
@@ -19,28 +19,34 @@ export interface DrawGraphIntoCanvasOptions {
 // First cleanup canvas
 export function drawGraphIntoCanvas(
   graph: Display,
-  opts: DrawGraphIntoCanvasOptions,
-  callback: (opt: DrawGraphIntoCanvasOptions, graph: Display) => boolean | void
+  opts: DrawGraphIntoCanvasOptions
 ) {
   const { ctx, dpr } = opts
   ctx.save()
-  if (asserts.isLayer(graph) && graph.__refresh__) {
-    callback(opts, graph)
-    return
-  }
-  if (asserts.isLayer(graph) || asserts.isBox(graph)) {
+  if (asserts.isBox(graph)) {
     const elements = graph.elements
     const cap = elements.length
 
     for (let i = 0; i < cap; i++) {
       const element = elements[i]
-      drawGraphIntoCanvas(element, opts, callback)
+      drawGraphIntoCanvas(element, opts)
     }
-    callback(opts, graph)
   }
   if (asserts.isGraph(graph)) {
     const matrix = graph.matrix.create({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 })
     matrix.transform(graph.x, graph.y, graph.scaleX, graph.scaleY, graph.rotation, graph.skewX, graph.skewY)
+    if (asserts.isRoundRect(graph)) {
+      const effectiveWidth = graph.width - graph.style.padding * 2
+      const effectiveHeight = graph.height - graph.style.padding * 2
+      if (effectiveWidth <= 0 || effectiveHeight <= 0) {
+        ctx.restore()
+        return
+      }
+      if (graph.style.radius >= effectiveHeight / 2 || graph.style.radius >= effectiveWidth / 2) {
+        ctx.restore()
+        return
+      }
+    }
     applyCanvasTransform(ctx, matrix, dpr)
     graph.render(ctx)
   }
@@ -49,7 +55,7 @@ export function drawGraphIntoCanvas(
 
 export class Schedule<D extends DefaultEventDefinition = DefaultEventDefinition> extends Box {
   render: Render
-  to: Element
+  to: HTMLElement
   event: Event<D>
   constructor(to: ApplyTo, renderOptions: Partial<RenderViewportOptions> = {}) {
     super()
@@ -72,14 +78,6 @@ export class Schedule<D extends DefaultEventDefinition = DefaultEventDefinition>
 
   // execute all graph elements
   execute(render: Render, graph: Display = this) {
-    drawGraphIntoCanvas(graph, { c: render.canvas, ctx: render.ctx, dpr: render.options.devicePixelRatio }, (opts, graph) => {
-      if (asserts.isLayer(graph)) {
-        if (graph.__refresh__) {
-          graph.draw(opts.ctx)
-        } else {
-          graph.setCacheSnapshot(opts.c)
-        }
-      }
-    })
+    drawGraphIntoCanvas(graph, { c: render.canvas, ctx: render.ctx, dpr: render.options.devicePixelRatio })
   }
 }

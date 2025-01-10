@@ -10,6 +10,7 @@ export interface EventCollectionData<EvtDefinition extends DefaultEventDefinitio
   name: string
   handler: BindThisParameter<EvtDefinition[keyof EvtDefinition], C>
   ctx: C
+  silent: boolean
 }
 
 export type EventCollections<EvtDefinition extends DefaultEventDefinition> = Record<
@@ -32,7 +33,8 @@ export class Event<EvtDefinition extends DefaultEventDefinition = DefaultEventDe
     const data = <EventCollectionData<EvtDefinition>> {
       name: evt,
       handler,
-      ctx: c || this
+      ctx: c || this,
+      silent: false
     }
     this.eventCollections[evt].push(data)
   }
@@ -47,11 +49,34 @@ export class Event<EvtDefinition extends DefaultEventDefinition = DefaultEventDe
     }
   }
 
+  silent(evt: keyof EvtDefinition, handler?: BindThisParameter<EvtDefinition[keyof EvtDefinition], unknown>) {
+    if (!(evt in this.eventCollections)) {
+      return
+    }
+    this.eventCollections[evt].forEach((d) => {
+      if (!handler || d.handler === handler) {
+        d.silent = true
+      }
+    })
+  }
+
+  active(evt: keyof EvtDefinition, handler?: BindThisParameter<EvtDefinition[keyof EvtDefinition], unknown>) {
+    if (!(evt in this.eventCollections)) {
+      return
+    }
+    this.eventCollections[evt].forEach((d) => {
+      if (!handler || d.handler === handler) {
+        d.silent = false
+      }
+    })
+  }
+
   emit(evt: keyof EvtDefinition, ...args: Parameters<EvtDefinition[keyof EvtDefinition]>) {
     if (!this.eventCollections[evt]) { return }
     const handlers = this.eventCollections[evt]
     if (handlers.length) {
       handlers.forEach((d) => {
+        if (d.silent) { return }
         d.handler.call(d.ctx, ...args)
       })
     }

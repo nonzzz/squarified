@@ -11,14 +11,10 @@ const SELF_ID = {
 
 export const enum DisplayType {
   Graph = 'Graph',
-
   Box = 'Box',
-
-  Rect = 'Rect',
-
   Text = 'Text',
-
-  Layer = 'Layer'
+  RoundRect = 'RoundRect',
+  Bitmap = 'Bitmap'
 }
 
 export abstract class Display {
@@ -69,10 +65,16 @@ export interface InstructionAssignMappings {
   textBaseline: (arg: CanvasTextBaseline) => void
 }
 
-export interface InstructionWithFunctionCall {
+export interface InstructionWithFunctionCall extends CanvasDrawImage {
   fillRect: (x: number, y: number, w: number, h: number) => void
   strokeRect: (x: number, y: number, w: number, h: number) => void
   fillText: (text: string, x: number, y: number, maxWidth?: number) => void
+  beginPath: () => void
+  moveTo: (x: number, y: number) => void
+  arcTo: (x1: number, y1: number, x2: number, y2: number, radius: number) => void
+  closePath: () => void
+  fill: () => void
+  stroke: () => void
 }
 
 type Mod<
@@ -128,6 +130,29 @@ function createInstruction() {
     },
     textAlign(...args) {
       this.mods.push({ mod: ['textAlign', args], type: ASSIGN_MAPPINGS.textAlign })
+    },
+    beginPath() {
+      this.mods.push({ mod: ['beginPath', []], type: CALL_MAPPINGS_MODE })
+    },
+    moveTo(...args) {
+      this.mods.push({ mod: ['moveTo', args], type: CALL_MAPPINGS_MODE })
+    },
+    arcTo(...args) {
+      this.mods.push({ mod: ['arcTo', args], type: CALL_MAPPINGS_MODE })
+    },
+    closePath() {
+      this.mods.push({ mod: ['closePath', []], type: CALL_MAPPINGS_MODE })
+    },
+    fill() {
+      this.mods.push({ mod: ['fill', []], type: CALL_MAPPINGS_MODE })
+    },
+    stroke() {
+      this.mods.push({ mod: ['stroke', []], type: CALL_MAPPINGS_MODE })
+    },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    drawImage(this: Instruction, ...args: any[]) {
+      // @ts-expect-error safe
+      this.mods.push({ mod: ['drawImage', args], type: CALL_MAPPINGS_MODE })
     }
   }
 }
@@ -142,6 +167,7 @@ export abstract class S extends Display {
   rotation: number
   skewX: number
   skewY: number
+
   constructor(options: Partial<LocOptions> = {}) {
     super()
     this.width = options.width || 0
@@ -155,6 +181,8 @@ export abstract class S extends Display {
     this.skewY = options.skewY || 0
   }
 }
+
+// For performance. we need impl AABB Check for render.
 
 export abstract class Graph extends S {
   instruction: ReturnType<typeof createInstruction>

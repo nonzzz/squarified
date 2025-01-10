@@ -14,28 +14,28 @@ export interface RenderViewportOptions {
 }
 
 export class Canvas {
-  private canvas: HTMLCanvasElement
-  private ctx: CanvasRenderingContext2D
+  canvas: HTMLCanvasElement
+  ctx: CanvasRenderingContext2D
   constructor(options: RenderViewportOptions) {
     this.canvas = createCanvasElement()
-    writeBoundingRectForCanvas(this.canvas, options.width, options.height, options.devicePixelRatio)
+    this.setOptions(options)
     this.ctx = this.canvas.getContext('2d')!
   }
 
-  get c() {
-    return { canvas: this.canvas, ctx: this.ctx }
+  setOptions(options: RenderViewportOptions) {
+    writeBoundingRectForCanvas(this.canvas, options.width, options.height, options.devicePixelRatio)
   }
 }
 
 export class Render {
-  private c: Canvas
   options: RenderViewportOptions
-  constructor(to: Element, options: RenderViewportOptions) {
-    this.c = new Canvas(options)
+  private container: Canvas
+  constructor(to: HTMLElement, options: RenderViewportOptions) {
+    this.container = new Canvas(options)
     this.options = options
     this.initOptions(options)
     if (!options.shaow) {
-      to.appendChild(this.canvas)
+      to.appendChild(this.container.canvas)
     }
   }
 
@@ -44,16 +44,16 @@ export class Render {
   }
 
   get canvas() {
-    return this.c.c.canvas
+    return this.container.canvas
   }
 
   get ctx() {
-    return this.c.c.ctx
+    return this.container.ctx
   }
 
   initOptions(userOptions: Partial<RenderViewportOptions> = {}) {
     Object.assign(this.options, userOptions)
-    writeBoundingRectForCanvas(this.canvas, this.options.width, this.options.height, this.options.devicePixelRatio)
+    this.container.setOptions(this.options)
   }
 
   destory() {

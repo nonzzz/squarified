@@ -42,13 +42,13 @@ export class Matrix2D implements MatrixLoc {
     return this
   }
 
-  private translation(x: number, y: number) {
+  translation(x: number, y: number) {
     this.e += x
     this.f += y
     return this
   }
 
-  private scale(a: number, d: number) {
+  scale(a: number, d: number) {
     this.a *= a
     this.d *= d
     return this

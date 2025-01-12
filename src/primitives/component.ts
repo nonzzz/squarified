@@ -1,7 +1,6 @@
-import { Bitmap, Box, etoile, writeBoundingRectForCanvas } from '../etoile'
-import type { RenderViewportOptions } from '../etoile'
+import { Box, etoile } from '../etoile'
 import type { DOMEventDefinition } from '../etoile/native/dom'
-import { createCanvasElement, createRoundBlock, createTitleText } from '../shared'
+import { createRoundBlock, createTitleText } from '../shared'
 import type { RenderDecorator, Series } from './decorator'
 import type { ExposedEventMethods, InternalEventDefinition } from './event'
 import { INTERNAL_EVENT_MAPPINGS, TreemapEvent } from './event'
@@ -123,29 +122,6 @@ export class Highlight extends etoile.Schedule<DOMEventDefinition> {
   }
 }
 
-function createCache() {
-  const canvas = createCanvasElement()
-  const ctx = canvas.getContext('2d')!
-  return {
-    bitmap: new Bitmap(),
-    canvas,
-    ctx
-  }
-}
-
-export function setCacheMetadata(canvas: HTMLCanvasElement, opts: RenderViewportOptions) {
-  writeBoundingRectForCanvas(canvas, opts.width, opts.height, opts.devicePixelRatio)
-}
-
-export function cleanCacheSnapshot(c: CanvasRenderingContext2D) {
-  c.clearRect(0, 0, c.canvas.width, c.canvas.height)
-}
-
-interface Caches {
-  fg: ReturnType<typeof createCache>
-  bg: ReturnType<typeof createCache>
-}
-
 export class TreemapLayout extends etoile.Schedule<InternalEventDefinition> {
   data: NativeModule[]
   layoutNodes: LayoutModule[]
@@ -155,17 +131,13 @@ export class TreemapLayout extends etoile.Schedule<InternalEventDefinition> {
   fontsCaches: Record<string, number>
   ellispsisWidthCache: Record<string, number>
   highlight: Highlight
-  caches: Caches
-  useCache: boolean
 
   constructor(...args: ConstructorParameters<typeof etoile.Schedule>) {
     super(...args)
     this.data = []
-    this.useCache = false
     this.layoutNodes = []
     this.bgBox = new Box()
     this.fgBox = new Box()
-    this.caches = { fg: createCache(), bg: createCache() }
     this.decorator = Object.create(null) as RenderDecorator
     this.fontsCaches = Object.create(null) as Record<string, number>
     this.ellispsisWidthCache = Object.create(null) as Record<string, number>
@@ -222,11 +194,6 @@ export class TreemapLayout extends etoile.Schedule<InternalEventDefinition> {
   }
 
   reset(refresh = false) {
-    if (this.useCache) {
-      // this.remove(this.bgBox, this.fgBox, this.caches.fg, this.caches.bg)
-      // this.add(this.caches.fg, this.caches.bg)
-      return
-    }
     this.remove(this.bgBox, this.fgBox)
     this.bgBox.destory()
     for (const node of this.layoutNodes) {
@@ -292,7 +259,6 @@ export function createTreemap() {
   function resize() {
     if (!treemap || !root) { return }
     const { width, height } = root.getBoundingClientRect()
-    treemap.useCache = false
     treemap.render.initOptions({ height, width, devicePixelRatio: window.devicePixelRatio })
     treemap.render.canvas.style.position = 'absolute'
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment

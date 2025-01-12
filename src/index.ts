@@ -1,6 +1,5 @@
-export { createTreemap } from './primitives/component'
+export { TreemapLayout, createTreemap } from './primitives/component'
 export type { App, TreemapInstanceAPI, TreemapOptions, unstable_use } from './primitives/component'
-export { TreemapLayout } from './primitives/component'
 export * from './primitives/decorator'
 
 import type { DOMEventType } from './etoile/native/dom'

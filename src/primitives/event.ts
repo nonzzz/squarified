@@ -251,6 +251,9 @@ export class TreemapEvent extends DOMEvent {
     this.state.dragX = metadata.native.offsetX
     this.state.dragY = metadata.native.offsetY
     this.state.forceDestroy = false
+    if (!ctx.treemap.renderCache.state) {
+      ctx.treemap.renderCache.flush(ctx.treemap.render, this.matrix)
+    }
   }
 
   private onmouseup(ctx: TreemapEventContext) {
@@ -265,6 +268,9 @@ export class TreemapEvent extends DOMEvent {
   }
 
   private onwheel(ctx: TreemapEventContext, metadata: DOMEventMetadata<'wheel'>) {
+    if (ctx.treemap.renderCache.state) {
+      ctx.treemap.renderCache.destroy()
+    }
     const { native } = metadata
     const { treemap } = ctx
     // @ts-expect-error safe

@@ -1,6 +1,9 @@
-import { Box, Schedule } from '../etoile'
+/* eslint-disable no-use-before-define */
+import { Bitmap, Box, Canvas, Schedule } from '../etoile'
+import type { Render, RenderViewportOptions } from '../etoile'
 import type { DOMEventDefinition } from '../etoile/native/dom'
 import { log } from '../etoile/native/log'
+import { Matrix2D } from '../etoile/native/matrix'
 import { createRoundBlock, createTitleText } from '../shared'
 import type { RenderDecorator, Series } from './decorator'
 import type { ExposedEventMethods, InternalEventDefinition } from './event'
@@ -15,15 +18,15 @@ export interface TreemapOptions {
   data: Module[]
 }
 
-export type Using = 'decorator'
+export type UseKind = 'decorator'
 
 export interface App {
   init: (el: HTMLElement) => void
   dispose: () => void
   setOptions: (options: TreemapOptions) => void
   resize: () => void
-  // eslint-disable-next-line no-use-before-define
-  use: (using: Using, register: (app: TreemapLayout) => void) => void
+
+  use: (using: UseKind, register: (app: TreemapLayout) => void) => void
   zoom: (id: string) => void
 }
 
@@ -40,7 +43,7 @@ interface OptimalFontOptions {
  * This interface isn't stable it might be remove at next few versions.
  * If you want set custom decorator pls see 'presetDecorator' for details.
  */
-// eslint-disable-next-line no-use-before-define
+
 export type unstable_use = (app: TreemapLayout) => void
 
 export function evaluateOptimalFontSize(
@@ -132,7 +135,7 @@ export class TreemapLayout extends Schedule<InternalEventDefinition> {
   fontsCaches: Record<string, number>
   ellispsisWidthCache: Record<string, number>
   highlight: Highlight
-
+  renderCache: RenderCache
   constructor(...args: ConstructorParameters<typeof Schedule>) {
     super(...args)
     this.data = []
@@ -143,6 +146,7 @@ export class TreemapLayout extends Schedule<InternalEventDefinition> {
     this.fontsCaches = Object.create(null) as Record<string, number>
     this.ellispsisWidthCache = Object.create(null) as Record<string, number>
     this.highlight = new Highlight(this.to, { width: this.render.options.width, height: this.render.options.height })
+    this.renderCache = new RenderCache(this.render.options)
   }
 
   drawBackgroundNode(node: LayoutModule) {
@@ -197,18 +201,25 @@ export class TreemapLayout extends Schedule<InternalEventDefinition> {
   reset(refresh = false) {
     this.remove(this.bgBox, this.fgBox)
     this.bgBox.destory()
-    for (const node of this.layoutNodes) {
-      this.drawBackgroundNode(node)
-    }
-    if (!this.fgBox.elements.length || refresh) {
-      this.render.ctx.textBaseline = 'middle'
+
+    if (this.renderCache.state) {
       this.fgBox.destory()
-      for (const node of this.layoutNodes) {
-        this.drawForegroundNode(node)
-      }
+      this.bgBox.add(new Bitmap({ bitmap: this.renderCache.canvas }))
     } else {
-      this.fgBox = this.fgBox.clone()
+      for (const node of this.layoutNodes) {
+        this.drawBackgroundNode(node)
+      }
+      if (!this.fgBox.elements.length || refresh) {
+        this.render.ctx.textBaseline = 'middle'
+        this.fgBox.destory()
+        for (const node of this.layoutNodes) {
+          this.drawForegroundNode(node)
+        }
+      } else {
+        this.fgBox = this.fgBox.clone()
+      }
     }
+
     this.add(this.bgBox, this.fgBox)
   }
 
@@ -284,7 +295,7 @@ export function createTreemap() {
     resize()
   }
 
-  function use(key: Using, register: (decorator: TreemapLayout) => void) {
+  function use(key: UseKind, register: (decorator: TreemapLayout) => void) {
     switch (key) {
       case 'decorator':
         uses.push((treemap: TreemapLayout) => register(treemap))
@@ -306,3 +317,34 @@ export function createTreemap() {
 }
 
 export type TreemapInstanceAPI = TreemapLayout['api']
+
+// The following is my opinionated.
+// For better performance, we desgin a cache system to store the render result.
+// two step
+// 1. draw current canvas into a cache canvas (offscreen canvas)
+// 2. draw cache canvas into current canvas (note we should respect the dpi)
+export class RenderCache extends Canvas {
+  key: string
+  private $memory: boolean
+  constructor(opts: RenderViewportOptions) {
+    super(opts)
+    this.key = 'render-cache'
+    this.$memory = false
+  }
+  get state() {
+    return this.$memory
+  }
+  flush(render: Render, matrix: Matrix2D) {
+    // this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
+    const { devicePixelRatio, width, height } = render.options
+    const w = width / devicePixelRatio
+    const h = height / devicePixelRatio
+    // applyCanvasTransform(this.ctx, matrix, devicePixelRatio)
+    this.ctx.drawImage(render.canvas, 0, 0, w, h)
+    this.$memory = true
+  }
+  destroy() {
+    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
+    this.$memory = false
+  }
+}

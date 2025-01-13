@@ -1,4 +1,4 @@
-import { asserts, easing, etoile } from '../etoile'
+import { asserts, easing, traverse } from '../etoile'
 import { Display, Graph, S } from '../etoile/graph/display'
 import { DOMEvent, DOM_EVENTS, createEffectScope } from '../etoile/native/dom'
 import type { DOMEventMetadata, DOMEventType } from '../etoile/native/dom'
@@ -318,7 +318,7 @@ function stackMatrixTransform(graph: S, e: number, f: number, scale: number) {
 }
 
 function stackMatrixTransformWithGraphAndLayer(graphs: Display[], e: number, f: number, scale: number) {
-  etoile.traverse(graphs, (graph) => stackMatrixTransform(graph, e, f, scale))
+  traverse(graphs, (graph) => stackMatrixTransform(graph, e, f, scale))
 }
 
 interface DuckE {

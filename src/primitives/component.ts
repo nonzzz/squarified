@@ -1,5 +1,6 @@
-import { Box, etoile } from '../etoile'
+import { Box, Schedule } from '../etoile'
 import type { DOMEventDefinition } from '../etoile/native/dom'
+import { log } from '../etoile/native/log'
 import { createRoundBlock, createTitleText } from '../shared'
 import type { RenderDecorator, Series } from './decorator'
 import type { ExposedEventMethods, InternalEventDefinition } from './event'
@@ -101,7 +102,7 @@ export function resetLayout(treemap: TreemapLayout, w: number, h: number) {
   treemap.reset(true)
 }
 
-export class Highlight extends etoile.Schedule<DOMEventDefinition> {
+export class Highlight extends Schedule<DOMEventDefinition> {
   reset() {
     this.destory()
     this.update()
@@ -122,7 +123,7 @@ export class Highlight extends etoile.Schedule<DOMEventDefinition> {
   }
 }
 
-export class TreemapLayout extends etoile.Schedule<InternalEventDefinition> {
+export class TreemapLayout extends Schedule<InternalEventDefinition> {
   data: NativeModule[]
   layoutNodes: LayoutModule[]
   decorator: RenderDecorator
@@ -132,7 +133,7 @@ export class TreemapLayout extends etoile.Schedule<InternalEventDefinition> {
   ellispsisWidthCache: Record<string, number>
   highlight: Highlight
 
-  constructor(...args: ConstructorParameters<typeof etoile.Schedule>) {
+  constructor(...args: ConstructorParameters<typeof Schedule>) {
     super(...args)
     this.data = []
     this.layoutNodes = []
@@ -273,7 +274,7 @@ export function createTreemap() {
 
   function setOptions(options: TreemapOptions) {
     if (!treemap) {
-      throw new Error('Treemap not initialized')
+      throw new Error(log.error('Treemap not initialized'))
     }
     treemap.data = bindParentForModule(options.data || [])
 
@@ -293,7 +294,7 @@ export function createTreemap() {
 
   function zoom(id: string) {
     if (!treemap) {
-      throw new Error("treemap don't init.")
+      throw new Error(log.error("treemap don't init."))
     }
     const node = findRelativeNodeById(id, treemap.layoutNodes)
     if (node) {

@@ -98,7 +98,7 @@ export function createEffectScope() {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function bindDOMEvent(el: HTMLElement, evt: DOMEventType | (string & {}), dom: DOMEvent<any>) {
   const handler = (e: unknown) => {
-    const { x, y } = captureBoxXY(el, e, dom.matrix.a, dom.matrix.d, dom.matrix.e, dom.matrix.f)
+    const { x, y } = captureBoxXY(el, e, 1, 1, dom.matrix.e, dom.matrix.f)
     // @ts-expect-error safe
     dom.emit(evt, { native: e, loc: { x, y } })
   }

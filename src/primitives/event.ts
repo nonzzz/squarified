@@ -133,7 +133,7 @@ function drawHighlight(treemap: TreemapLayout, evt: TreemapEvent) {
       highlight.add(mask)
       highlight.setZIndexForHighlight('1')
       applyForOpacity(mask, 0.4, 0.4, easedProgress)
-      stackMatrixTransform(mask, evt.matrix.e, evt.matrix.f, evt.matrix.a)
+      stackMatrixTransform(mask, evt.matrix.e, evt.matrix.f, 1)
       highlight.update()
     }, {
       duration: ANIMATION_DURATION,
@@ -213,7 +213,7 @@ export class TreemapEvent extends DOMEvent {
       if (this.state.currentNode !== node) {
         this.state.currentNode = node
       }
-      // drawHighlight(ctx.treemap, this)
+      drawHighlight(ctx.treemap, this)
     } else {
       // for drag
       const { treemap } = ctx
@@ -404,7 +404,9 @@ function createOnZoom(treemap: TreemapLayout, evt: TreemapEvent) {
         treemap.update()
       }, {
         duration: ANIMATION_DURATION,
-        onStop: () => evt.state.isZooming = false
+        onStop: () => {
+          evt.state.isZooming = false
+        }
       })
     }
     root = node

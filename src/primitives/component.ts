@@ -1,6 +1,6 @@
 /* eslint-disable no-use-before-define */
-import { Bitmap, Box, Canvas, Schedule } from '../etoile'
-import type { Render, RenderViewportOptions } from '../etoile'
+import { Bitmap, Box, Canvas, Schedule, drawGraphIntoCanvas } from '../etoile'
+import type { RenderViewportOptions } from '../etoile'
 import type { DOMEventDefinition } from '../etoile/native/dom'
 import { log } from '../etoile/native/log'
 import { Matrix2D } from '../etoile/native/matrix'
@@ -270,6 +270,7 @@ export function createTreemap() {
 
   function resize() {
     if (!treemap || !root) { return }
+    treemap.renderCache.destroy()
     const { width, height } = root.getBoundingClientRect()
     treemap.render.initOptions({ height, width, devicePixelRatio: window.devicePixelRatio })
     treemap.render.canvas.style.position = 'absolute'
@@ -281,6 +282,7 @@ export function createTreemap() {
     treemap.highlight.init()
     resetLayout(treemap, width, height)
     treemap.update()
+    treemap.renderCache.flush(treemap, treemap.matrix)
   }
 
   function setOptions(options: TreemapOptions) {
@@ -334,13 +336,13 @@ export class RenderCache extends Canvas {
   get state() {
     return this.$memory
   }
-  flush(render: Render, matrix: Matrix2D) {
-    // this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
-    const { devicePixelRatio, width, height } = render.options
-    const w = width / devicePixelRatio
-    const h = height / devicePixelRatio
-    // applyCanvasTransform(this.ctx, matrix, devicePixelRatio)
-    this.ctx.drawImage(render.canvas, 0, 0, w, h)
+  flush(treemap: TreemapLayout, matrix = new Matrix2D({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 })) {
+    const { devicePixelRatio, width, height } = treemap.render.options
+    const { a, d } = matrix
+    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
+    this.setOptions({ width: width * a, height: height * d, devicePixelRatio })
+    resetLayout(treemap, width * a, height * d)
+    drawGraphIntoCanvas(treemap, { c: this.canvas, ctx: this.ctx, dpr: devicePixelRatio })
     this.$memory = true
   }
   destroy() {

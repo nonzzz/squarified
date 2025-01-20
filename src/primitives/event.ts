@@ -159,6 +159,7 @@ export class TreemapEvent extends DOMEvent {
       { name: 'off', fn: () => this.exposedEvent.off.bind(this.exposedEvent) }
     ]
 
+    // eslint-disable-next-line unused-imports/no-unused-vars, @typescript-eslint/no-unused-vars
     const macOS = isMacOS()
 
     DOM_EVENTS.forEach((evt) => {
@@ -212,7 +213,7 @@ export class TreemapEvent extends DOMEvent {
       if (this.state.currentNode !== node) {
         this.state.currentNode = node
       }
-      drawHighlight(ctx.treemap, this)
+      // drawHighlight(ctx.treemap, this)
     } else {
       // for drag
       const { treemap } = ctx
@@ -226,7 +227,7 @@ export class TreemapEvent extends DOMEvent {
         treemap.reset()
         this.matrix.translation(drawX, drawY)
         Object.assign(this.state, { isDragging: true, dragX: x, dragY: y })
-        stackMatrixTransformWithGraphAndLayer(treemap.elements, this.matrix.e, this.matrix.f, this.matrix.a)
+        stackMatrixTransformWithGraphAndLayer(treemap.elements, this.matrix.e, this.matrix.f, 1)
         treemap.update()
       }, {
         duration: ANIMATION_DURATION,
@@ -252,7 +253,7 @@ export class TreemapEvent extends DOMEvent {
     this.state.dragY = metadata.native.offsetY
     this.state.forceDestroy = false
     if (!ctx.treemap.renderCache.state) {
-      ctx.treemap.renderCache.flush(ctx.treemap.render, this.matrix)
+      ctx.treemap.renderCache.flush(ctx.treemap, this.matrix)
     }
   }
 
@@ -294,13 +295,13 @@ export class TreemapEvent extends DOMEvent {
     const translateY = offsetY - (offsetY - this.matrix.f) * delta
     runEffect((progress) => {
       this.state.isWheeling = true
-      treemap.reset()
       const easedProgress = easing.quadraticOut(progress)
       const scale = (targetScaleRatio - this.matrix.a) * easedProgress
       this.matrix.a += scale
       this.matrix.d += scale
       this.matrix.translation((translateX - this.matrix.e) * easedProgress, (translateY - this.matrix.f) * easedProgress)
-      stackMatrixTransformWithGraphAndLayer(treemap.elements, this.matrix.e, this.matrix.f, this.matrix.a)
+      resetLayout(treemap, treemap.render.canvas.width * this.matrix.a, treemap.render.canvas.height * this.matrix.d)
+      stackMatrixTransformWithGraphAndLayer(treemap.elements, this.matrix.e, this.matrix.f, 1)
       treemap.update()
     }, {
       duration: ANIMATION_DURATION,
@@ -374,6 +375,7 @@ function estimateZoomingArea(node: LayoutModule, root: LayoutModule | null, w: n
 function createOnZoom(treemap: TreemapLayout, evt: TreemapEvent) {
   let root: LayoutModule | null = null
   return (node: LayoutModule) => {
+    treemap.renderCache.destroy()
     evt.state.isZooming = true
     const c = treemap.render.canvas
     const boundingClientRect = c.getBoundingClientRect()

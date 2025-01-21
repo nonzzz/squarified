@@ -49,7 +49,7 @@ export const defaultLayoutOptions = {
 export const defaultFontOptions = {
   color: '#000',
   fontSize: {
-    max: 38,
+    max: 70,
     min: 0
   },
   fontFamily: 'sans-serif'

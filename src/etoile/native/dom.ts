@@ -95,6 +95,8 @@ export function createEffectScope() {
   return { run, stop }
 }
 
+// Some thoughts DOMEvent was designed this way intentionally. I don't have any idea of splitting the general libray yet.
+// The follow captureBoxXy matrix a and d be 1 is because of the scaled canvas (without zoomed) is with a new layout.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function bindDOMEvent(el: HTMLElement, evt: DOMEventType | (string & {}), dom: DOMEvent<any>) {
   const handler = (e: unknown) => {

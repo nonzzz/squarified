@@ -1,10 +1,9 @@
 /* eslint-disable no-use-before-define */
-import { Bitmap, Box, Canvas, Schedule, drawGraphIntoCanvas } from '../etoile'
-import type { RenderViewportOptions } from '../etoile'
+import { Bitmap, Box, Schedule } from '../etoile'
 import type { DOMEventDefinition } from '../etoile/native/dom'
 import { log } from '../etoile/native/log'
-import { Matrix2D } from '../etoile/native/matrix'
 import { createRoundBlock, createTitleText } from '../shared'
+import { FontCache, RenderCache } from './cache'
 import type { RenderDecorator, Series } from './decorator'
 import type { ExposedEventMethods, InternalEventDefinition } from './event'
 import { INTERNAL_EVENT_MAPPINGS, TreemapEvent } from './event'
@@ -132,10 +131,9 @@ export class TreemapLayout extends Schedule<InternalEventDefinition> {
   decorator: RenderDecorator
   bgBox: Box
   fgBox: Box
-  fontsCaches: Record<string, number>
-  ellispsisWidthCache: Record<string, number>
   highlight: Highlight
   renderCache: RenderCache
+  fontCache: FontCache
   constructor(...args: ConstructorParameters<typeof Schedule>) {
     super(...args)
     this.data = []
@@ -143,10 +141,9 @@ export class TreemapLayout extends Schedule<InternalEventDefinition> {
     this.bgBox = new Box()
     this.fgBox = new Box()
     this.decorator = Object.create(null) as RenderDecorator
-    this.fontsCaches = Object.create(null) as Record<string, number>
-    this.ellispsisWidthCache = Object.create(null) as Record<string, number>
     this.highlight = new Highlight(this.to, { width: this.render.options.width, height: this.render.options.height })
     this.renderCache = new RenderCache(this.render.options)
+    this.fontCache = new FontCache()
   }
 
   drawBackgroundNode(node: LayoutModule) {
@@ -156,7 +153,9 @@ export class TreemapLayout extends Schedule<InternalEventDefinition> {
       return
     }
     const fill = this.decorator.color.mappings[node.node.id]
-    this.bgBox.add(createRoundBlock(x, y, w, h, { fill, padding, radius: 2 }))
+    const rect = createRoundBlock(x, y, w, h, { fill, padding, radius: 2 })
+    rect.__widget__ = node
+    this.bgBox.add(rect)
     for (const child of node.children) {
       this.drawBackgroundNode(child)
     }
@@ -167,11 +166,8 @@ export class TreemapLayout extends Schedule<InternalEventDefinition> {
     if (!w || !h) { return }
     const { titleHeight, rectGap } = node.decorator
     const { fontSize, fontFamily, color } = this.decorator.font
-    let optimalFontSize
-    if (node.node.id in this.fontsCaches) {
-      optimalFontSize = this.fontsCaches[node.node.id]
-    } else {
-      optimalFontSize = evaluateOptimalFontSize(
+    const optimalFontSize = this.fontCache.queryFontById(node.node.id, () =>
+      evaluateOptimalFontSize(
         this.render.ctx,
         // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         node.node.label,
@@ -181,12 +177,12 @@ export class TreemapLayout extends Schedule<InternalEventDefinition> {
         },
         w - (rectGap * 2),
         node.children.length ? Math.round(titleHeight / 2) + rectGap : h
-      )
-      this.fontsCaches[node.node.id] = optimalFontSize
-    }
+      ))
+
     this.render.ctx.font = `${optimalFontSize}px ${fontFamily}`
+
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-    const result = getSafeText(this.render.ctx, node.node.label, w - (rectGap * 2), this.ellispsisWidthCache)
+    const result = getSafeText(this.render.ctx, node.node.label, w - (rectGap * 2), this.fontCache.ellispsis)
     if (!result) { return }
     if (result.width >= w || optimalFontSize >= h) { return }
     const { text, width } = result
@@ -201,7 +197,6 @@ export class TreemapLayout extends Schedule<InternalEventDefinition> {
   reset(refresh = false) {
     this.remove(this.bgBox, this.fgBox)
     this.bgBox.destory()
-
     if (this.renderCache.state) {
       this.fgBox.destory()
       this.bgBox.add(new Bitmap({ bitmap: this.renderCache.canvas }))
@@ -219,7 +214,6 @@ export class TreemapLayout extends Schedule<InternalEventDefinition> {
         this.fgBox = this.fgBox.clone()
       }
     }
-
     this.add(this.bgBox, this.fgBox)
   }
 
@@ -271,11 +265,10 @@ export function createTreemap() {
   function resize() {
     if (!treemap || !root) { return }
     treemap.renderCache.destroy()
+    treemap.fontCache.destroy()
     const { width, height } = root.getBoundingClientRect()
     treemap.render.initOptions({ height, width, devicePixelRatio: window.devicePixelRatio })
     treemap.render.canvas.style.position = 'absolute'
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    treemap.fontsCaches = Object.create(null)
     treemap.event.emit(INTERNAL_EVENT_MAPPINGS.ON_CLEANUP)
     treemap.highlight.render.initOptions({ height, width, devicePixelRatio: window.devicePixelRatio })
     treemap.highlight.reset()
@@ -319,34 +312,3 @@ export function createTreemap() {
 }
 
 export type TreemapInstanceAPI = TreemapLayout['api']
-
-// The following is my opinionated.
-// For better performance, we desgin a cache system to store the render result.
-// two step
-// 1. draw current canvas into a cache canvas (offscreen canvas)
-// 2. draw cache canvas into current canvas (note we should respect the dpi)
-export class RenderCache extends Canvas {
-  key: string
-  private $memory: boolean
-  constructor(opts: RenderViewportOptions) {
-    super(opts)
-    this.key = 'render-cache'
-    this.$memory = false
-  }
-  get state() {
-    return this.$memory
-  }
-  flush(treemap: TreemapLayout, matrix = new Matrix2D({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 })) {
-    const { devicePixelRatio, width, height } = treemap.render.options
-    const { a, d } = matrix
-    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
-    this.setOptions({ width: width * a, height: height * d, devicePixelRatio })
-    resetLayout(treemap, width * a, height * d)
-    drawGraphIntoCanvas(treemap, { c: this.canvas, ctx: this.ctx, dpr: devicePixelRatio })
-    this.$memory = true
-  }
-  destroy() {
-    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
-    this.$memory = false
-  }
-}

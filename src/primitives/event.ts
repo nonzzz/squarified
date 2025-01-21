@@ -294,6 +294,7 @@ export class TreemapEvent extends DOMEvent {
     const translateX = offsetX - (offsetX - this.matrix.e) * delta
     const translateY = offsetY - (offsetY - this.matrix.f) * delta
     runEffect((progress) => {
+      treemap.fontCache.flush(treemap, this.matrix)
       this.state.isWheeling = true
       const easedProgress = easing.quadraticOut(progress)
       const scale = (targetScaleRatio - this.matrix.a) * easedProgress
@@ -308,6 +309,7 @@ export class TreemapEvent extends DOMEvent {
       onStop: () => {
         this.state.forceDestroy = false
         this.state.isWheeling = false
+        treemap.fontCache.flush(treemap, this.matrix)
       }
     })
   }
@@ -380,8 +382,8 @@ function createOnZoom(treemap: TreemapLayout, evt: TreemapEvent) {
     const c = treemap.render.canvas
     const boundingClientRect = c.getBoundingClientRect()
     const [w, h] = estimateZoomingArea(node, root, boundingClientRect.width, boundingClientRect.height)
-    delete treemap.fontsCaches[node.node.id]
-    delete treemap.ellispsisWidthCache[node.node.id]
+    // delete treemap.fontsCaches[node.node.id]
+    // delete treemap.ellispsisWidthCache[node.node.id]
     resetLayout(treemap, w, h)
     const module = findRelativeNodeById(node.node.id, treemap.layoutNodes)
     if (module) {

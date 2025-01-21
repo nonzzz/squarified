@@ -252,7 +252,8 @@ export class TreemapEvent extends DOMEvent {
     this.state.dragX = metadata.native.offsetX
     this.state.dragY = metadata.native.offsetY
     this.state.forceDestroy = false
-    if (!ctx.treemap.renderCache.state) {
+    // ensure that the wheel event is done.
+    if (!ctx.treemap.renderCache.state && !this.state.isWheeling && !this.state.forceDestroy) {
       ctx.treemap.renderCache.flush(ctx.treemap, this.matrix)
     }
   }
@@ -286,14 +287,14 @@ export class TreemapEvent extends DOMEvent {
     }
 
     this.state.forceDestroy = true
-    treemap.highlight.reset()
-    treemap.highlight.setZIndexForHighlight()
     const factor = absWheelDelta > 3 ? 1.4 : absWheelDelta > 1 ? 1.2 : 1.1
     const delta = wheelDelta > 0 ? factor : 1 / factor
     const targetScaleRatio = this.matrix.a * delta
     const translateX = offsetX - (offsetX - this.matrix.e) * delta
     const translateY = offsetY - (offsetY - this.matrix.f) * delta
     runEffect((progress) => {
+      treemap.highlight.reset()
+      treemap.highlight.setZIndexForHighlight()
       treemap.fontCache.flush(treemap, this.matrix)
       this.state.isWheeling = true
       const easedProgress = easing.quadraticOut(progress)

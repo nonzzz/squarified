@@ -1,10 +1,9 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { perferNumeric } from '../shared'
 import type { LayoutModule } from './squarify'
 
-type AnyObject = Record<keyof any, any>
+type AnyObject = Record<keyof Any, Any>
 
 export function sortChildrenByKey<T extends AnyObject, K extends keyof T = 'weight'>(data: T[], ...keys: K[]) {
   return data.sort((a, b) => {
@@ -24,7 +23,7 @@ export function sortChildrenByKey<T extends AnyObject, K extends keyof T = 'weig
   })
 }
 
-export function c2m<T extends AnyObject & { groups: any[] }, K extends keyof T>(
+export function c2m<T extends AnyObject & { groups: Any[] }, K extends keyof T>(
   data: T,
   key: K,
   modifier?: (data: T) => T
@@ -33,7 +32,7 @@ export function c2m<T extends AnyObject & { groups: any[] }, K extends keyof T>(
     data.groups = sortChildrenByKey(data.groups.map((d) => c2m(d as T, key as string, modifier)), 'weight')
   }
   const obj = { ...data, weight: data[key] }
-  if (modifier) { return modifier(obj) as any }
+  if (modifier) { return modifier(obj) as Any }
   return obj
 }
 

@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { c2m, createTreemap, presetDecorator, sortChildrenByKey } from '../src'
 
 import './live-reload'
@@ -11,7 +10,7 @@ const treemap = createTreemap()
 treemap.use('decorator', presetDecorator)
 
 function loadData() {
-  return fetch('data.json').then((res) => res.json()).then((data: any[]) => data)
+  return fetch('data.json').then((res) => res.json()).then((data: Any[]) => data)
 }
 
 async function main() {
@@ -30,7 +29,7 @@ treemap.init(root)
 
 main().catch(console.error)
 treemap.on('click', function(metadata) {
-  // this.zoom(metadata.module)
+  this.zoom(metadata.module)
 })
 
 new ResizeObserver(() => treemap.resize()).observe(root)

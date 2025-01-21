@@ -12,8 +12,8 @@ export interface DOMLoc {
   x: number
   y: number
 }
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export interface DOMEventMetadata<T extends keyof HTMLElementEventMap = any> {
+
+export interface DOMEventMetadata<T extends keyof HTMLElementEventMap = Any> {
   native: HTMLElementEventMap[T]
   loc: DOMLoc
 }
@@ -97,8 +97,7 @@ export function createEffectScope() {
 
 // Some thoughts DOMEvent was designed this way intentionally. I don't have any idea of splitting the general libray yet.
 // The follow captureBoxXy matrix a and d be 1 is because of the scaled canvas (without zoomed) is with a new layout.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function bindDOMEvent(el: HTMLElement, evt: DOMEventType | (string & {}), dom: DOMEvent<any>) {
+export function bindDOMEvent(el: HTMLElement, evt: DOMEventType | (string & {}), dom: DOMEvent<Any>) {
   const handler = (e: unknown) => {
     const { x, y } = captureBoxXY(el, e, 1, 1, dom.matrix.e, dom.matrix.f)
     // @ts-expect-error safe

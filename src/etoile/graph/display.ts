@@ -80,8 +80,7 @@ export interface InstructionWithFunctionCall extends CanvasDrawImage {
 type Mod<
   T extends InstructionAssignMappings & InstructionWithFunctionCall = InstructionAssignMappings & InstructionWithFunctionCall,
   K extends keyof T = keyof T
-> // eslint-disable-next-line @typescript-eslint/no-explicit-any
- = T[K] extends (...args: any) => any ? [K, Parameters<T[K]>] : never
+> = T[K] extends (...args: Any) => Any ? [K, Parameters<T[K]>] : never
 
 interface Instruction extends InstructionAssignMappings, InstructionWithFunctionCall {
   mods: Array<{ mod: Mod, type: number }>
@@ -149,8 +148,7 @@ function createInstruction() {
     stroke() {
       this.mods.push({ mod: ['stroke', []], type: CALL_MAPPINGS_MODE })
     },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    drawImage(this: Instruction, ...args: any[]) {
+    drawImage(this: Instruction, ...args: Any[]) {
       // @ts-expect-error safe
       this.mods.push({ mod: ['drawImage', args], type: CALL_MAPPINGS_MODE })
     }
@@ -187,8 +185,7 @@ export abstract class S extends Display {
 export abstract class Graph extends S {
   instruction: ReturnType<typeof createInstruction>
   __options__: Partial<LocOptions>
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  __widget__: any
+  __widget__: Any
   abstract style: GraphStyleSheet
   constructor(options: Partial<GraphOptions> = {}) {
     super(options)

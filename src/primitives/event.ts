@@ -89,7 +89,7 @@ const ANIMATION_DURATION = 300
 
 const fill = <ColorDecoratorResultRGB> { desc: { r: 255, g: 255, b: 255 }, mode: 'rgb' }
 
-function runEffect(callback: (progress: number) => void, opts: EffectOptions) {
+function runEffect(callback: (progress: number, cleanup: () => void) => void, opts: EffectOptions) {
   const effect = createEffectScope()
   const startTime = Date.now()
 
@@ -110,7 +110,7 @@ function runEffect(callback: (progress: number) => void, opts: EffectOptions) {
       }
       return true
     }
-    callback(progress)
+    return callback(progress, effect.stop)
   })
 }
 
@@ -217,18 +217,20 @@ export class TreemapEvent extends DOMEvent {
     } else {
       // for drag
       const { treemap } = ctx
-      treemap.highlight.reset()
-      treemap.highlight.setZIndexForHighlight()
-      runEffect(() => {
+      runEffect((_, cleanup) => {
+        cleanup()
         const { offsetX: x, offsetY: y } = metadata.native
         const { dragX: lastX, dragY: lastY } = this.state
         const drawX = x - lastX
         const drawY = y - lastY
+        treemap.highlight.reset()
+        treemap.highlight.setZIndexForHighlight()
         treemap.reset()
         this.matrix.translation(drawX, drawY)
         Object.assign(this.state, { isDragging: true, dragX: x, dragY: y })
         stackMatrixTransformWithGraphAndLayer(treemap.elements, this.matrix.e, this.matrix.f, 1)
         treemap.update()
+        return true
       }, {
         duration: ANIMATION_DURATION,
         deps: [() => this.state.forceDestroy],
@@ -252,9 +254,12 @@ export class TreemapEvent extends DOMEvent {
     this.state.dragX = metadata.native.offsetX
     this.state.dragY = metadata.native.offsetY
     this.state.forceDestroy = false
-    // ensure that the wheel event is done.
-    if (!ctx.treemap.renderCache.state && !this.state.isWheeling && !this.state.forceDestroy) {
+    if (!ctx.treemap.renderCache.state) {
+      this.exposedEvent.silent('mousemove')
+      this.silent('mousemove')
       ctx.treemap.renderCache.flush(ctx.treemap, this.matrix)
+      this.active('mousemove')
+      this.exposedEvent.active('mousemove')
     }
   }
 
@@ -273,6 +278,9 @@ export class TreemapEvent extends DOMEvent {
     if (ctx.treemap.renderCache.state) {
       ctx.treemap.renderCache.destroy()
     }
+    this.silent('mousedown')
+    this.exposedEvent.silent('mousemove')
+    this.silent('mousemove')
     const { native } = metadata
     const { treemap } = ctx
     // @ts-expect-error safe
@@ -292,7 +300,8 @@ export class TreemapEvent extends DOMEvent {
     const targetScaleRatio = this.matrix.a * delta
     const translateX = offsetX - (offsetX - this.matrix.e) * delta
     const translateY = offsetY - (offsetY - this.matrix.f) * delta
-    runEffect((progress) => {
+    runEffect((progress, cleanup) => {
+      cleanup()
       treemap.highlight.reset()
       treemap.highlight.setZIndexForHighlight()
       treemap.fontCache.flush(treemap, this.matrix)
@@ -310,7 +319,9 @@ export class TreemapEvent extends DOMEvent {
       onStop: () => {
         this.state.forceDestroy = false
         this.state.isWheeling = false
-        treemap.fontCache.flush(treemap, this.matrix)
+        this.active('mousedown')
+        this.active('mousemove')
+        this.exposedEvent.active('mousemove')
       }
     })
   }

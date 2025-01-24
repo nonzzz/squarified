@@ -126,8 +126,9 @@ function drawHighlight(treemap: TreemapLayout, evt: TreemapEvent) {
   const { currentNode } = evt.state
   if (currentNode) {
     const [x, y, w, h] = currentNode.layout
-    runEffect((progress) => {
-      const easedProgress = easing.cubicInOut(progress)
+    runEffect((progress, cleanup) => {
+      cleanup()
+      const easedProgress = easing.quadraticOut(progress)
       highlight.reset()
       const mask = createRoundBlock(x, y, w, h, { fill, opacity: 0.4, radius: 2, padding: 2 })
       highlight.add(mask)
@@ -135,6 +136,9 @@ function drawHighlight(treemap: TreemapLayout, evt: TreemapEvent) {
       applyForOpacity(mask, 0.4, 0.4, easedProgress)
       stackMatrixTransform(mask, evt.matrix.e, evt.matrix.f, 1)
       highlight.update()
+      if (!evt.state.currentNode) {
+        return true
+      }
     }, {
       duration: ANIMATION_DURATION,
       deps: [() => evt.state.isDragging, () => evt.state.isWheeling, () => evt.state.isZooming]
@@ -210,7 +214,7 @@ export class TreemapEvent extends DOMEvent {
 
   private onmousemove(ctx: TreemapEventContext, metadata: DOMEventMetadata<'mousemove'>, node: LayoutModule | null) {
     if (!this.state.isDragging) {
-      if (this.state.currentNode !== node) {
+      if (this.state.currentNode !== node || !node) {
         this.state.currentNode = node
       }
       drawHighlight(ctx.treemap, this)
@@ -275,9 +279,8 @@ export class TreemapEvent extends DOMEvent {
   }
 
   private onwheel(ctx: TreemapEventContext, metadata: DOMEventMetadata<'wheel'>) {
-    if (ctx.treemap.renderCache.state) {
-      ctx.treemap.renderCache.destroy()
-    }
+    ctx.treemap.renderCache.destroy()
+
     this.silent('mousedown')
     this.exposedEvent.silent('mousemove')
     this.silent('mousemove')
@@ -306,11 +309,15 @@ export class TreemapEvent extends DOMEvent {
       treemap.highlight.setZIndexForHighlight()
       treemap.fontCache.flush(treemap, this.matrix)
       this.state.isWheeling = true
-      const easedProgress = easing.quadraticOut(progress)
+      const easedProgress = easing.cubicIn(progress)
       const scale = (targetScaleRatio - this.matrix.a) * easedProgress
       this.matrix.a += scale
       this.matrix.d += scale
       this.matrix.translation((translateX - this.matrix.e) * easedProgress, (translateY - this.matrix.f) * easedProgress)
+
+      // Each shape will scale by schedule phase. (According the dpi)
+      // So that if the DPI is more than 1. we need to shrink first. ( w / dpi , h / dpi )
+      // Schedule will scale it back to the original size.
       resetLayout(
         treemap,
         treemap.render.canvas.width * this.matrix.a / treemap.render.options.devicePixelRatio,
@@ -390,6 +397,9 @@ function estimateZoomingArea(node: LayoutModule, root: LayoutModule | null, w: n
   return [w * scaleFactor, h * scaleFactor]
 }
 
+// TODO I think onWheel is same as the zoom logical, abstract those part can reduce the bundle size and cleanup the code
+// Btw...
+
 function createOnZoom(treemap: TreemapLayout, evt: TreemapEvent) {
   let root: LayoutModule | null = null
   return (node: LayoutModule) => {
@@ -398,8 +408,6 @@ function createOnZoom(treemap: TreemapLayout, evt: TreemapEvent) {
     const c = treemap.render.canvas
     const boundingClientRect = c.getBoundingClientRect()
     const [w, h] = estimateZoomingArea(node, root, boundingClientRect.width, boundingClientRect.height)
-    // delete treemap.fontsCaches[node.node.id]
-    // delete treemap.ellispsisWidthCache[node.node.id]
     resetLayout(treemap, w, h)
     const module = findRelativeNodeById(node.node.id, treemap.layoutNodes)
     if (module) {
@@ -417,7 +425,8 @@ function createOnZoom(treemap: TreemapLayout, evt: TreemapEvent) {
         evt.matrix.d = scaleRatio
         evt.matrix.e = initialTranslateX + (translateX - initialTranslateX) * easedProgress
         evt.matrix.f = initialTranslateY + (translateY - initialTranslateY) * easedProgress
-        treemap.reset()
+        // treemap.reset()
+        resetLayout(treemap, w, h)
         stackMatrixTransformWithGraphAndLayer(treemap.elements, evt.matrix.e, evt.matrix.f, evt.matrix.a)
         treemap.update()
       }, {

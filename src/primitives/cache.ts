@@ -11,11 +11,6 @@ export abstract class Cache {
   abstract destroy(): void
 }
 
-// The following is my opinionated.
-// For better performance, we desgin a cache system to store the render result.
-// two step
-// 1. draw current canvas into a cache canvas (offscreen canvas)
-// 2. draw cache canvas into current canvas (note we should respect the dpi)
 export class RenderCache extends Canvas implements Cache {
   key: string
   private $memory: boolean

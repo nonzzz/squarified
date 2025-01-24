@@ -27,8 +27,9 @@
     "esbuild": "^0.24.0",
     "eslint": "^9.16.0",
     "eslint-config-kagura": "^3.0.1",
-    "jiek": "^2.1.11",
-    "typescript": "^5.6.2"
+    "jiek": "^2.3.3",
+    "typescript": "^5.6.2",
+    "vite-bundle-analyzer": "^0.16.0"
   },
   "pnpm": {
     "overrides": {

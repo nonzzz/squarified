@@ -1,6 +1,6 @@
 # Squarified
 
-`squarified treemap` is a mini treemap component.
+`squarified` is a mini treemap component.
 
 ![display](./data.gif)
 

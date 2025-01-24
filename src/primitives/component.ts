@@ -199,7 +199,7 @@ export class TreemapLayout extends Schedule<InternalEventDefinition> {
     this.bgBox.destory()
     if (this.renderCache.state) {
       this.fgBox.destory()
-      this.bgBox.add(new Bitmap({ bitmap: this.renderCache.canvas }))
+      this.bgBox.add(new Bitmap({ bitmap: this.renderCache.canvas, dpi: this.render.options.devicePixelRatio }))
     } else {
       for (const node of this.layoutNodes) {
         this.drawBackgroundNode(node)

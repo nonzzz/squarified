@@ -311,7 +311,11 @@ export class TreemapEvent extends DOMEvent {
       this.matrix.a += scale
       this.matrix.d += scale
       this.matrix.translation((translateX - this.matrix.e) * easedProgress, (translateY - this.matrix.f) * easedProgress)
-      resetLayout(treemap, treemap.render.canvas.width * this.matrix.a, treemap.render.canvas.height * this.matrix.d)
+      resetLayout(
+        treemap,
+        treemap.render.canvas.width * this.matrix.a / treemap.render.options.devicePixelRatio,
+        treemap.render.canvas.height * this.matrix.d / treemap.render.options.devicePixelRatio
+      )
       stackMatrixTransformWithGraphAndLayer(treemap.elements, this.matrix.e, this.matrix.f, 1)
       treemap.update()
     }, {

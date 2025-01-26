@@ -309,7 +309,7 @@ export class TreemapEvent extends DOMEvent {
       treemap.highlight.setZIndexForHighlight()
       treemap.fontCache.flush(treemap, this.matrix)
       this.state.isWheeling = true
-      const easedProgress = easing.cubicIn(progress)
+      const easedProgress = easing.cubicInOut(progress)
       const scale = (targetScaleRatio - this.matrix.a) * easedProgress
       this.matrix.a += scale
       this.matrix.d += scale

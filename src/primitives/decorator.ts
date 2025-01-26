@@ -71,9 +71,9 @@ function evaluateColorMappings(data: NativeModule[]): ColorMappings {
     return hash % 360
   }
 
-  const lightScale = (depth: number) => 70 - depth * 5
-  const baseSaturation = 40
-  const siblingHueShift = 20
+  const lightScale = (depth: number) => 60 - depth * 5
+  const baseSaturation = 70
+  const siblingHueShift = 30
 
   const rc = 0.2126
   const gc = 0.7152
@@ -114,8 +114,8 @@ function evaluateColorMappings(data: NativeModule[]): ColorMappings {
     const luminance = calculateLuminance(r, g, b)
 
     if (luminance < 0.6) {
-      hslColor.l += 0.2
-    } else if (luminance > 0.8) {
+      hslColor.l += 0.15
+    } else if (luminance > 0.65) {
       hslColor.l -= 0.1
     }
 

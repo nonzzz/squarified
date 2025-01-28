@@ -153,7 +153,7 @@ export class TreemapLayout extends Schedule<InternalEventDefinition> {
       return
     }
     const fill = this.decorator.color.mappings[node.node.id]
-    const rect = createRoundBlock(x, y, w, h, { fill, padding, radius: 2 })
+    const rect = createRoundBlock(x, y, w, h, { fill, padding, radius: 4 })
     rect.__widget__ = node
     this.bgBox.add(rect)
     for (const child of node.children) {

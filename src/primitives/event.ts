@@ -121,19 +121,19 @@ export function applyForOpacity(graph: Graph, lastState: number, nextState: numb
   }
 }
 
+const HIGH_LIGHT_OPACITY = 0.3
+
 function drawHighlight(treemap: TreemapLayout, evt: TreemapEvent) {
   const { highlight } = treemap
   const { currentNode } = evt.state
   if (currentNode) {
     const [x, y, w, h] = currentNode.layout
-    runEffect((progress, cleanup) => {
+    runEffect((_, cleanup) => {
       cleanup()
-      const easedProgress = easing.quadraticOut(progress)
       highlight.reset()
-      const mask = createRoundBlock(x, y, w, h, { fill, opacity: 0.4, radius: 2, padding: 2 })
+      const mask = createRoundBlock(x, y, w, h, { fill, opacity: HIGH_LIGHT_OPACITY, radius: 4, padding: 2 })
       highlight.add(mask)
       highlight.setZIndexForHighlight('1')
-      applyForOpacity(mask, 0.4, 0.4, easedProgress)
       stackMatrixTransform(mask, evt.matrix.e, evt.matrix.f, 1)
       highlight.update()
       if (!evt.state.currentNode) {

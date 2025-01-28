@@ -1,3 +1,6 @@
+// Because of the cache system. scale factor is not needed to apply.
+// Eg. Only use scale factor when the layout is changed.
+
 import { asserts, easing, traverse } from '../etoile'
 import { Display, Graph, S } from '../etoile/graph/display'
 import { DOMEvent, DOM_EVENTS, createEffectScope } from '../etoile/native/dom'
@@ -11,8 +14,7 @@ import type { InheritedCollections } from '../shared'
 import type { App, TreemapInstanceAPI } from './component'
 import { TreemapLayout, resetLayout } from './component'
 import type { LayoutModule } from './squarify'
-import { findRelativeNode, findRelativeNodeById } from './struct'
-import type { NativeModule } from './struct'
+import { findRelativeNode } from './struct'
 
 export interface PrimitiveEventMetadata<T extends keyof HTMLElementEventMap> {
   native: HTMLElementEventMap[T]
@@ -362,72 +364,32 @@ function isScrollWheelOrRightButtonOnMouseupAndDown<E extends DuckE = DuckE>(e: 
   return e.which === 2 || e.which === 3
 }
 
-function estimateZoomingArea(node: LayoutModule, root: LayoutModule | null, w: number, h: number) {
-  const defaultSizes = [w, h, 1]
-  if (root === node) {
-    return defaultSizes
-  }
-
-  const viewArea = w * h
-  let area = viewArea
-
-  let parent: NativeModule | null = node.node.parent as NativeModule
-  let totalWeight = node.node.weight
-
-  while (parent) {
-    const siblings = parent.groups || []
-    let siblingWeightSum = 0
-
-    for (const sibling of siblings) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      siblingWeightSum += sibling.weight
-    }
-
-    area *= siblingWeightSum / totalWeight
-
-    totalWeight = parent.weight
-    parent = parent.parent as NativeModule
-  }
-
-  const maxScaleFactor = 2.5
-  const minScaleFactor = 0.3
-
-  const scaleFactor = Math.max(minScaleFactor, Math.min(maxScaleFactor, Math.sqrt(area / viewArea)))
-
-  return [w * scaleFactor, h * scaleFactor]
-}
-
-// TODO I think onWheel is same as the zoom logical, abstract those part can reduce the bundle size and cleanup the code
-// Btw...
-
 function createOnZoom(treemap: TreemapLayout, evt: TreemapEvent) {
-  let root: LayoutModule | null = null
   return (node: LayoutModule) => {
     treemap.renderCache.destroy()
     evt.state.isZooming = true
     const c = treemap.render.canvas
     const boundingClientRect = c.getBoundingClientRect()
-    const [w, h] = estimateZoomingArea(node, root, boundingClientRect.width, boundingClientRect.height)
-    resetLayout(treemap, w, h)
-    const module = findRelativeNodeById(node.node.id, treemap.layoutNodes)
-    if (module) {
-      const [mx, my, mw, mh] = module.layout
-      const scale = Math.min(boundingClientRect.width / mw, boundingClientRect.height / mh)
-      const translateX = (boundingClientRect.width / 2) - (mx + mw / 2) * scale
-      const translateY = (boundingClientRect.height / 2) - (my + mh / 2) * scale
-      const initialScale = evt.matrix.a
-      const initialTranslateX = evt.matrix.e
-      const initialTranslateY = evt.matrix.f
-      runEffect((progess) => {
-        const easedProgress = easing.cubicInOut(progess)
-        const scaleRatio = initialScale + (scale - initialScale) * easedProgress
-        evt.matrix.a = scaleRatio
-        evt.matrix.d = scaleRatio
-        evt.matrix.e = initialTranslateX + (translateX - initialTranslateX) * easedProgress
-        evt.matrix.f = initialTranslateY + (translateY - initialTranslateY) * easedProgress
-        // treemap.reset()
-        resetLayout(treemap, w, h)
-        stackMatrixTransformWithGraphAndLayer(treemap.elements, evt.matrix.e, evt.matrix.f, evt.matrix.a)
+    if (node) {
+      const [mx, my, mw, mh] = node.layout
+      const factor = Math.min(boundingClientRect.width / mw, boundingClientRect.height / mh)
+      const targetScale = factor * evt.matrix.a
+      const translateX = (boundingClientRect.width / 2) - (mx + mw / 2) * factor
+      const translateY = (boundingClientRect.height / 2) - (my + mh / 2) * factor
+      runEffect((progress, cleanup) => {
+        cleanup()
+        treemap.fontCache.flush(treemap, evt.matrix)
+        const easedProgress = easing.cubicInOut(progress)
+        const scale = (targetScale - evt.matrix.a) * easedProgress
+        evt.matrix.a += scale
+        evt.matrix.d += scale
+        evt.matrix.translation((translateX - evt.matrix.e) * easedProgress, (translateY - evt.matrix.f) * easedProgress)
+        resetLayout(
+          treemap,
+          treemap.render.canvas.width * evt.matrix.a / treemap.render.options.devicePixelRatio,
+          treemap.render.canvas.height * evt.matrix.d / treemap.render.options.devicePixelRatio
+        )
+        stackMatrixTransformWithGraphAndLayer(treemap.elements, evt.matrix.e, evt.matrix.f, 1)
         treemap.update()
       }, {
         duration: ANIMATION_DURATION,
@@ -436,6 +398,5 @@ function createOnZoom(treemap: TreemapLayout, evt: TreemapEvent) {
         }
       })
     }
-    root = node
   }
 }

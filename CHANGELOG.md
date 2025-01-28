@@ -1,3 +1,7 @@
+## 0.3.0
+
+Happy New year. This version improves performance and provides a smooth UI.
+
 ## 0.2.2
 
 Fix error build

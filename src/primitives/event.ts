@@ -283,9 +283,6 @@ export class TreemapEvent extends DOMEvent {
   private onwheel(ctx: TreemapEventContext, metadata: DOMEventMetadata<'wheel'>) {
     ctx.treemap.renderCache.destroy()
 
-    this.silent('mousedown')
-    this.exposedEvent.silent('mousemove')
-    this.silent('mousemove')
     const { native } = metadata
     const { treemap } = ctx
     // @ts-expect-error safe
@@ -306,6 +303,11 @@ export class TreemapEvent extends DOMEvent {
     const translateX = offsetX - (offsetX - this.matrix.e) * delta
     const translateY = offsetY - (offsetY - this.matrix.f) * delta
     runEffect((progress, cleanup) => {
+      this.silent('mousedown')
+      this.exposedEvent.silent('mousemove')
+      this.silent('mousemove')
+      this.silent('click')
+      this.exposedEvent.silent('click')
       cleanup()
       treemap.highlight.reset()
       treemap.highlight.setZIndexForHighlight()
@@ -335,6 +337,8 @@ export class TreemapEvent extends DOMEvent {
         this.active('mousedown')
         this.active('mousemove')
         this.exposedEvent.active('mousemove')
+        this.active('click')
+        this.exposedEvent.active('click')
       }
     })
   }

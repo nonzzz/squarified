@@ -35,6 +35,9 @@ export class RenderCache extends Canvas implements Cache {
     resetLayout(treemap, width * a, height * d)
     drawGraphIntoCanvas(treemap, { c: this.canvas, ctx: this.ctx, dpr: devicePixelRatio })
     this.$memory = true
+    if (this.ctx.isContextLost()) {
+      this.$memory = false
+    }
   }
   destroy() {
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)

@@ -1,3 +1,7 @@
+## 0.3.1
+
+Add render fallback.
+
 ## 0.3.0
 
 Happy New year. This version improves performance and provides a smooth UI.

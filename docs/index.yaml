@@ -1,0 +1,5 @@
+index:
+  title: A minimal and powerful treemap component.
+  body:
+    - h1: Squarified
+    - p: A treemap layout algorithm that optimizes for aspect ratio.

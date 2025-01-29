@@ -38,3 +38,6 @@ build-server:
 lint:
 	@echo "Lint"
 	./node_modules/.bin/eslint --fix .
+
+dev-docs:
+	

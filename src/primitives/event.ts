@@ -153,7 +153,7 @@ function drawHighlight(treemap: TreemapLayout, evt: TreemapEvent) {
 
 // TODO: Do we need turn off internal events?
 export class TreemapEvent extends DOMEvent {
-  private exposedEvent: _Event<ExposedEventDefinition>
+  exposedEvent: _Event<ExposedEventDefinition>
   state: TreemapEventState
   zoom: ReturnType<typeof createOnZoom>
   constructor(app: App, treemap: TreemapLayout) {
@@ -382,6 +382,8 @@ function createOnZoom(treemap: TreemapLayout, evt: TreemapEvent) {
       const translateY = (boundingClientRect.height / 2) - (my + mh / 2) * factor
       runEffect((progress, cleanup) => {
         cleanup()
+        evt.silent('mousemove')
+        evt.exposedEvent.silent('mousemove')
         treemap.fontCache.flush(treemap, evt.matrix)
         const easedProgress = easing.cubicInOut(progress)
         const scale = (targetScale - evt.matrix.a) * easedProgress
@@ -399,6 +401,8 @@ function createOnZoom(treemap: TreemapLayout, evt: TreemapEvent) {
         duration: ANIMATION_DURATION,
         onStop: () => {
           evt.state.isZooming = false
+          evt.active('mousemove')
+          evt.exposedEvent.active('mousemove')
         }
       })
     }

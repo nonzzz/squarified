@@ -40,4 +40,7 @@ lint:
 	./node_modules/.bin/eslint --fix .
 
 dev-docs:
-	
+	(trap 'kill 0' SIGINT; \
+	./node_modules/.bin/tsx --watch ./scripts/render.ts & \
+	./node_modules/.bin/esbuild --servedir=./display & \
+	wait)

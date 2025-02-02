@@ -1,0 +1,93 @@
+html:not([data-theme="dark"]) {
+  --background-color: #fff;
+  --foreground-color: #000;
+  --accents_1: #fafafa;
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --background-color: #000;
+  --foreground-color: #ddd;
+  --accents_1: #111;
+}
+
+body {
+  font: 16px/140% sans-serif;
+}
+
+a {
+  color: inherit;
+}
+
+nav a {
+  text-decoration: none;
+}
+
+b, strong {
+  color: var(--foreground-color);
+}
+
+ul, ol, li {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+pre {
+  background-color: var(--accents_1);
+  margin: 16px 0;
+  white-space: pre;
+  line-height: 1.5;
+  text-align: left;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+
+#menu-container {
+  display: none;
+  position: fixed;
+  left: -20px;
+  top: 0;
+  right: -20px;
+  height: 50px;
+  padding: 0 20px;
+  z-index: 2;
+}
+
+@media screen and (min-width: 800px) {
+  body {
+    position: relative;
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 50px 50px 500px 250px;
+  }
+  main {
+    position: relative;
+    z-index: 1;
+  }
+  #menu {
+    position: fixed;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    max-width: 1300px;
+    margin: 0 auto;
+    display: block;
+  }
+  #menu ul {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    padding: 50px 0 30px 30px;
+    overflow-y: auto;
+    transform: none;
+    box-shadow: none;
+  }
+
+  #menu > ul > li {
+    margin-top: 20px;
+  }
+}

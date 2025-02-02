@@ -15,5 +15,5 @@ index:
         Check out the [getting started](/getting-started) guide to learn how to use.
 
 getting-started: "getting-started.yaml"
-# api: "api.yaml"
-# faq: "faq.yaml"
+api: "api.yaml"
+faq: "faq.yaml"

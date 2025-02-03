@@ -283,6 +283,8 @@ export class TreemapEvent extends DOMEvent {
   private onwheel(ctx: TreemapEventContext, metadata: DOMEventMetadata<'wheel'>) {
     ctx.treemap.renderCache.destroy()
 
+    ctx.treemap.event.silent(INTERNAL_EVENT_MAPPINGS.ON_ZOOM)
+
     const { native } = metadata
     const { treemap } = ctx
     // @ts-expect-error safe
@@ -339,6 +341,7 @@ export class TreemapEvent extends DOMEvent {
         this.exposedEvent.active('mousemove')
         this.active('click')
         this.exposedEvent.active('click')
+        treemap.event.active(INTERNAL_EVENT_MAPPINGS.ON_ZOOM)
       }
     })
   }

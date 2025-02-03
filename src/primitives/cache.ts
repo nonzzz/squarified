@@ -30,14 +30,14 @@ export class RenderCache extends Canvas implements Cache {
     if (width * a >= size || height * d >= size) {
       return
     }
+    if (width * a * height * d >= size * size) {
+      return
+    }
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
     this.setOptions({ width: width * a, height: height * d, devicePixelRatio })
     resetLayout(treemap, width * a, height * d)
     drawGraphIntoCanvas(treemap, { c: this.canvas, ctx: this.ctx, dpr: devicePixelRatio })
     this.$memory = true
-    if (this.ctx.isContextLost()) {
-      this.$memory = false
-    }
   }
   destroy() {
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)

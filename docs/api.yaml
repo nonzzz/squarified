@@ -1,19 +1,9 @@
-index:
-  title: A minimal and powerful treemap component.
-  body:
-    - h1: Squarified
-    - p: A treemap layout algorithm that optimizes for aspect ratio.
+title: Api
+body:
+  - h1: Api
+  - p: All the methods and options of the squarified library are documented here.
 
-    - p: "Major features:"
-    - ul:
-        - "Minimalistic API"
-        - "Powerful layout algorithm"
-        - "Highly customizable"
-        - "Supports zooming and panning"
+  - h2: createTreemap
 
-    - p: >
-        Check out the [getting started](/getting-started) guide to learn how to use.
-
-getting-started: "getting-started.yaml"
-api: "api.yaml"
-faq: "faq.yaml"
+  - p: >
+      Create a new instance of the treemap. This method returns a new instance of the treemap.

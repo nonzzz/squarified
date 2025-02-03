@@ -1,3 +1,7 @@
+## 0.3.2
+
+Fix render crash.
+
 ## 0.3.1
 
 Add render fallback.

@@ -12,6 +12,7 @@ FLAGS += ./dev/main.ts
 
 bootstrap:
 	@echo "Install dependiences"
+	npm install -g corepack@latest --force
 	corepack enable
 	pnpm install
 

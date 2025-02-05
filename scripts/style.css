@@ -4,6 +4,7 @@ html:not([data-theme="dark"]) {
   --accents_1: #fafafa;
   --theme_display_dark: none;
   --theme_display_light: block;
+  --anchor-color: #000;
 }
 
 :root {
@@ -18,6 +19,7 @@ html[data-theme="dark"] {
   --accents_1: #111;
   --theme_display_dark: block;
   --theme_display_light: none;
+  --anchor-color: #ddd;
 }
 
 body {
@@ -176,6 +178,19 @@ pre {
 
 #theme-dark {
   display: var(--theme_display_dark);
+}
+
+.anchorlink {
+  opacity: 0;
+  color: var(--anchor-color);
+  font-size: 0.85em;
+  float: left;
+  text-decoration: none;
+  margin-left: -1em;
+  margin-top: 0.15em;
+}
+.anchorlink:hover {
+  opacity: 1;
 }
 
 @media screen and (min-width: 800px) {

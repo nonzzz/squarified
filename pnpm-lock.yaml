@@ -42,7 +42,7 @@ importers:
         version: 11.11.1
       jiek:
         specifier: ^2.3.3
-        version: 2.3.3(@pnpm/filter-workspace-packages@10.0.14)(@rollup/plugin-terser@0.4.4(rollup@4.13.2))(@types/node@22.7.4)(esbuild-register@3.6.0(esbuild@0.24.0))(postcss@8.4.47)(rollup-plugin-esbuild@6.1.1(esbuild@0.24.0)(rollup@4.13.2))(rollup-plugin-postcss@4.0.2(postcss@8.4.47))(typescript@5.7.3)(vite-bundle-analyzer@0.16.0)
+        version: 2.3.3(@pnpm/filter-workspace-packages@10.0.14)(@rollup/plugin-terser@0.4.4(rollup@4.13.2))(@types/node@22.7.4)(esbuild-register@3.6.0(esbuild@0.24.0))(postcss@8.4.47)(rollup-plugin-esbuild@6.1.1(esbuild@0.24.0)(rollup@4.13.2))(rollup-plugin-postcss@4.0.2(postcss@8.4.47))(typescript@5.7.3)(vite-bundle-analyzer@0.16.2)
       js-yaml:
         specifier: ^4.1.0
         version: 4.1.0
@@ -59,8 +59,8 @@ importers:
         specifier: ^5.7.3
         version: 5.7.3
       vite-bundle-analyzer:
-        specifier: ^0.16.0
-        version: 0.16.0
+        specifier: ^0.16.2
+        version: 0.16.2
 
 packages:
 
@@ -2571,8 +2571,8 @@ packages:
     resolution: {integrity: sha512-PSvMIZS7C1MuVNBXl/CDG2pZq8EXy/NW2dHIdm3bVP5N0PC8utDK8ttXLXj44Gn3J0lQE3U7Mpm1estAOd+eiA==}
     engines: {node: '>=10.13'}
 
-  vite-bundle-analyzer@0.16.0:
-    resolution: {integrity: sha512-zJEXZuwqoNxBwuCLzpVLrlT3V7RPaPTlqkcHKJMaS98QIOuBMZ10XCeWQ11+lG4wc151KNkAP5xbxsp2kD+rOg==}
+  vite-bundle-analyzer@0.16.2:
+    resolution: {integrity: sha512-PoeF4Bm4ad21W/T7ZVP+vi+juR1GdBSUXUaAsE6Lyux76MoWKKRTKNsV6DGKSGUDwlIYIhlt6T5LI7e+UlxrhA==}
     hasBin: true
 
   wcwidth@1.0.1:
@@ -4420,7 +4420,7 @@ snapshots:
 
   isexe@2.0.0: {}
 
-  jiek@2.3.3(@pnpm/filter-workspace-packages@10.0.14)(@rollup/plugin-terser@0.4.4(rollup@4.13.2))(@types/node@22.7.4)(esbuild-register@3.6.0(esbuild@0.24.0))(postcss@8.4.47)(rollup-plugin-esbuild@6.1.1(esbuild@0.24.0)(rollup@4.13.2))(rollup-plugin-postcss@4.0.2(postcss@8.4.47))(typescript@5.7.3)(vite-bundle-analyzer@0.16.0):
+  jiek@2.3.3(@pnpm/filter-workspace-packages@10.0.14)(@rollup/plugin-terser@0.4.4(rollup@4.13.2))(@types/node@22.7.4)(esbuild-register@3.6.0(esbuild@0.24.0))(postcss@8.4.47)(rollup-plugin-esbuild@6.1.1(esbuild@0.24.0)(rollup@4.13.2))(rollup-plugin-postcss@4.0.2(postcss@8.4.47))(typescript@5.7.3)(vite-bundle-analyzer@0.16.2):
     dependencies:
       '@inquirer/prompts': 7.2.3(@types/node@22.7.4)
       '@jiek/pkger': 0.2.2
@@ -4446,7 +4446,7 @@ snapshots:
       rollup-plugin-esbuild: 6.1.1(esbuild@0.24.0)(rollup@4.13.2)
       rollup-plugin-postcss: 4.0.2(postcss@8.4.47)
       typescript: 5.7.3
-      vite-bundle-analyzer: 0.16.0
+      vite-bundle-analyzer: 0.16.2
     transitivePeerDependencies:
       - '@types/node'
       - supports-color
@@ -5428,7 +5428,7 @@ snapshots:
       semver: 7.6.3
     optional: true
 
-  vite-bundle-analyzer@0.16.0: {}
+  vite-bundle-analyzer@0.16.2: {}
 
   wcwidth@1.0.1:
     dependencies:

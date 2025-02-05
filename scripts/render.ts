@@ -118,6 +118,14 @@ function renderMainSection(page: string, pageData: RenderMetadata): string {
       return `<pre>${md.render(c.value.trim())}</pre>`
     }
     if (assert.base(c)) {
+      // For heading metadata
+      if (/^h[2-6]$/.test(c.tag)) {
+        const slug = c.value.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '')
+        return `<${c.tag} id="${slug}"><a class="anchorlink" aria-hidden="true" href="#${slug}">#</a>${
+          md.renderInline(c.value.trim())
+        }</${c.tag}>`
+      }
+
       return `<${c.tag}>${md.renderInline(c.value.trim())}</${c.tag}>`
     }
     throw new Error('Unreachable')
@@ -148,11 +156,10 @@ function renderMenu(page: string): string {
 
   const navs: string[] = []
 
-  console.log(structure)
   for (const { key, title, h2s } of structure) {
     navs.push(`<li><strong>${title}</strong></li>`)
     for (const h2 of h2s) {
-      navs.push(`<li><a href="/${key}.html#${h2}">${h2}</a></li>`)
+      navs.push(`<li><a href="/${key}#${h2}">${h2}</a></li>`)
     }
   }
   return navs.join('')

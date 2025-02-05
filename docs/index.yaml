@@ -7,7 +7,7 @@ index:
     - p: "Major features:"
     - ul:
         - "Minimalistic API"
-        - "Powerful layout algorithm"
+        - "Powerful layout algorithm(Based on <a href='https://vanwijk.win.tue.nl/stm.pdf'>Squarified Treemaps</a>)"
         - "Highly customizable"
         - "Supports zooming and panning"
 

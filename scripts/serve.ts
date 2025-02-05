@@ -49,7 +49,12 @@ function createStaticLivingServer() {
       res.end()
       return
     }
-    const file = req.url === '/' ? 'index.html' : req.url!
+    let file = req.url === '/' ? 'index.html' : req.url!
+
+    if (!path.extname(file)) {
+      file += '.html'
+    }
+
     const filePath = path.join(__dirname, '..', 'display', file)
     const ext = path.extname(filePath)
     const contentType = MIME_TYPES[ext] || 'text/html'
@@ -73,6 +78,7 @@ function createStaticLivingServer() {
 
 async function prepareDisplay() {
   const r = await x('./node_modules/.bin/tsx', ['./scripts/render.ts'], { nodeOptions: { cwd: process.cwd() } })
+  console.log(r.stdout)
   return r.exitCode === 0
 }
 

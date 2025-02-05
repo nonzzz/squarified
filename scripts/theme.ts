@@ -6,6 +6,8 @@ export type Theme = 'light' | 'dark'
 
   const themeButton = document.querySelector<HTMLButtonElement>('#theme-toggle')
 
+  const preferredDark = darkMediaQuery.matches || localStorage.getItem('theme') === 'dark'
+
   if (themeButton) {
     themeButton.addEventListener('click', toggleTheme)
   }
@@ -21,9 +23,5 @@ export type Theme = 'light' | 'dark'
     updateTeme(theme)
   }
 
-  if (darkMediaQuery.matches) {
-    if (docDataset.theme !== 'light') {
-      updateTeme('dark')
-    }
-  }
+  updateTeme(preferredDark ? 'dark' : 'light')
 })()

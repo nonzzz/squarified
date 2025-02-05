@@ -25,6 +25,7 @@
     "@types/js-yaml": "^4.0.9",
     "@types/markdown-it": "^14.1.2",
     "@types/node": "^22.7.4",
+    "chokidar": "^4.0.3",
     "dprint": "^0.47.2",
     "esbuild": "^0.24.0",
     "eslint": "^9.16.0",
@@ -33,9 +34,10 @@
     "jiek": "^2.3.3",
     "js-yaml": "^4.1.0",
     "markdown-it": "^14.1.0",
+    "tinyexec": "^0.3.2",
+    "tsx": "^4.19.2",
     "typescript": "^5.7.3",
-    "vite-bundle-analyzer": "^0.16.0",
-    "tsx": "^4.19.2"
+    "vite-bundle-analyzer": "^0.16.0"
   },
   "pnpm": {
     "overrides": {

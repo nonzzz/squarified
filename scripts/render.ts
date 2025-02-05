@@ -226,7 +226,7 @@ async function main() {
     html.push('<meta http-equiv="X-UA-Compatible" content="IE=edge">')
     html.push('<meta name="viewport" content="width=device-width, initial-scale=1.0">')
     html.push(`<title>squarified - ${pageData.title}</title>`)
-    html.push('<link rel="icon" type="image/svg+xml" href="/favicon.svg">')
+    // html.push('<link rel="icon" type="image/svg+xml" href="/favicon.svg">')
     html.push('<meta property="og:type" content="website"/>')
     html.push('<meta property="og:title" content="squarified"/>')
     html.push('<meta property="og:description" content="A simple and fast way to generate treemaps"/>')

@@ -227,11 +227,11 @@ function renderMenu(): string {
   for (const { key, title, h2s } of structure) {
     navs.push(`<li><strong>${title}</strong></li>`)
     for (const h2 of h2s) {
-      navs.push(`<li><a href="/${key}#${h2.id}">${h2.value}</a></li>`)
+      navs.push(`<li><a href="${key}#${h2.id}">${h2.value}</a></li>`)
       if (h2.h3s.length > 0) {
         navs.push('<ul>')
         for (const h3 of h2.h3s) {
-          navs.push(`<li><a href="/${key}#${h3.id}">${h3.value}</a></li>`)
+          navs.push(`<li><a href="${key}#${h3.id}">${h3.value}</a></li>`)
         }
         navs.push('</ul>')
       }
@@ -346,7 +346,7 @@ async function main() {
 
     // example
 
-    html.push('<li><strong><a href="/example">Example</a></strong></li>')
+    html.push('<li><strong><a href="example">Example</a></strong></li>')
 
     html.push('</ul>')
     html.push('</div>')

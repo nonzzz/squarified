@@ -12,7 +12,7 @@ index:
         - "Supports zooming and panning"
 
     - p: >
-        Check out the [getting started](/getting-started) guide to learn how to use.
+        Check out the [getting started](getting-started) guide to learn how to use.
 
 getting-started: "getting-started.yaml"
 api: "api.yaml"

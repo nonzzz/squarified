@@ -224,6 +224,8 @@ function renderMenu(): string {
 
   const navs: string[] = []
 
+  navs.push('<li><strong><a href="./">Home</a></strong></li>')
+
   for (const { key, title, h2s } of structure) {
     navs.push(`<li><strong>${title}</strong></li>`)
     for (const h2 of h2s) {

@@ -31,10 +31,12 @@ dev-server:
 	@echo "Start dev server"
 	./node_modules/.bin/esbuild $(FLAGS) --define:LIVE_RELOAD=true --watch --servedir=./display
 
-build-server:
-	@echo "Build server"
-	./node_modules/.bin/esbuild $(FLAGS) --define:LIVE_RELOAD=false
-
 lint:
 	@echo "Lint"
 	./node_modules/.bin/eslint --fix .
+
+dev-docs:
+	./node_modules/.bin/tsx scripts/serve.ts
+
+build-docs:
+	./node_modules/.bin/tsx scripts/render.ts

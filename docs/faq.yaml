@@ -1,0 +1,19 @@
+index:
+  title: A minimal and powerful treemap component.
+  body:
+    - h1: Squarified
+    - p: A treemap layout algorithm that optimizes for aspect ratio.
+
+    - p: "Major features:"
+    - ul:
+        - "Minimalistic API"
+        - "Powerful layout algorithm"
+        - "Highly customizable"
+        - "Supports zooming and panning"
+
+    - p: >
+        Check out the [getting started](/getting-started) guide to learn how to use.
+
+getting-started: "getting-started.yaml"
+api: "api.yaml"
+faq: "faq.yaml"

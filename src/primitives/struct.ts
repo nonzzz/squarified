@@ -3,8 +3,6 @@
 import { perferNumeric } from '../shared'
 import type { LayoutModule } from './squarify'
 
-type AnyObject = Record<keyof Any, Any>
-
 export function sortChildrenByKey<T extends AnyObject, K extends keyof T = 'weight'>(data: T[], ...keys: K[]) {
   return data.sort((a, b) => {
     for (const key of keys) {

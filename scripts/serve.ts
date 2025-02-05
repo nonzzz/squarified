@@ -44,7 +44,7 @@ function createStaticLivingServer() {
         return
       }
     }
-    if (req.url === '/favicon.ico') {
+    if (req.url === '/favicon.ico' || req.url === '/favicon.svg') {
       res.writeHead(204, { 'Content-Type': 'image/x-icon' })
       res.end()
       return
@@ -54,12 +54,13 @@ function createStaticLivingServer() {
     if (!path.extname(file)) {
       file += '.html'
     }
-
     const filePath = path.join(__dirname, '..', 'display', file)
     const ext = path.extname(filePath)
     const contentType = MIME_TYPES[ext] || 'text/html'
     let content = fs.readFileSync(filePath, 'utf8')
-    content += `<script>${liveReloadScript}</script>`
+    if (ext === '.html') {
+      content += `<script>${liveReloadScript}</script>`
+    }
     res.writeHead(200, { 'Content-Type': contentType })
     res.write(content)
     res.end()
@@ -78,7 +79,9 @@ function createStaticLivingServer() {
 
 async function prepareDisplay() {
   const r = await x('./node_modules/.bin/tsx', ['./scripts/render.ts'], { nodeOptions: { cwd: process.cwd() } })
-  console.log(r.stdout)
+  if (r.stderr) {
+    throw new Error(r.stderr)
+  }
   return r.exitCode === 0
 }
 

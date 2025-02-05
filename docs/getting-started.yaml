@@ -8,7 +8,7 @@ body:
       First, download and install this package from [npm](https://docs.npmjs.com/cli/v8/commands/npm-install)
 
   - pre.shell: >
-      npm install squarified
+      $ npm install squarified
 
   - h2: The first application
 

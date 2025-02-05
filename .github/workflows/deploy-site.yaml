@@ -15,7 +15,7 @@ jobs:
         with:
           node-version: 22.9.0
       - name: Build site
-        run: make build-server
+        run: make build-docs
 
       - name: Deploy site
         uses: JamesIves/github-pages-deploy-action@v4.4.3

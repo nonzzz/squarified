@@ -11,6 +11,8 @@ const md = markdownit({ html: true })
 
 const docsDir = path.join(__dirname, '..', 'docs')
 
+const devDir = path.join(__dirname, '..', 'dev')
+
 const destDir = path.join(__dirname, '..', 'display')
 
 const scriptDir = __dirname
@@ -41,12 +43,57 @@ function createTag<T extends TagElement>(tag: T, value: TagValue<T>): FormattedT
   return { tag, value }
 }
 
+export interface Descriptor {
+  kind: 'script' | 'style' | 'title'
+  text: string
+  attrs?: string[]
+}
+
+interface InjectHTMLTagOptions {
+  html: string
+  injectTo: 'body' | 'head'
+  descriptors: Descriptor | Descriptor[]
+}
+
+// Refactor this function
+export function injectHTMLTag(options: InjectHTMLTagOptions) {
+  const regExp = options.injectTo === 'head' ? /([ \t]*)<\/head>/i : /([ \t]*)<\/body>/i
+  options.descriptors = Array.isArray(options.descriptors) ? options.descriptors : [options.descriptors]
+  const descriptors = options.descriptors.map((d) => {
+    if (d.attrs && d.attrs.length > 0) {
+      return `<${d.kind} ${d.attrs.join(' ')}>${d.text}</${d.kind}>`
+    }
+    return `<${d.kind}>${d.text}</${d.kind}>`
+  })
+  return options.html.replace(regExp, (match) => `${descriptors.join('\n')}${match}`)
+}
+
 function minifyCSS(css: string) {
   return esbuild.transformSync(css, { target, loader: 'css', minify: true }).code
 }
 
 function minifyJS(js: string) {
   return esbuild.transformSync(js, { target, loader: 'ts', minify: true }).code
+}
+
+function buildAndMinifyJS(entry: string) {
+  const r = esbuild.buildSync({
+    bundle: true,
+    format: 'iife',
+    loader: {
+      '.ts': 'ts'
+    },
+    define: {
+      LIVE_RELOAD: 'false'
+    },
+    minify: true,
+    write: false,
+    entryPoints: [entry]
+  })
+  if (r.outputFiles.length) {
+    return r.outputFiles[0].text
+  }
+  throw new Error('No output files')
 }
 
 const formatedPages = pages.reduce((acc, [page, pageData]) => {
@@ -105,6 +152,10 @@ const assert = {
   }
 }
 
+function toID(text: string) {
+  return text.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '')
+}
+
 function renderMainSection(page: string, pageData: RenderMetadata): string {
   const handler = (c: FormattedTag<TagElement>): string => {
     if (assert.ul(c)) {
@@ -120,7 +171,7 @@ function renderMainSection(page: string, pageData: RenderMetadata): string {
     if (assert.base(c)) {
       // For heading metadata
       if (/^h[2-6]$/.test(c.tag)) {
-        const slug = c.value.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '')
+        const slug = toID(c.value)
         return `<${c.tag} id="${slug}"><a class="anchorlink" aria-hidden="true" href="#${slug}">#</a>${
           md.renderInline(c.value.trim())
         }</${c.tag}>`
@@ -135,20 +186,37 @@ function renderMainSection(page: string, pageData: RenderMetadata): string {
     .join('\n')
 }
 
-function renderMenu(page: string): string {
-  const structure = []
+interface HeadingBase {
+  value: string
+  id: string
+}
+
+interface HeadingMetadata extends HeadingBase {
+  h3s: HeadingBase[]
+}
+
+interface HeadingStruct {
+  key: string
+  title: string
+  h2s: HeadingMetadata[]
+}
+
+function renderMenu(): string {
+  const structure: HeadingStruct[] = []
   for (const [pageName, pageData] of formatedPages) {
     if (pageName === 'index') { continue }
-    const h2s: string[] = []
+    const h2s: HeadingMetadata[] = []
     const root = { key: pageName, title: pageData.title, h2s }
-    const h3s: string[] = []
+    let h3s: HeadingBase[] = []
 
-    for (const { tag, value } of pageData.body) {
-      if (tag === 'h2' && typeof value === 'string') {
-        h2s.push(value)
-      }
-      if (tag === 'h3' && typeof value === 'string') {
-        h3s.push(value)
+    for (const c of pageData.body) {
+      if (assert.base(c)) {
+        if (c.tag === 'h2') {
+          h3s = []
+          h2s.push({ value: c.value, id: toID(c.value), h3s })
+        } else if (c.tag === 'h3') {
+          h3s.push({ value: c.value, id: toID(c.value) })
+        }
       }
     }
     structure.push(root)
@@ -159,7 +227,14 @@ function renderMenu(page: string): string {
   for (const { key, title, h2s } of structure) {
     navs.push(`<li><strong>${title}</strong></li>`)
     for (const h2 of h2s) {
-      navs.push(`<li><a href="/${key}#${h2}">${h2}</a></li>`)
+      navs.push(`<li><a href="/${key}#${h2.id}">${h2.value}</a></li>`)
+      if (h2.h3s.length > 0) {
+        navs.push('<ul>')
+        for (const h3 of h2.h3s) {
+          navs.push(`<li><a href="/${key}#${h3.id}">${h3.value}</a></li>`)
+        }
+        navs.push('</ul>')
+      }
     }
   }
   return navs.join('')
@@ -221,6 +296,20 @@ function widget() {
   return html
 }
 
+function buildExampleDisplay() {
+  let html = fs.readFileSync(path.join(devDir, 'index.html'), 'utf8')
+  html = html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+  html = injectHTMLTag({
+    html,
+    injectTo: 'body',
+    descriptors: {
+      kind: 'script',
+      text: buildAndMinifyJS(path.join(devDir, 'main.ts'))
+    }
+  })
+  return html
+}
+
 async function main() {
   for (const [page, pageData] of formatedPages) {
     const html: string[] = []
@@ -233,7 +322,7 @@ async function main() {
     html.push('<meta http-equiv="X-UA-Compatible" content="IE=edge">')
     html.push('<meta name="viewport" content="width=device-width, initial-scale=1.0">')
     html.push(`<title>squarified - ${pageData.title}</title>`)
-    // html.push('<link rel="icon" type="image/svg+xml" href="/favicon.svg">')
+    html.push('<link rel="icon" type="image/svg+xml" href="/favicon.svg">')
     html.push('<meta property="og:type" content="website"/>')
     html.push('<meta property="og:title" content="squarified"/>')
     html.push('<meta property="og:description" content="A simple and fast way to generate treemaps"/>')
@@ -248,13 +337,17 @@ async function main() {
 
     // Menu
 
-    // id="menu-container"
     html.push('<aside>')
     html.push('<nav id="menu">')
     html.push('<div>')
     html.push(widget().join(''))
     html.push('<ul>')
-    html.push(renderMenu(page))
+    html.push(renderMenu())
+
+    // example
+
+    html.push('<li><strong><a href="/example">Example</a></strong></li>')
+
     html.push('</ul>')
     html.push('</div>')
     html.push('</nav>')
@@ -273,6 +366,10 @@ async function main() {
     }
     await fsp.writeFile(path.join(destDir, `${page}.html`), html.join(''), 'utf8')
   }
+  const example = buildExampleDisplay()
+  // cp data.json to display
+  await fsp.copyFile(path.join(devDir, 'data.json'), path.join(destDir, 'data.json'))
+  await fsp.writeFile(path.join(destDir, 'example.html'), example, 'utf8')
 }
 
 main().catch(console.error)

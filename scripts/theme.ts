@@ -15,7 +15,6 @@ export type Theme = 'light' | 'dark'
   function updateTeme(theme: Theme) {
     localStorage.setItem('theme', theme)
     docDataset.theme = theme
-    console.log(`Theme set to ${theme}`, docDataset)
   }
 
   function toggleTheme() {

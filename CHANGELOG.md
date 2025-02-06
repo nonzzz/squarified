@@ -1,3 +1,7 @@
+## 0.3.4
+
+Increase color brightness.
+
 ## 0.3.2
 
 Fix render crash.

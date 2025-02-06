@@ -83,8 +83,7 @@ function createEffectStop(c: EffectScopeContext) {
   }
 }
 
-// Fill frame
-export function createEffectScope() {
+export function createSmoothFrame() {
   const c: EffectScopeContext = {
     animationFrameID: null
   }

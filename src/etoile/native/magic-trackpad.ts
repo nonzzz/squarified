@@ -1,7 +1,7 @@
 // Note: I won't decide to support mobile devices.
 // So don't create any reporting issues about mobile devices.
 
-import { createEffectScope } from './dom'
+import { createSmoothFrame } from './dom'
 
 // gesturechange and gestureend is specific for Safari
 // So we only implement wheel event
@@ -41,5 +41,5 @@ export function useMagicTrackPad(event: WheelEvent) {
   const isPanGesture = !event.ctrlKey
 
   //
-  createEffectScope()
+  createSmoothFrame()
 }

@@ -3,7 +3,7 @@
 
 import { asserts, easing, traverse } from '../etoile'
 import { Display, Graph, S } from '../etoile/graph/display'
-import { DOMEvent, DOM_EVENTS, createEffectScope } from '../etoile/native/dom'
+import { DOMEvent, DOM_EVENTS, createSmoothFrame } from '../etoile/native/dom'
 import type { DOMEventMetadata, DOMEventType } from '../etoile/native/dom'
 import { Event as _Event } from '../etoile/native/event'
 import type { BindThisParameter } from '../etoile/native/event'
@@ -91,8 +91,8 @@ const ANIMATION_DURATION = 300
 
 const fill = <ColorDecoratorResultRGB> { desc: { r: 255, g: 255, b: 255 }, mode: 'rgb' }
 
-function runEffect(callback: (progress: number, cleanup: () => void) => void, opts: EffectOptions) {
-  const effect = createEffectScope()
+function smoothFrame(callback: (progress: number, cleanup: () => void) => void, opts: EffectOptions) {
+  const frame = createSmoothFrame()
   const startTime = Date.now()
 
   const condtion = (process: number) => {
@@ -102,17 +102,17 @@ function runEffect(callback: (progress: number, cleanup: () => void) => void, op
     return process >= 1
   }
 
-  effect.run(() => {
+  frame.run(() => {
     const elapsed = Date.now() - startTime
     const progress = Math.min(elapsed / opts.duration, 1)
     if (condtion(progress)) {
-      effect.stop()
+      frame.stop()
       if (opts.onStop) {
         opts.onStop()
       }
       return true
     }
-    return callback(progress, effect.stop)
+    return callback(progress, frame.stop)
   })
 }
 
@@ -130,7 +130,7 @@ function drawHighlight(treemap: TreemapLayout, evt: TreemapEvent) {
   const { currentNode } = evt.state
   if (currentNode) {
     const [x, y, w, h] = currentNode.layout
-    runEffect((_, cleanup) => {
+    smoothFrame((_, cleanup) => {
       cleanup()
       highlight.reset()
       const mask = createRoundBlock(x, y, w, h, { fill, opacity: HIGH_LIGHT_OPACITY, radius: 4, padding: 2 })
@@ -223,7 +223,7 @@ export class TreemapEvent extends DOMEvent {
     } else {
       // for drag
       const { treemap } = ctx
-      runEffect((_, cleanup) => {
+      smoothFrame((_, cleanup) => {
         cleanup()
         const { offsetX: x, offsetY: y } = metadata.native
         const { dragX: lastX, dragY: lastY } = this.state
@@ -304,13 +304,11 @@ export class TreemapEvent extends DOMEvent {
     const targetScaleRatio = this.matrix.a * delta
     const translateX = offsetX - (offsetX - this.matrix.e) * delta
     const translateY = offsetY - (offsetY - this.matrix.f) * delta
-    runEffect((progress, cleanup) => {
-      this.silent('mousedown')
+    smoothFrame((progress, cleanup) => {
       this.exposedEvent.silent('mousemove')
       this.silent('mousemove')
       this.silent('click')
       this.exposedEvent.silent('click')
-      cleanup()
       treemap.highlight.reset()
       treemap.highlight.setZIndexForHighlight()
       treemap.fontCache.flush(treemap, this.matrix)
@@ -331,12 +329,13 @@ export class TreemapEvent extends DOMEvent {
       )
       stackMatrixTransformWithGraphAndLayer(treemap.elements, this.matrix.e, this.matrix.f, 1)
       treemap.update()
+      cleanup()
     }, {
       duration: ANIMATION_DURATION,
       onStop: () => {
         this.state.forceDestroy = false
         this.state.isWheeling = false
-        this.active('mousedown')
+        // this.active('mousedown')
         this.active('mousemove')
         this.exposedEvent.active('mousemove')
         this.active('click')
@@ -383,7 +382,7 @@ function createOnZoom(treemap: TreemapLayout, evt: TreemapEvent) {
       const targetScale = factor * evt.matrix.a
       const translateX = (boundingClientRect.width / 2) - (mx + mw / 2) * factor
       const translateY = (boundingClientRect.height / 2) - (my + mh / 2) * factor
-      runEffect((progress, cleanup) => {
+      smoothFrame((progress, cleanup) => {
         cleanup()
         evt.silent('mousemove')
         evt.exposedEvent.silent('mousemove')

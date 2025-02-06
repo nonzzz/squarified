@@ -24,7 +24,7 @@ build-lib:
 
 build-pub: bootstrap
 	@echo "Build publish"
-	@$(MAKE) build-lib && $(JK) prepublish && $(JK) publish -no-b && $(JK) postpublish
+	@$(MAKE) build-lib && $(JK) publish -no-b && $(JK) postpublish
 
 
 dev-server:

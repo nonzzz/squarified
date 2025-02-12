@@ -2,9 +2,11 @@ html:not([data-theme="dark"]) {
   --background-color: #fff;
   --foreground-color: #000;
   --accents_1: #fafafa;
-  --theme_display_dark: none;
-  --theme_display_light: block;
+  --theme-display-dark: none;
+  --theme-display-light: block;
   --anchor-color: #000;
+  --menu-opacity: 0.25;
+  --menu-bg: var(--accents_1);
 }
 
 :root {
@@ -17,9 +19,11 @@ html[data-theme="dark"] {
   --background-color: #000;
   --foreground-color: #ddd;
   --accents_1: #111;
-  --theme_display_dark: block;
-  --theme_display_light: none;
+  --theme-display-dark: block;
+  --theme-display-light: none;
   --anchor-color: #ddd;
+  --menu-opacity: 0.65;
+  --menu-bg: #222;
 }
 
 body {
@@ -161,8 +165,68 @@ pre {
   font-size: 14px;
 }
 
+#menu {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  max-width: 1300px;
+  transform: translateX(-220px);
+  transition: transform 0.25s;
+  width: 220px;
+  box-sizing: border-box;
+  background-color: var(--menu-bg);
+  box-shadow: none;
+  margin: 0;
+}
+
+#menu.open {
+  box-shadow: none;
+  padding: 30px 0 0 30px;
+  transform: translateX(0);
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+  box-sizing: border-box;
+  z-index: 4;
+}
+
+#shadow {
+  position: fixed;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 3;
+  visibility: hidden;
+  background-color: rgba(0, 0, 0, 0);
+  transition: visibility 0.25s, background-color 0.25s;
+}
+
+#shadow.open {
+  visibility: visible;
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+#menu.open li {
+  font-size: 0.875rem;
+}
+
+#menu #widget svg {
+  height: 20px;
+  width: 20px;
+}
+
+#menu #widget > a:not(:first-child) {
+  margin-left: 6px;
+}
+
+main {
+  padding: 60px 20px 0px 20px;
+  box-sizing: border-box;
+}
+
 #menu-container {
-  display: none;
+  display: block;
   position: fixed;
   left: -20px;
   top: 0;
@@ -170,14 +234,23 @@ pre {
   height: 50px;
   padding: 0 20px;
   z-index: 2;
+  box-shadow: 0 0 10px rgba(0, 0, 0, var(--menu-opacity));
+  background-color: var(--menu-bg);
+  color: var(--foreground-color);
+}
+
+#menu-container svg {
+  height: 50px;
+  width: 25px;
+  padding-left: 12px;
 }
 
 #theme-light {
-  display: var(--theme_display_light);
+  display: var(--theme-display-light);
 }
 
 #theme-dark {
-  display: var(--theme_display_dark);
+  display: var(--theme-display-dark);
 }
 
 .anchorlink {
@@ -193,6 +266,12 @@ pre {
   opacity: 1;
 }
 
+#menu #widget {
+  display: inline-flex;
+  width: 100%;
+  justify-content: center;
+}
+
 @media screen and (min-width: 800px) {
   body {
     position: relative;
@@ -201,18 +280,21 @@ pre {
     padding: 50px 50px 500px 250px;
   }
   main {
+    padding: 0;
     position: relative;
     z-index: 1;
   }
+
+  #menu-container {
+    display: none;
+  }
+
   #menu {
-    position: fixed;
-    left: 0;
-    right: 0;
-    top: 0;
-    bottom: 0;
-    max-width: 1300px;
+    transform: translateX(0);
     margin: 0 auto;
+    width: initial;
     display: block;
+    background-color: transparent;
   }
   #menu > div {
     margin-top: 20px;
@@ -223,20 +305,11 @@ pre {
     padding: 50px 0 30px 30px;
   }
 
-  #menu #widget {
-    display: inline-flex;
-    width: 100%;
-    justify-content: center;
-  }
-
   #menu > div svg {
     height: 24px;
     width: 24px;
   }
 
-  #menu #widget > a:not(:first-child) {
-    margin-left: 6px;
-  }
   #menu ul li {
     cursor: pointer;
   }

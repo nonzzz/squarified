@@ -281,7 +281,11 @@ const icons = {
       1 32.32-20.06a43.8 43.8 0 0 1 .77 33.58a8.09 8.09 0 0 0 1 7.65a41.7 41.7
       0 0 1 7 22.52Z"/>
   </svg>
-`.trim()
+`.trim(),
+  menu: `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 256 256">
+    <path fill="#888888" d="M224 128a8 8 0 0 1-8 8H40a8 8 0 0 1 0-16h176a8 8 0 0 1 8 8M40 
+    72h176a8 8 0 0 0 0-16H40a8 8 0 0 0 0 16m176 112H40a8 8 0 0 0 0 16h176a8 8 0 0 0 0-16"/>
+  </svg>`.trim()
 }
 
 function widget() {
@@ -336,6 +340,18 @@ async function main() {
     // Body
 
     html.push('<body>')
+
+    // Menubar
+
+    html.push('<div id="menu-container">')
+    html.push('<a href="javascript:void(0)" id="menu-toggle">')
+    html.push(icons.menu)
+    html.push('</a>')
+    html.push('</div>')
+
+    // shadow
+
+    html.push('<div id="shadow"></div>')
 
     // Menu
 

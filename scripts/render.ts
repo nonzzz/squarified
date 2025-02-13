@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-call */
 import esbuild from 'esbuild'
 import fs from 'fs'
 import fsp from 'fs/promises'
@@ -5,6 +6,7 @@ import hljs from 'highlight.js'
 import yaml from 'js-yaml'
 import markdownit from 'markdown-it'
 import path from 'path'
+import { x } from 'tinyexec'
 import type { Theme } from './theme'
 
 const md = markdownit({ html: true })
@@ -18,6 +20,14 @@ const destDir = path.join(__dirname, '..', 'display')
 const scriptDir = __dirname
 
 const target = ['chrome58', 'safari11', 'firefox57', 'edge16']
+
+interface CompileCSSResult {
+  css: string
+  light: string
+  dark: string
+  code: string
+  code2: string
+}
 
 type TagElement = 'p' | 'ul' | 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'pre' | `pre.${string}`
 
@@ -41,6 +51,41 @@ const pages = Object.entries(data)
 
 function createTag<T extends TagElement>(tag: T, value: TagValue<T>): FormattedTag<T> {
   return { tag, value }
+}
+
+interface VirtualModule {
+  id: string
+  code: string
+  exports: Record<string, Any>
+}
+
+class Virtual {
+  private modules = new Map<string, VirtualModule>()
+  createModule(id: string, code: string) {
+    code = code.replace('export', 'module.exports =')
+    const moduleCode = `
+      const module = { exports: {} };
+      const exports = module.exports;
+      (function(module, exports) {
+        ${code}
+        return module.exports;
+      })(module, exports);
+      return module.exports;
+    `
+    // eslint-disable-next-line @typescript-eslint/no-implied-eval
+    const moduleExports = new Function(moduleCode)() as Record<string, Any>
+    this.modules.set(id, {
+      id,
+      code,
+      exports: moduleExports
+    })
+
+    return moduleExports
+  }
+
+  require(id: string) {
+    return this.modules.get(id)?.exports
+  }
 }
 
 export interface Descriptor {
@@ -96,6 +141,20 @@ function buildAndMinifyJS(entry: string) {
   throw new Error('No output files')
 }
 
+function buildJSFromText(text: string, format: 'esm' | 'iife' | 'cjs' = 'esm') {
+  return esbuild.buildSync({
+    stdin: {
+      contents: text,
+      loader: 'ts',
+      resolveDir: process.cwd()
+    },
+    write: false,
+    bundle: true,
+    format,
+    minify: false
+  })
+}
+
 const formatedPages = pages.reduce((acc, [page, pageData]) => {
   if (typeof pageData === 'string') {
     if (pageData.endsWith('.yaml')) {
@@ -134,7 +193,7 @@ const hljsGithubCSS = {
   dark: pipeOriginalCSSIntoThemeSystem(fs.readFileSync(path.join(hljsPath, 'styles/github-dark.css'), 'utf-8'), 'dark')
 }
 
-const commonCSS = minifyCSS(fs.readFileSync(path.join(scriptDir, 'style.css'), 'utf8'))
+// const commonCSS = minifyCSS(fs.readFileSync(path.join(scriptDir, 'style.css'), 'utf8'))
 
 const coomonScript = minifyJS(fs.readFileSync(path.join(scriptDir, 'theme.ts'), 'utf8'))
 
@@ -316,7 +375,40 @@ function buildExampleDisplay() {
   return html
 }
 
+async function buildCSS() {
+  const r = await x('./node_modules/.bin/tsx', ['./scripts/compile-css.ts'], { nodeOptions: { cwd: process.cwd() } })
+  if (r.stderr) {
+    throw new Error(r.stderr)
+  }
+  const { code, ...rest } = JSON.parse(r.stdout) as CompileCSSResult
+
+  const { outputFiles } = buildJSFromText(
+    code.replace(/import\s+{[^}]+}\s+from\s+['"].*\.stylex['"];?\n?/g, rest.code2)
+      .replace(/export\s+default\s+/g, '\n')
+  )
+  return { code: outputFiles[0].text, ...rest }
+}
+
+interface StyleXResult {
+  class: string
+  style?: string
+}
+
+interface CSSModule {
+  menu: StyleXResult
+  shadow: StyleXResult
+  main: StyleXResult
+  menuContent: StyleXResult
+  menuBadge: StyleXResult
+}
+
 async function main() {
+  const stdout = await buildCSS()
+  const virtual = new Virtual()
+  virtual.createModule('css', stdout.code)
+
+  const css = virtual.require('css') as CSSModule
+
   for (const [page, pageData] of formatedPages) {
     const html: string[] = []
     html.push('<!DOCTYPE html>')
@@ -334,7 +426,8 @@ async function main() {
     html.push('<meta property="og:description" content="A simple and fast way to generate treemaps"/>')
     html.push(`<style>${hljsGithubCSS.light}</style>`)
     html.push(`<style>${hljsGithubCSS.dark}</style>`)
-    html.push(`<style>${commonCSS}</style>`)
+    html.push(`<style>${minifyCSS(stdout.css)}</style>`)
+    html.push(`<script>${buildJSFromText(stdout.code, 'iife').outputFiles[0].text}</script>`)
     html.push('</head>')
 
     // Body
@@ -343,7 +436,7 @@ async function main() {
 
     // Menubar
 
-    html.push('<div id="menu-container">')
+    html.push(`<div id="menu-container" class="${css.menuBadge.class}" style="${css.menuBadge.style}">`)
     html.push('<a href="javascript:void(0)" id="menu-toggle">')
     html.push(icons.menu)
     html.push('</a>')
@@ -351,13 +444,13 @@ async function main() {
 
     // shadow
 
-    html.push('<div id="shadow"></div>')
+    html.push(`<div id="shadow" class="${css.shadow.class}"></div>`)
 
     // Menu
 
     html.push('<aside>')
-    html.push('<nav id="menu">')
-    html.push('<div>')
+    html.push(`<nav id="menu" class="${css.menu.class}" style="${css.menu.style}">`)
+    html.push(`<div class="${css.menuContent.class}">`)
     html.push(widget().join(''))
     html.push('<ul>')
     html.push(renderMenu())
@@ -372,7 +465,7 @@ async function main() {
     html.push('</aside>')
 
     // Article
-    html.push('<main>')
+    html.push(`<main class="${css.main.class}">`)
     html.push(renderMainSection(page, pageData))
     html.push('</main>')
     html.push('</body>')

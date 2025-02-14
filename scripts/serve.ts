@@ -78,7 +78,7 @@ function createStaticLivingServer() {
 }
 
 async function prepareDisplay() {
-  const r = await x('./node_modules/.bin/tsx', ['./scripts/render.ts'], { nodeOptions: { cwd: process.cwd() } })
+  const r = await x('./node_modules/.bin/tsx', ['./scripts/render.tsx'], { nodeOptions: { cwd: process.cwd() } })
   if (r.stderr) {
     throw new Error(r.stderr)
   }

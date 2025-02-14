@@ -39,4 +39,4 @@ dev-docs:
 	./node_modules/.bin/tsx scripts/serve.ts
 
 build-docs:
-	./node_modules/.bin/tsx scripts/render.ts
+	./node_modules/.bin/tsx scripts/render.tsx

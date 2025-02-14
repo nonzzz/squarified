@@ -11,6 +11,9 @@
     "resolveJsonModule": true,
     "module": "ESNext",
     "moduleResolution": "Bundler",
+    "jsx": "preserve",
+    "jsxFactory": "h",
+    "jsxFragmentFactory": "Fragment",
     "strict": true
   }
 }

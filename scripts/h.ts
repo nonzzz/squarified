@@ -1,6 +1,35 @@
 /* eslint-disable no-use-before-define */
 // preact is fine, but i won't need it for the project.
 // Note: This is a minimal implementation that only do jsx to html string conversion.
+interface Context {
+  refs: Map<string, Ref<unknown>>
+  clientCallbacks: Array<{ fn: () => void, refs: string[] }>
+  currentRefs: string[]
+  id: symbol
+}
+
+let currentContext: Context | null = null
+const contexts = new Map<symbol, Context>()
+
+function createContext(): Context {
+  return {
+    refs: new Map(),
+    clientCallbacks: [],
+    currentRefs: [],
+    id: Symbol('context')
+  }
+}
+
+function withContext<T>(fn: () => T): T {
+  const prevContext = currentContext
+  currentContext = createContext()
+  try {
+    return fn()
+  } finally {
+    contexts.delete(currentContext.id)
+    currentContext = prevContext
+  }
+}
 
 export type HTMLTag = keyof HTMLElementTagNameMap
 
@@ -111,10 +140,16 @@ const SVG_TAGS = new Set([
   'tspan'
 ])
 
-export function renderToString(node: VNode): string {
-  const { vnode } = processVNode(node)
-
-  return processNodeToStr(vnode)
+export function renderToString(node: VNode) {
+  return withContext(() => {
+    const context = currentContext!
+    const { vnode, refMap } = processVNode(node)
+    return {
+      html: processNodeToStr(vnode),
+      refMap,
+      onClientMethods: context.clientCallbacks
+    }
+  })
 }
 
 export function processNodeToStr(node: Child): string {
@@ -179,36 +214,59 @@ export type RefCallback<T> = (instance: T | null) => void
 export type Ref<T> = RefObject<T> | RefCallback<T>
 
 export function useRef<T>(initialValue: T | null = null): RefObject<T> {
-  return { current: initialValue }
+  if (!currentContext) {
+    throw new Error('useRef must be called within a component')
+  }
+  const id = `ref_${currentContext.refs.size}`
+  const ref = { current: initialValue }
+  currentContext.refs.set(id, ref)
+  currentContext.currentRefs.push(id)
+  return ref
 }
 
 export function processVNode(rootNode: VNode) {
+  const context = currentContext!
   const refMap: Record<string, Ref<unknown>> = {}
-  let refId = 0
 
   function processNode(node: VNode<unknown>): VNode<unknown> {
-    if (typeof node.type === 'function') {
-      const result = node.type(node.props)
-      return processNode(result)
-    }
-
-    const processedNode = { ...node }
-
-    if (node.props?.ref) {
-      processedNode.__id__ = `ref_${refId++}`
-      refMap[processedNode.__id__] = node.props.ref
-    }
-
-    processedNode.children = node.children.map((child) => {
-      if (child && typeof child === 'object' && 'type' in child) {
-        return processNode(child as VNode)
+    return withContext(() => {
+      if (typeof node.type === 'function') {
+        const result = node.type(node.props)
+        const processed = processNode(result)
+        context.clientCallbacks.push(...currentContext!.clientCallbacks)
+        return processed
       }
-      return child
-    })
 
-    return processedNode
+      const processedNode = { ...node }
+
+      if (node.props?.ref) {
+        const id = `ref_${Object.keys(refMap).length}`
+        processedNode.__id__ = id
+        refMap[id] = node.props.ref
+      }
+
+      processedNode.children = node.children.map((child) => {
+        if (child && typeof child === 'object' && 'type' in child) {
+          return processNode(child as VNode)
+        }
+        return child
+      })
+
+      return processedNode
+    })
   }
 
   const processedVNode = processNode(rootNode)
   return { vnode: processedVNode, refMap }
+}
+
+export function onClient(callback: () => void) {
+  if (!currentContext) {
+    throw new Error('onClient must be called within a component')
+  }
+  currentContext.clientCallbacks.push({
+    fn: callback,
+    refs: [...currentContext.currentRefs]
+  })
+  currentContext.currentRefs = []
 }

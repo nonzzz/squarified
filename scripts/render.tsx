@@ -6,8 +6,7 @@ import yaml from 'js-yaml'
 import markdownit from 'markdown-it'
 import path from 'path'
 import type { Component } from './h'
-import { Fragment, h, renderToString, useRef } from './h'
-import { hydrate } from './hydrate'
+import { Fragment, h, onClient, renderToString } from './h'
 import type { Theme } from './theme'
 /// <reference path="./jsx-namespace.d.ts" />
 
@@ -260,7 +259,9 @@ function Menu() {
     structure.push(root)
   }
 
-  const ref = useRef()
+  onClient(() => {
+    console.log('todo')
+  })
 
   return (
     <aside>
@@ -270,7 +271,7 @@ function Menu() {
             <a aria-label="View this project on GitHub" href="https://github.com/nonzzz/squarified">
               <Icons.GitHub />
             </a>
-            <a href="javascript:void(0)" aria-label="Toggle theme" id="theme-toggle" ref={ref}>
+            <a href="javascript:void(0)" aria-label="Toggle theme" id="theme-toggle">
               <Icons.Moon />
               <Icons.Sun />
             </a>
@@ -421,32 +422,42 @@ function buildExampleDisplay() {
 async function main() {
   for (const [page, pageData] of formatedPages) {
     const html: string[] = []
-    const { refMap } = hydrate(<Layout data={pageData} />)
+
     html.push('<!DOCTYPE html>')
-    html.push(renderToString(
+    const { html: s, onClientMethods, refMap } = renderToString(
       <html lang="en">
         <Head title={pageData.title} />
         <body>
           <Layout data={pageData} />
           <script>
-            window.__REFS__ = {JSON.stringify(refMap)};
             {commonScript}
           </script>
         </body>
       </html>
-    ))
-
+    )
+    html.push(s)
     html.push(`<script>
-      const refObject = window.__REFS__
+      window.__REFS__ = ${JSON.stringify(refMap)};
+      window.__MOUNTED_CALLBACKS__ = ${JSON.stringify(onClientMethods.map((c) => ({ f: c.fn.toString(), refs: c.refs })))};
       window.addEventListener('DOMContentLoaded', () => {
-         for (const id in refObject) {
-            const ref = refObject[id]
+         const refs = {};
+         for (const id in window.__REFS__) {
+            const ref = window.__REFS__[id]
             const el = document.querySelector('[data-ref="' + id + '"]')
+            refs[id] = el;
             if (el && typeof ref === 'object') {
-              ref.current = el
-            }
+              ref.current = el;
+            };
          }
-      })
+         window.__MOUNTED_CALLBACKS__.forEach(({f, refs}) => {
+          const refsForCallback = {};
+          refs.forEach(r => {
+           refsForCallback[r] = refs[r];
+          })
+          const fn = new Function('return (' + f + ')();');
+          fn();
+         });
+      });
     </script>`)
 
     if (!fs.existsSync(Dirs.dest)) {

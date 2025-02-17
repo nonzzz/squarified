@@ -82,6 +82,7 @@ async function prepareDisplay() {
   if (r.stderr) {
     throw new Error(r.stderr)
   }
+  console.log(r.stdout)
   return r.exitCode === 0
 }
 

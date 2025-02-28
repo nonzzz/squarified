@@ -175,6 +175,92 @@ const hljsGitHubCSS = {
   dark: pipeOriginalCSSIntoThemeSystem(fs.readFileSync(path.join(hljsPath, 'styles/github-dark.css'), 'utf-8'), 'dark')
 }
 
+export function Logo() {
+  return (
+    <svg
+      className="logo"
+      width="40"
+      height="40"
+      viewBox="0 0 40 40"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <rect
+        x="4"
+        y="4"
+        width="32"
+        height="32"
+        rx="6"
+        fill="var(--menu-bg)"
+        stroke="var(--foreground-color)"
+        strokeWidth="1.5"
+      />
+      <g>
+        <rect
+          x="8"
+          y="8"
+          width="11"
+          height="11"
+          fill="var(--foreground-color)"
+          opacity="0.55"
+        >
+          <animateTransform
+            attributeName="transform"
+            type="scale"
+            values="1;1.2;1"
+            dur="3s"
+            repeatCount="indefinite"
+            additive="sum"
+            calcMode="spline"
+            keySplines="0.4 0 0.2 1; 0.4 0 0.2 1"
+          />
+        </rect>
+        <rect
+          x="21"
+          y="8"
+          width="11"
+          height="11"
+          fill="var(--foreground-color)"
+          opacity="0.75"
+        >
+          <animate
+            attributeName="width"
+            values="11;8;11"
+            dur="3s"
+            repeatCount="indefinite"
+            calcMode="spline"
+            keySplines="0.4 0 0.2 1; 0.4 0 0.2 1"
+          />
+          <animate
+            attributeName="x"
+            values="21;24;21"
+            dur="3s"
+            repeatCount="indefinite"
+            calcMode="spline"
+            keySplines="0.4 0 0.2 1; 0.4 0 0.2 1"
+          />
+        </rect>
+        <rect
+          x="8"
+          y="21"
+          width="24"
+          height="11"
+          fill="var(--foreground-color)"
+          opacity="0.85"
+        >
+          <animate
+            attributeName="y"
+            values="21;23;21"
+            dur="2s"
+            repeatCount="indefinite"
+            calcMode="spline"
+            keySplines="0.4 0 0.2 1; 0.4 0 0.2 1"
+          />
+        </rect>
+      </g>
+    </svg>
+  )
+}
 function Head(props: HeadProps) {
   const { title } = props
   return (
@@ -276,6 +362,9 @@ function Menu() {
       <nav id="menu">
         <div>
           <div id="widget">
+            <a aria-label="Project Brand" href="./">
+              <Logo />
+            </a>
             <a aria-label="View this project on GitHub" href="https://github.com/nonzzz/squarified">
               <Icons.GitHub />
             </a>
@@ -479,7 +568,7 @@ async function main() {
 
         return { preferredDark, updateTheme, toggleTheme }
       };
-      window.__MOUNTED_CALLBACKS__ = ${JSON.stringify(onClientMethods.map((c) => ({ f: c.fn.toString() })))};
+      window.__MOUNTED_CALLBACKS__ = ${JSON.stringify(onClientMethods.map((c) => ({ f: c.toString() })))};
       window.addEventListener('DOMContentLoaded', () => {
          window.__MOUNTED_CALLBACKS__.forEach(({f}) => {
           const fn = new Function('return (' + f + ')();');

@@ -1,31 +1,6 @@
 /* eslint-disable no-use-before-define */
 // preact is fine, but i won't need it for the project.
 // Note: This is a minimal implementation that only do jsx to html string conversion.
-interface Context {
-  clientCallbacks: Array<{ fn: () => void }>
-  id: symbol
-}
-
-let currentContext: Context | null = null
-const contexts = new Map<symbol, Context>()
-
-function createContext(): Context {
-  return {
-    clientCallbacks: [],
-    id: Symbol('context')
-  }
-}
-
-function withContext<T>(fn: () => T): T {
-  const prevContext = currentContext
-  currentContext = createContext()
-  try {
-    return fn()
-  } finally {
-    contexts.delete(currentContext.id)
-    currentContext = prevContext
-  }
-}
 
 export type HTMLTag = keyof HTMLElementTagNameMap
 
@@ -88,7 +63,8 @@ function normalizeKey(key: string, isSvg: boolean): string {
   }
   const specialCases: Record<string, string> = {
     className: 'class',
-    htmlFor: 'for'
+    htmlFor: 'for',
+    charSet: 'charset'
   }
   return specialCases[key] || key.replace(/[A-Z]/g, (m) => `-${m.toLowerCase()}`)
 }
@@ -133,18 +109,20 @@ const SVG_TAGS = new Set([
   'polyline',
   'polygon',
   'text',
-  'tspan'
+  'tspan',
+  'animate'
 ])
 
+let onClientCallbacks: Array<() => void> = []
+
 export function renderToString(node: VNode) {
-  return withContext(() => {
-    const context = currentContext!
-    const { vnode } = processVNode(node)
-    return {
-      html: processNodeToStr(vnode),
-      onClientMethods: context.clientCallbacks
-    }
-  })
+  const { vnode } = processVNode(node)
+  const callbacks = [...onClientCallbacks]
+  onClientCallbacks = []
+  return {
+    html: processNodeToStr(vnode),
+    onClientMethods: callbacks
+  }
 }
 
 export function processNodeToStr(node: Child): string {
@@ -202,28 +180,23 @@ export function processNodeToStr(node: Child): string {
 }
 
 export function processVNode(rootNode: VNode) {
-  const context = currentContext!
-
   function processNode(node: VNode<unknown>): VNode<unknown> {
-    return withContext(() => {
-      if (typeof node.type === 'function') {
-        const result = node.type(node.props)
-        const processed = processNode(result)
-        context.clientCallbacks.push(...currentContext!.clientCallbacks)
-        return processed
+    if (typeof node.type === 'function') {
+      const result = node.type(node.props)
+      const processed = processNode(result)
+      return processed
+    }
+
+    const processedNode = { ...node }
+
+    processedNode.children = node.children.map((child) => {
+      if (child && typeof child === 'object' && 'type' in child) {
+        return processNode(child as VNode)
       }
-
-      const processedNode = { ...node }
-
-      processedNode.children = node.children.map((child) => {
-        if (child && typeof child === 'object' && 'type' in child) {
-          return processNode(child as VNode)
-        }
-        return child
-      })
-
-      return processedNode
+      return child
     })
+
+    return processedNode
   }
 
   const processedVNode = processNode(rootNode)
@@ -231,10 +204,5 @@ export function processVNode(rootNode: VNode) {
 }
 
 export function onClient(callback: () => void) {
-  if (!currentContext) {
-    throw new Error('onClient must be called within a component')
-  }
-  currentContext.clientCallbacks.push({
-    fn: callback
-  })
+  onClientCallbacks.push(callback)
 }

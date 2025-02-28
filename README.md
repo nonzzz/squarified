@@ -2,7 +2,9 @@
 
 `squarified` is a minimal and powerful treemap component.
 
-![display](./data.mp4)
+<video src="./data.mp4" placeholder="./data.mp4" autoplay loop controls muted title="test-title">
+Sorry, your browser doesn't support HTML 5 video.
+</video>
 
 ## Install
 

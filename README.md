@@ -2,7 +2,7 @@
 
 `squarified` is a minimal and powerful treemap component.
 
-![display](./data.gif)
+![display](./data.mp4)
 
 ## Install
 

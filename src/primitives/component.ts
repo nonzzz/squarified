@@ -55,30 +55,16 @@ export function evaluateOptimalFontSize(
   desiredW = Math.floor(desiredW)
   desiredH = Math.floor(desiredH)
   const { range, family } = font
-  let min = range.min
-  let max = range.max
-  const cache = new Map<number, { width: number, height: number }>()
+  c.font = `${range.max}px ${family}`
+  const metrics = c.measureText(text)
+  const height = metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent
+  const ratio = metrics.width / range.max
 
-  while (max - min >= 1) {
-    const current = min + (max - min) / 2
-    if (!cache.has(current)) {
-      c.font = `${current}px ${family}`
-      const metrics = c.measureText(text)
-      const width = metrics.width
-      const height = metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent
-      cache.set(current, { width, height })
-    }
+  const byWidth = Math.floor(desiredW / ratio)
+  const byHeight = Math.floor(desiredH / height * range.max)
 
-    const { width, height } = cache.get(current)!
-
-    if (width > desiredW || height > desiredH) {
-      max = current
-    } else {
-      min = current
-    }
-  }
-
-  return Math.floor(min)
+  const optimalSize = Math.min(byWidth, byHeight)
+  return Math.min(Math.max(optimalSize, range.min), range.max)
 }
 
 export function getSafeText(c: CanvasRenderingContext2D, text: string, width: number, cache: Record<string, number>) {

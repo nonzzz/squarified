@@ -44,9 +44,6 @@ export interface TreemapEventContext {
 }
 
 export interface TreemapEventState {
-  // isDragging: boolean
-  // isWheeling: boolean
-  // isZooming: boolean
   forceDestroy: boolean
   currentNode: LayoutModule | null
   dragX: number

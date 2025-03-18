@@ -1,13 +1,15 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
-import { c2m, createTreemap, presetDecorator, sortChildrenByKey } from '../src'
+import { createTreemapV2 } from 'src/_index'
+import { c2m, sortChildrenByKey } from '../src'
 
 import './live-reload'
+import { colorScheme } from '../src/plugins'
 
 const root = document.querySelector<HTMLDivElement>('#app')!
-const treemap = createTreemap()
-treemap.use('decorator', presetDecorator)
+const treemap = createTreemapV2({ plugins: [colorScheme] })
+// treemap.use('decorator', presetDecorator)
 
 function loadData() {
   return fetch('data.json').then((res) => res.json()).then((data: Any[]) => data)
@@ -19,7 +21,6 @@ async function main() {
     data.map((item) => c2m({ ...item, groups: item.children }, 'value', (d) => ({ ...d, id: d.path, label: d.name }))),
     'weight'
   )
-
   treemap.setOptions({
     data: sortedData
   })
@@ -28,9 +29,9 @@ async function main() {
 treemap.init(root)
 
 main().catch(console.error)
-treemap.on('click', function(metadata) {
-  // this.zoom(metadata.module)
-})
+// treemap.on('click', function(metadata) {
+//   // this.zoom(metadata.module)
+// })
 
 new ResizeObserver(() => treemap.resize()).observe(root)
 

@@ -29,7 +29,7 @@ treemap.init(root)
 
 main().catch(console.error)
 treemap.on('click', function(metadata) {
-  this.zoom(metadata.module)
+  // this.zoom(metadata.module)
 })
 
 new ResizeObserver(() => treemap.resize()).observe(root)

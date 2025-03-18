@@ -44,9 +44,9 @@ export interface TreemapEventContext {
 }
 
 export interface TreemapEventState {
-  isDragging: boolean
-  isWheeling: boolean
-  isZooming: boolean
+  // isDragging: boolean
+  // isWheeling: boolean
+  // isZooming: boolean
   forceDestroy: boolean
   currentNode: LayoutModule | null
   dragX: number
@@ -138,27 +138,77 @@ function drawHighlight(treemap: TreemapLayout, evt: TreemapEvent) {
       highlight.setZIndexForHighlight('1')
       stackMatrixTransform(mask, evt.matrix.e, evt.matrix.f, 1)
       highlight.update()
+      evt.actionState.reset()
       if (!evt.state.currentNode) {
         return true
       }
     }, {
       duration: ANIMATION_DURATION,
-      deps: [() => evt.state.isDragging, () => evt.state.isWheeling, () => evt.state.isZooming]
+      // () => evt.state.isDragging, () => evt.state.isWheeling, () => evt.state.isZooming
+      deps: []
     })
   } else {
+    evt.actionState.reset()
     highlight.reset()
     highlight.setZIndexForHighlight()
+    highlight.update()
   }
 }
 
-// TODO: Do we need turn off internal events?
+export type AnctionState = 'idle' | 'drag' | 'zoom' | 'wheel' | 'mousemove'
+
+interface StateTransition {
+  from: AnctionState
+  to: AnctionState
+  condition?: () => boolean
+}
+
+export class AnctionStateMachine {
+  private currentState: AnctionState
+  private transitions: StateTransition[]
+
+  constructor() {
+    this.currentState = 'idle'
+    this.transitions = [
+      { from: 'idle', to: 'drag' },
+      { from: 'idle', to: 'zoom' },
+      { from: 'idle', to: 'wheel' },
+      { from: 'idle', to: 'mousemove' },
+      { from: 'drag', to: 'idle' },
+      { from: 'zoom', to: 'idle' },
+      { from: 'wheel', to: 'idle' },
+      { from: 'mousemove', to: 'idle' }
+    ]
+  }
+
+  getCurrentState() {
+    return this.currentState
+  }
+  canTransition(to: AnctionState) {
+    const transition = this.transitions.find((t) => t.from === this.currentState && t.to === to)
+    return Boolean(transition && (!transition?.condition || transition?.condition()))
+  }
+  transition(to: AnctionState) {
+    if (!this.canTransition(to)) {
+      return false
+    }
+    this.currentState = to
+    return true
+  }
+  reset() {
+    this.currentState = 'idle'
+  }
+}
+
 export class TreemapEvent extends DOMEvent {
   exposedEvent: _Event<ExposedEventDefinition>
   state: TreemapEventState
   zoom: ReturnType<typeof createOnZoom>
+  actionState: AnctionStateMachine
   constructor(app: App, treemap: TreemapLayout) {
     super(treemap.render.canvas)
     this.exposedEvent = new _Event()
+    this.actionState = new AnctionStateMachine()
     this.state = createTreemapEventState()
     const exposedMethods: InheritedCollections[] = [
       { name: 'on', fn: () => this.exposedEvent.bindWithContext(treemap.api) },
@@ -183,6 +233,7 @@ export class TreemapEvent extends DOMEvent {
     treemap.event.on(INTERNAL_EVENT_MAPPINGS.ON_CLEANUP, () => {
       this.matrix.create({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 })
       this.state = createTreemapEventState()
+      this.actionState.reset()
     })
     this.zoom = createOnZoom(treemap, this)
 
@@ -202,26 +253,31 @@ export class TreemapEvent extends DOMEvent {
     }
 
     // note: onmouseup event will trigger click event together
-    if (ctx.type === 'mousemove') {
-      if (this.state.isDragging) {
-        this.exposedEvent.silent('click')
-      } else {
-        this.exposedEvent.active('click')
-      }
-    }
+    // if (ctx.type === 'mousemove') {
+    //   if (this.state.isDragging) {
+    //     this.exposedEvent.silent('click')
+    //   } else {
+    //     this.exposedEvent.active('click')
+    //   }
+    // }
 
     // For macOS
     this.exposedEvent.emit(ctx.type === 'macOSWheel' ? 'wheel' : ctx.type, { native: metadata.native, module: node })
   }
 
   private onmousemove(ctx: TreemapEventContext, metadata: DOMEventMetadata<'mousemove'>, node: LayoutModule | null) {
-    if (!this.state.isDragging) {
+    if (this.actionState.getCurrentState() === 'wheel') {
+      return
+    }
+    if (this.actionState.canTransition('mousemove')) {
+      this.actionState.transition('mousemove')
       if (this.state.currentNode !== node || !node) {
         this.state.currentNode = node
+        drawHighlight(ctx.treemap, this)
       }
-      drawHighlight(ctx.treemap, this)
-    } else {
-      // for drag
+      return
+    }
+    if (this.actionState.getCurrentState() === 'drag') {
       const { treemap } = ctx
       smoothFrame((_, cleanup) => {
         cleanup()
@@ -241,10 +297,41 @@ export class TreemapEvent extends DOMEvent {
         duration: ANIMATION_DURATION,
         deps: [() => this.state.forceDestroy],
         onStop: () => {
-          this.state.isDragging = false
+          // this.actionState.reset()
+          // this.state.isDragging = false
         }
       })
     }
+    // if (!this.state.isDragging) {
+    //   if (this.state.currentNode !== node || !node) {
+    //     this.state.currentNode = node
+    //   }
+    //   drawHighlight(ctx.treemap, this)
+    // } else {
+    //   // for drag
+    //   const { treemap } = ctx
+    //   smoothFrame((_, cleanup) => {
+    //     cleanup()
+    //     const { offsetX: x, offsetY: y } = metadata.native
+    //     const { dragX: lastX, dragY: lastY } = this.state
+    //     const drawX = x - lastX
+    //     const drawY = y - lastY
+    //     treemap.highlight.reset()
+    //     treemap.highlight.setZIndexForHighlight()
+    //     treemap.reset()
+    //     this.matrix.translation(drawX, drawY)
+    //     Object.assign(this.state, { isDragging: true, dragX: x, dragY: y })
+    //     stackMatrixTransformWithGraphAndLayer(treemap.elements, this.matrix.e, this.matrix.f, 1)
+    //     treemap.update()
+    //     return true
+    //   }, {
+    //     duration: ANIMATION_DURATION,
+    //     deps: [() => this.state.forceDestroy],
+    //     onStop: () => {
+    //       this.state.isDragging = false
+    //     }
+    //   })
+    // }
   }
 
   private onmouseout(ctx: TreemapEventContext) {
@@ -256,31 +343,44 @@ export class TreemapEvent extends DOMEvent {
     if (isScrollWheelOrRightButtonOnMouseupAndDown(metadata.native)) {
       return
     }
-    this.state.isDragging = true
-    this.state.dragX = metadata.native.offsetX
-    this.state.dragY = metadata.native.offsetY
-    this.state.forceDestroy = false
-    if (!ctx.treemap.renderCache.state) {
-      this.exposedEvent.silent('mousemove')
-      this.silent('mousemove')
-      ctx.treemap.renderCache.flush(ctx.treemap, this.matrix)
-      this.active('mousemove')
-      this.exposedEvent.active('mousemove')
+    if (this.actionState.canTransition('drag')) {
+      this.actionState.transition('drag')
+      this.state.dragX = metadata.native.offsetX
+      this.state.dragY = metadata.native.offsetY
+      this.state.forceDestroy = false
+      if (!ctx.treemap.renderCache.state) {
+        this.exposedEvent.silent('mousemove')
+        this.silent('mousemove')
+        ctx.treemap.renderCache.flush(ctx.treemap, this.matrix)
+        this.active('mousemove')
+        this.exposedEvent.active('mousemove')
+      }
+      console.log('dragging', this.actionState.getCurrentState())
     }
+    // this.state.isDragging = true
   }
 
   private onmouseup(ctx: TreemapEventContext) {
-    if (!this.state.isDragging) {
+    // if (!this.state.isDragging) {
+    //   return
+    // }
+    if (this.actionState.getCurrentState() !== 'drag') {
       return
     }
     this.state.forceDestroy = true
-    this.state.isDragging = false
+    // this.state.isDragging = false
     const { treemap } = ctx
+    console.log(this.actionState.getCurrentState(), 'up')
     treemap.highlight.reset()
     treemap.highlight.setZIndexForHighlight()
   }
 
   private onwheel(ctx: TreemapEventContext, metadata: DOMEventMetadata<'wheel'>) {
+    if (!this.actionState.canTransition('wheel')) {
+      return
+    }
+    this.actionState.transition('wheel')
+
     ctx.treemap.renderCache.destroy()
 
     ctx.treemap.event.silent(INTERNAL_EVENT_MAPPINGS.ON_ZOOM)
@@ -312,7 +412,6 @@ export class TreemapEvent extends DOMEvent {
       treemap.highlight.reset()
       treemap.highlight.setZIndexForHighlight()
       treemap.fontCache.flush(treemap, this.matrix)
-      this.state.isWheeling = true
       const easedProgress = easing.cubicInOut(progress)
       const scale = (targetScaleRatio - this.matrix.a) * easedProgress
       this.matrix.a += scale
@@ -334,8 +433,7 @@ export class TreemapEvent extends DOMEvent {
       duration: ANIMATION_DURATION,
       onStop: () => {
         this.state.forceDestroy = false
-        this.state.isWheeling = false
-        // this.active('mousedown')
+        this.actionState.reset()
         this.active('mousemove')
         this.exposedEvent.active('mousemove')
         this.active('click')

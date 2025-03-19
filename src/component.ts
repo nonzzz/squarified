@@ -20,6 +20,7 @@ export class Component extends Schedule implements ComponentDefinition {
   data: NativeModule[]
   rectLayer: Box
   textLayer: Box
+  layoutNodes: LayoutModule[]
   constructor(...args: ConstructorParameters<typeof Schedule>) {
     super(...args)
     this.name = 'squarified-treemap'
@@ -28,6 +29,7 @@ export class Component extends Schedule implements ComponentDefinition {
     this.data = []
     this.rectLayer = new Box()
     this.textLayer = new Box()
+    this.layoutNodes = []
   }
   private drawBroundRect(node: LayoutModule) {
     const [x, y, w, h] = node.layout
@@ -49,12 +51,12 @@ export class Component extends Schedule implements ComponentDefinition {
   draw() {
     // prepare data
     const { width, height } = this.render.options
-    const layoutNodes = squarify(this.data, { w: width, h: height, x: 0, y: 0 }, defaultLayoutOptions)
-    this.colorScheme = this.pluginDriver.seqScheme('color', layoutNodes)
-    for (const node of layoutNodes) {
+    this.layoutNodes = squarify(this.data, { w: width, h: height, x: 0, y: 0 }, defaultLayoutOptions)
+    this.colorScheme = this.pluginDriver.seqScheme('color', this.layoutNodes)
+    for (const node of this.layoutNodes) {
       this.drawBroundRect(node)
     }
-    for (const node of layoutNodes) {
+    for (const node of this.layoutNodes) {
       this.drawText(node)
     }
     this.add(this.rectLayer)

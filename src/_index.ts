@@ -70,7 +70,7 @@ export function createTreemapV2<const T extends Plugin[]>(options: {plugins:T}={
       }
       domEvent = new DOMEvent(component)
       installed = true
-      domEvent.on('__exposed__', (type, metadata) => exposedEvent.emit(type, metadata))
+      domEvent.on('__exposed__', (type, ...args) => exposedEvent.emit(type, ...args))
       component.pluginDriver.runHandler(domEvent)
     }
   }
@@ -79,7 +79,6 @@ export function createTreemapV2<const T extends Plugin[]>(options: {plugins:T}={
       domEvent.destory()
       component.destory()
       root.removeChild(root.firstChild!)
-
       for (const evt in exposedEvent.eventCollections) {
         exposedEvent.off(evt)
       }

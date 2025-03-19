@@ -2,12 +2,11 @@ import { Component } from './component'
 import { Event } from './etoile'
 import type { BindThisParameter } from './etoile'
 import { log } from './etoile/native/log'
-import { zoom } from './plugins'
 import { DOMEvent } from './primitives/dom-event'
 import type { DOMEventMetadata, DOMEventType } from './primitives/dom-event'
 import { Plugin } from './primitives/fly'
 import { Module, bindParentForModule } from './primitives/struct'
-import { InheritedCollections, mixin } from './shared'
+import { mixin } from './shared'
 
 export interface CreateTreemapOptions {
   plugins?: Plugin[]
@@ -32,17 +31,14 @@ export interface ExposedEventMethods<C = Any, D = ExposedEventDefinition> {
   ): void
 }
 
-type PluginHelp<T extends Plugin[]>=T extends [infer L,...infer R]
-? L extends Plugin
-  ?  ReturnType<NonNullable<L['handler']>> extends void
-    ? {}
-    : R extends Plugin[]
-      ? ReturnType<NonNullable<L['handler']>> & PluginHelp<R>
-      : {}
-  :{}
-:{}
+type PluginHelp<T extends Plugin[]> = T extends [infer L, ...infer R]
+  ? L extends Plugin ? ReturnType<NonNullable<L['handler']>> extends void ? Record<string, never>
+    : R extends Plugin[] ? ReturnType<NonNullable<L['handler']>> & PluginHelp<R>
+    : Record<string, never>
+  : Record<string, never>
+  : Record<string, never>
 
-export function createTreemapV2<const T extends Plugin[]>(options: {plugins:T}={plugins:[] as unknown as T}) {
+export function createTreemapV2<const T extends Plugin[]>(options: { plugins: T } = { plugins: [] as unknown as T }) {
   let component: Component | null = null
   let root: HTMLElement | null = null
   let installed = false
@@ -50,8 +46,11 @@ export function createTreemapV2<const T extends Plugin[]>(options: {plugins:T}={
 
   const exposedEvent = new Event()
 
-
   const { plugins = [] } = options
+
+  if (!Array.isArray(plugins)) {
+    throw new Error(log.error('Plugins must be an array.'))
+  }
 
   const context = {
     init,
@@ -105,14 +104,12 @@ export function createTreemapV2<const T extends Plugin[]>(options: {plugins:T}={
     resize()
   }
 
-  const base=mixin(context, [
+  const base = mixin(context, [
     { name: 'on', fn: () => exposedEvent.bindWithContext({}) },
     { name: 'off', fn: () => exposedEvent.off.bind(exposedEvent) }
   ])
 
-  return base as typeof base & PluginHelp<T>
+  return base as typeof base & ExposedEventMethods & PluginHelp<T>
 }
-
-createTreemapV2({plugins:[zoom]}).zoom
 
 export * from './primitives/fly'

@@ -39,13 +39,15 @@ type DOMEventHandlers = {
 export const STATE_TRANSITION = {
   IDLE: 'IDLE',
   DRAGGING: 'DRAGGING',
-  ZOOMING: 'ZOOMING'
+  ZOOMING: 'ZOOMING',
+  MOVE: 'MOVE'
 } as const
 
 export type StateTransition = typeof STATE_TRANSITION[keyof typeof STATE_TRANSITION]
 
 const STATE_TRANSITIONS = {
   IDLE: ['DRAGGING', 'ZOOMING'],
+  MOVE: ['IDLE'],
   DRAGGING: ['IDLE'],
   ZOOMING: ['IDLE']
 }
@@ -161,7 +163,13 @@ export class DOMEvent extends _Event<DOMEVEntDefinition> implements DOMEventHand
     console.log(node)
   }
   onmousemove(metadata: DOMEventMetadata<'mousemove'>, node: LayoutModule | null) {
-    //
+    if (this.stateManager.canTransition('MOVE')) {
+      this.stateManager.transition('MOVE')
+      return
+    }
+    // for darag
+
+    console.log('DRAG EVT')
   }
   onmouseup(metadata: DOMEventMetadata<'mouseup'>, node: LayoutModule | null) {
     //

@@ -5,7 +5,7 @@ import type { ColorMappings } from '../interface'
 import { definePlugin } from '../primitives/fly'
 import { LayoutModule } from '../primitives/squarify'
 
-export const colorScheme = definePlugin ({
+export const colorScheme = definePlugin({
   name: 'color-scheme',
   scheme: {
     color(nodes) {
@@ -19,11 +19,11 @@ export const colorScheme = definePlugin ({
       return colorMappings
     }
   },
-  handler:(app)=>{
-    return mixin(app,[
+  handler: (app) => {
+    return mixin(app, [
       {
-        name:"test",
-        fn:()=>{}
+        name: 'test',
+        fn: () => {}
       }
     ])
   }

@@ -25,7 +25,7 @@ export interface Plugin<T = string> {
   scheme?: PluginScheme
 }
 
-export function definePlugin<T extends string,P extends Plugin<T>>(plugin:P){
+export function definePlugin<T extends string, P extends Plugin<T>>(plugin: P) {
   return plugin
 }
 

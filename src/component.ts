@@ -43,7 +43,9 @@ export class Component extends Schedule implements ComponentDefinition {
       this.drawBroundRect(child)
     }
   }
-  private drawText(node: LayoutModule) {}
+  private drawText(node: LayoutModule) {
+    //
+  }
   draw() {
     // prepare data
     const { width, height } = this.render.options
@@ -57,5 +59,10 @@ export class Component extends Schedule implements ComponentDefinition {
     }
     this.add(this.rectLayer)
     this.update()
+  }
+  cleanup() {
+    this.remove(this.rectLayer, this.textLayer)
+    this.rectLayer.destory()
+    this.textLayer.destory()
   }
 }

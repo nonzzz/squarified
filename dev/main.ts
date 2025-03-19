@@ -5,10 +5,10 @@ import { createTreemapV2 } from 'src/_index'
 import { c2m, sortChildrenByKey } from '../src'
 
 import './live-reload'
-import { colorScheme } from '../src/plugins'
+import { colorScheme, zoom } from '../src/plugins'
 
 const root = document.querySelector<HTMLDivElement>('#app')!
-const treemap = createTreemapV2({ plugins: [colorScheme] })
+const treemap = createTreemapV2({ plugins: [colorScheme, zoom] })
 // treemap.use('decorator', presetDecorator)
 
 function loadData() {

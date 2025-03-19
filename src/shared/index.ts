@@ -48,13 +48,14 @@ export interface InheritedCollections<T = object> {
   fn: (instance: T) => void
 }
 
-export function mixin<T>(app: T, methods: InheritedCollections<T>[]) {
+export function mixin<T, E = object>(app: T, methods: InheritedCollections<T>[]) {
   methods.forEach(({ name, fn }) => {
     Object.defineProperty(app, name, {
       value: fn(app),
       writable: false
     })
   })
+  return app as E & T
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars

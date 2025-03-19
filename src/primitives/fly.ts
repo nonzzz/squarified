@@ -2,9 +2,10 @@ import { Component } from '../component'
 import { log } from '../etoile/native/log'
 import type { ColorDecoratorResult } from '../etoile/native/runtime'
 import { ColorMappings } from '../interface'
+import { DOMEvent } from './dom-event'
 import type { LayoutModule } from './squarify'
 
-export type PluginHandlder = (app: Component) => void
+export type PluginHandlder = (app: Component, evt: DOMEvent) => void
 
 export type PluginContext = {
   setColorScheme: (id: string, color: ColorDecoratorResult) => void
@@ -62,5 +63,12 @@ export class PluginDriver {
       }
     })
     return result as ReturnType<SchemeHooks[K]>
+  }
+  runHandler(evt: DOMEvent) {
+    this.plugins.forEach((plugin) => {
+      if (plugin.handler) {
+        plugin.handler(this.component, evt)
+      }
+    })
   }
 }

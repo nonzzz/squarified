@@ -8,9 +8,11 @@ import './live-reload'
 import { colorScheme, zoom } from '../src/plugins'
 
 const root = document.querySelector<HTMLDivElement>('#app')!
-const treemap = createTreemapV2({ plugins: [colorScheme, zoom] })
+const treemap = createTreemapV2({ plugins: [colorScheme,zoom] })
 // treemap.use('decorator', presetDecorator)
-
+treemap.zoom
+treemap.zoom2
+treemap.test
 function loadData() {
   return fetch('data.json').then((res) => res.json()).then((data: Any[]) => data)
 }

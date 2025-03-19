@@ -1,10 +1,11 @@
+import { mixin } from 'src/shared'
 import { PI_2 } from '../etoile/native/matrix'
 import type { ColorDecoratorResultHLS } from '../etoile/native/runtime'
 import type { ColorMappings } from '../interface'
-import type { Plugin } from '../primitives/fly'
+import { definePlugin } from '../primitives/fly'
 import { LayoutModule } from '../primitives/squarify'
 
-export const colorScheme: Plugin = {
+export const colorScheme = definePlugin ({
   name: 'color-scheme',
   scheme: {
     color(nodes) {
@@ -17,8 +18,16 @@ export const colorScheme: Plugin = {
 
       return colorMappings
     }
+  },
+  handler:(app)=>{
+    return mixin(app,[
+      {
+        name:"test",
+        fn:()=>{}
+      }
+    ])
   }
-}
+})
 
 function toHSL(hueAngle: number): ColorDecoratorResultHLS {
   const saturation = 0.6 + 0.4 * Math.max(0, Math.cos(hueAngle))

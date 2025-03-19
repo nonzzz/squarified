@@ -19,10 +19,14 @@ export type PluginScheme = {
   [K in keyof SchemeHooks]?: (this: PluginContext, ...args: Parameters<SchemeHooks[K]>) => ReturnType<SchemeHooks[K]>
 }
 
-export interface Plugin {
-  name: string
+export interface Plugin<T = string> {
+  name: T
   handler?: PluginHandlder
   scheme?: PluginScheme
+}
+
+export function definePlugin<T extends string,P extends Plugin<T>>(plugin:P){
+  return plugin
 }
 
 function createPluginContext(c: Component) {

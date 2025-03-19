@@ -43,20 +43,31 @@ export function applyCanvasTransform(ctx: CanvasRenderingContext2D, matrix: Matr
   ctx.setTransform(matrix.a * dpr, matrix.b * dpr, matrix.c * dpr, matrix.d * dpr, matrix.e * dpr, matrix.f * dpr)
 }
 
-export interface InheritedCollections<T = object> {
+type AnyObject=Record<keyof any,any>
+export interface InheritedCollections<T = AnyObject> {
   name: string
   fn: (instance: T) => void
 }
 
-export function mixin<T, E = object>(app: T, methods: InheritedCollections<T>[]) {
+type MixinHelp<T extends InheritedCollections[]>= T extends  [infer L,...infer R]
+  ? L extends InheritedCollections
+    ? R extends InheritedCollections[]
+      ? {[key in L['name']]:L['fn']} & MixinHelp<R>
+      : {}
+    : {}
+  :{}
+
+export function mixin<T extends AnyObject, const I extends InheritedCollections<T>[]>(app: T, methods: I) {
   methods.forEach(({ name, fn }) => {
     Object.defineProperty(app, name, {
       value: fn(app),
       writable: false
     })
   })
-  return app as E & T
+  return app as T & MixinHelp<I>
 }
+
+
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 type Tail<T extends string[]> = T extends readonly [infer _, ...infer Rest] ? Rest : []

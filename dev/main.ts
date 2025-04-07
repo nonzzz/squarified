@@ -1,40 +1,40 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-return */
-import { createTreemapV2 } from 'src/_index'
-import { c2m, sortChildrenByKey } from '../src'
+// import { createTreemapV2 } from 'src/_index'
+// import { c2m, sortChildrenByKey } from '../src'
 
 import './live-reload'
-import { colorScheme, zoom } from '../src/plugins'
 
-const root = document.querySelector<HTMLDivElement>('#app')!
-const treemap = createTreemapV2({ plugins: [colorScheme, zoom] })
+import '../v2/layer/hybrid-x'
 
-function loadData() {
-  return fetch('data.json').then((res) => res.json()).then((data: Any[]) => data)
-}
+// import { colorScheme, zoom } from '../src/plugins'
 
-async function main() {
-  const data = await loadData()
-  const sortedData = sortChildrenByKey(
-    data.map((item) => c2m({ ...item, groups: item.children }, 'value', (d) => ({ ...d, id: d.path, label: d.name }))),
-    'weight'
-  )
-  treemap.setOptions({
-    data: sortedData
-  })
-}
+// const root = document.querySelector<HTMLDivElement>('#app')!
+// const treemap = createTreemapV2({ plugins: [colorScheme, zoom] })
 
-treemap.init(root)
+// function loadData() {
+//   return fetch('data.json').then((res) => res.json()).then((data: Any[]) => data)
+// }
 
-main().catch(console.error)
+// async function main() {
+//   const data = await loadData()
+//   const sortedData = sortChildrenByKey(
+//     data.map((item) => c2m({ ...item, groups: item.children }, 'value', (d) => ({ ...d, id: d.path, label: d.name }))),
+//     'weight'
+//   )
+//   treemap.setOptions({
+//     data: sortedData
+//   })
+// }
 
-treemap.on('click', function(metadata) {
-  // console.log(this, treemap)
-  // this.zoom(metadata.module)
-})
+// treemap.init(root)
 
-new ResizeObserver(() => treemap.resize()).observe(root)
+// main().catch(console.error)
+
+// treemap.on('click', function(metadata) {
+//   // console.log(this, treemap)
+//   // this.zoom(metadata.module)
+// })
+
+// new ResizeObserver(() => treemap.resize()).observe(root)
 
 const badge = document.createElement('div')
 badge.style.position = 'fixed'

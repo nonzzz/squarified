@@ -9,6 +9,8 @@ FLAGS += ./dev/index.html
 FLAGS += ./dev/data.json
 FLAGS += ./dev/main.ts
 
+RELEASE_FLAGS += --access public
+
 
 bootstrap:
 	@echo "Install dependiences"
@@ -53,9 +55,9 @@ publish:
 	@echo "Publishing package..."
 	$(eval VERSION = $(shell awk -F'"' '/"version":/ {print $4}' package.json))
 	$(eval TAG = $(shell echo $(VERSION) | awk -F'-' '{if (NF > 1) print $$2; else print ""}' | cut -d'.' -f1))
-	$(eval FLAGS += $(shell \
+	$(eval RELEASE_FLAGS += $(shell \
 		if [ "$(TAG)" != "" ]; then \
 			echo "--tag $(TAG)"; \
 		fi \
 	))
-	@npm publish $(FLAGS) --provenance
+	@npm publish $(RELEASE_FLAGS) --provenance

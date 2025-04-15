@@ -1,3 +1,7 @@
+## 0.3.7
+
+Rebuild
+
 ## 0.3.5
 
 Fix type error.

@@ -1,4 +1,4 @@
-JK = ./node_modules/.bin/jiek
+ROLLUP = ./node_modules/.bin/rollup --config ./rollup.config.mts --configPlugin swc3
 
 FLAGS += --bundle
 FLAGS += --loader:.html=copy
@@ -19,14 +19,20 @@ bootstrap:
 
 build-lib:
 	@echo "Build library"
-	$(JK) build --noMin .
+	$(ROLLUP)
 	@echo "Copying type declarations"
-	cp ./global.d.ts ./dist/helper.d.ts
-	cp ./global.d.ts ./dist/helper.d.mts
+	node -e "const fs = require('fs');\
+	const t = fs.readFileSync('./global.d.ts', 'utf8'); \
+	['./dist/index.d.ts', './dist/index.d.mts'].forEach(f => { \
+		const d = fs.readFileSync(f, 'utf8'); \
+		fs.writeFileSync(f, t + '\n\n' + d); \
+	}); \
+	"
+	
 
 build-pub: bootstrap
 	@echo "Build publish"
-	@$(MAKE) build-lib && $(JK) publish -no-b && $(JK) postpublish
+	@$(MAKE) build-lib && $(MAKE) publish
 
 
 dev-server:
@@ -42,3 +48,14 @@ dev-docs:
 
 build-docs:
 	./node_modules/.bin/tsx scripts/render.tsx
+
+publish:
+	@echo "Publishing package..."
+	$(eval VERSION = $(shell awk -F'"' '/"version":/ {print $4}' package.json))
+	$(eval TAG = $(shell echo $(VERSION) | awk -F'-' '{if (NF > 1) print $$2; else print ""}' | cut -d'.' -f1))
+	$(eval FLAGS += $(shell \
+		if [ "$(TAG)" != "" ]; then \
+			echo "--tag $(TAG)"; \
+		fi \
+	))
+	@npm publish $(FLAGS) --provenance

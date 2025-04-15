@@ -20,7 +20,9 @@ bootstrap:
 build-lib:
 	@echo "Build library"
 	$(JK) build --noMin .
-
+	@echo "Copying type declarations"
+	cp ./global.d.ts ./dist/helper.d.ts
+	cp ./global.d.ts ./dist/helper.d.mts
 
 build-pub: bootstrap
 	@echo "Build publish"

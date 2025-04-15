@@ -1,3 +1,7 @@
+## 0.3.5
+
+Fix type error.
+
 ## 0.3.4
 
 Increase color brightness.

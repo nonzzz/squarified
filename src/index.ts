@@ -1,25 +1,11 @@
-// export { TreemapLayout, createTreemap } from './primitives/component'
-// export type { App, TreemapInstanceAPI, TreemapOptions, unstable_use } from './primitives/component'
-// export * from './primitives/decorator'
+/* eslint-disable @typescript-eslint/no-empty-object-type */
 
-// export type { DOMEventType } from './etoile/native/dom'
-// export type { ExposedEventCallback, ExposedEventDefinition, ExposedEventMethods, PrimitiveEventMetadata } from './primitives/event'
-// export type { LayoutModule } from './primitives/squarify'
-export {
-  c2m,
-  findRelativeNode,
-  findRelativeNodeById,
-  flatten as flattenModule,
-  getNodeDepth,
-  sortChildrenByKey,
-  visit
-} from './primitives/struct'
-// export type { Module, NativeModule } from './primitives/struct'
 import { Component, logger } from './component'
 import { Event } from './etoile'
 import { DOMEvent } from './etoile/native/dom'
 import { bindParentForModule } from './primitives/struct'
 import type { Module } from './primitives/struct'
+import { mixin } from './shared'
 import { assertExists } from './shared/logger'
 import type { Plugin } from './shared/plugin-driver'
 
@@ -31,9 +17,31 @@ export interface TreemapOptions {
   data: Module[]
 }
 
-// type PluginMixins<P extends Plugin[]> = P extends [inter C, ...infer Rest] ? C extends Plugin ?
+type UnionToIntersection<U> = (
+  U extends Any ? (k: U) => void : never
+) extends (k: infer I) => void ? I
+  : never
 
-export function createTreemap<const P extends Plugin[]>(options?: CreateTreemapOptions<P>) {
+type PluginMixins<P extends readonly Plugin[]> = UnionToIntersection<
+  {
+    [K in keyof P]: P[K] extends {
+      onLoad?: (ctx: Any, component: Any) => infer R
+    } ? R extends object ? R
+      : {}
+      : {}
+  }[number]
+>
+export interface BasicTreemapInstance {
+  init: (el: HTMLElement) => void
+  dispose: () => void
+  resize: () => void
+  setOptions: (options: TreemapOptions) => void
+}
+
+export function createTreemap<const P extends readonly Plugin[]>(
+  // @ts-expect-error todo fix
+  options?: CreateTreemapOptions<P>
+): BasicTreemapInstance & PluginMixins<P> {
   const { plugins = [] } = options || {}
   let root: HTMLElement | null = null
   let installed = false
@@ -41,7 +49,7 @@ export function createTreemap<const P extends Plugin[]>(options?: CreateTreemapO
 
   let component: Component | null = null
 
-  const exposedEvents = new Event()
+  const exposedEvent = new Event()
 
   if (!Array.isArray(plugins)) {
     logger.panic('Plugins should be an array')
@@ -61,7 +69,7 @@ export function createTreemap<const P extends Plugin[]>(options?: CreateTreemapO
     if (!installed) {
       plugins.forEach((plugin) => component?.pluginDriver.use(plugin))
       installed = true
-      component.pluginDriver.runHook('onLoad')
+      component.pluginDriver.runHook('onLoad', ctx)
     }
   }
 
@@ -90,8 +98,21 @@ export function createTreemap<const P extends Plugin[]>(options?: CreateTreemapO
     resize()
   }
 
-  return ctx
+  const base = mixin(ctx, [
+    { name: 'on', fn: () => exposedEvent.bindWithContext({}) },
+    { name: 'off', fn: () => exposedEvent.off.bind(exposedEvent) }
+  ])
+  return base as unknown as BasicTreemapInstance & PluginMixins<P>
 }
 
+export {
+  c2m,
+  findRelativeNode,
+  findRelativeNodeById,
+  flatten as flattenModule,
+  getNodeDepth,
+  sortChildrenByKey,
+  visit
+} from './primitives/struct'
 export type { Plugin, PluginContext, PluginHooks } from './shared/plugin-driver'
 export { definePlugin } from './shared/plugin-driver'

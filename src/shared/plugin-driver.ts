@@ -1,5 +1,6 @@
 import { Component, logger } from '../component'
 import type { ColorMappings } from '../component'
+import type { BasicTreemapInstance } from '../index'
 import type { LayoutModule } from '../primitives/squarify'
 import type { NativeModule } from '../primitives/struct'
 import { typedForIn } from './index'
@@ -13,7 +14,7 @@ export interface OnModuleInitResult {
 }
 
 export interface PluginHooks {
-  onLoad?: (this: PluginContext, ...args: string[]) => void
+  onLoad?: (this: PluginContext, treemapContext: BasicTreemapInstance) => void | Record<string, Any>
   onModuleInit?: (this: PluginContext, modules: NativeModule[]) => OnModuleInitResult | void
 }
 

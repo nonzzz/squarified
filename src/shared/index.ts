@@ -48,13 +48,51 @@ export interface InheritedCollections<T = object> {
   fn: (instance: T) => void
 }
 
-export function mixin<T>(app: T, methods: InheritedCollections<T>[]) {
+type MixinHelp<T extends InheritedCollections[]> = T extends [infer L, ...infer R]
+  ? L extends InheritedCollections ? R extends InheritedCollections[] ? { [key in L['name']]: L['fn'] } & MixinHelp<R>
+    : Record<string, never>
+  : Record<string, never>
+  : Record<string, never>
+
+export function mixin<T extends AnyObject, const I extends InheritedCollections<T>[]>(app: T, methods: I) {
   methods.forEach(({ name, fn }) => {
     Object.defineProperty(app, name, {
       value: fn(app),
       writable: false
     })
   })
+  // @ts-expect-error not
+  return app as T & MixinHelp<I>
+}
+
+export interface InheritedCollectionsWithParamter<T = Any> {
+  name: string
+  fn: (instance: T) => (...args: Any[]) => Any
+}
+
+type MixinHelpWithParamater<T extends InheritedCollectionsWithParamter[]> = T extends [infer L, ...infer R]
+  ? L extends InheritedCollectionsWithParamter
+    ? R extends InheritedCollectionsWithParamter[] ? { [key in L['name']]: ReturnType<L['fn']> } & MixinHelpWithParamater<R>
+    : Record<string, never>
+  : Record<string, never>
+  : Record<string, never>
+
+export function mixinWithParams<
+  T extends AnyObject,
+  const M extends InheritedCollectionsWithParamter<T>[]
+>(
+  app: T,
+  methods: M
+) {
+  methods.forEach(({ name, fn }) => {
+    Object.defineProperty(app, name, {
+      value: fn(app),
+      writable: false,
+      enumerable: true
+    })
+  })
+
+  return app as T & MixinHelpWithParamater<M>
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars

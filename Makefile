@@ -1,4 +1,4 @@
-ROLLUP = ./node_modules/.bin/rollup --config ./rollup.config.mts --configPlugin swc3
+ROLLDOWN = ./node_modules/.bin/rolldown --config ./rolldown.config.mts
 
 FLAGS += --bundle
 FLAGS += --loader:.html=copy
@@ -21,17 +21,8 @@ bootstrap:
 
 build-lib:
 	@echo "Build library"
-	$(ROLLUP)
-	@echo "Copying type declarations"
-	node -e "const fs = require('fs');\
-	const t = fs.readFileSync('./global.d.ts', 'utf8'); \
-	['./dist/index.d.ts', './dist/index.d.mts'].forEach(f => { \
-		const d = fs.readFileSync(f, 'utf8'); \
-		fs.writeFileSync(f, t + '\n\n' + d); \
-	}); \
-	"
+	$(ROLLDOWN)
 	
-
 build-pub: bootstrap
 	@echo "Build publish"
 	@$(MAKE) build-lib && $(MAKE) publish

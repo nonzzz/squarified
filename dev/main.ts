@@ -1,13 +1,17 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
-import { c2m, createTreemap, presetDecorator, sortChildrenByKey } from '../src'
+import { c2m, createTreemap, sortChildrenByKey } from '../src'
+import { presetColorPlugin } from '../src/plugins'
 
 import './live-reload'
 
 const root = document.querySelector<HTMLDivElement>('#app')!
-const treemap = createTreemap()
-treemap.use('decorator', presetDecorator)
+const treemap = createTreemap({
+  plugins: [presetColorPlugin]
+})
+// treemap.use('decorator', presetDecorator)
+// presetDecorator,
 
 function loadData() {
   return fetch('data.json').then((res) => res.json()).then((data: Any[]) => data)
@@ -28,9 +32,9 @@ async function main() {
 treemap.init(root)
 
 main().catch(console.error)
-treemap.on('click', function(metadata) {
-  this.zoom(metadata.module)
-})
+// treemap.on('click', function(metadata) {
+//   this.zoom(metadata.module)
+// })
 
 new ResizeObserver(() => treemap.resize()).observe(root)
 

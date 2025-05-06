@@ -71,3 +71,11 @@ export function prettyStrJoin<T extends string[]>(...s: T) {
 export function isMacOS() {
   return /Mac OS X/.test(navigator.userAgent)
 }
+
+export function typedForIn<T extends NonNullable<object>>(obj: T, callback: (key: keyof T, value: T[keyof T]) => void) {
+  for (const key in obj) {
+    if (Object.prototype.hasOwnProperty.call(obj, key)) {
+      callback(key satisfies keyof T, obj[key satisfies keyof T])
+    }
+  }
+}

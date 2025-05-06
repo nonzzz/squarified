@@ -2,14 +2,18 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 import { c2m, createTreemap, sortChildrenByKey } from '../src'
-import { presetColorPlugin } from '../src/plugins'
+import { presetColorPlugin, presetZoomablePlugin } from '../src/plugins'
 
 import './live-reload'
 
 const root = document.querySelector<HTMLDivElement>('#app')!
 const treemap = createTreemap({
-  plugins: [presetColorPlugin]
+  plugins: [
+    presetColorPlugin,
+    presetZoomablePlugin
+  ]
 })
+
 // treemap.use('decorator', presetDecorator)
 // presetDecorator,
 
@@ -23,7 +27,7 @@ async function main() {
     data.map((item) => c2m({ ...item, groups: item.children }, 'value', (d) => ({ ...d, id: d.path, label: d.name }))),
     'weight'
   )
-
+  // treemap.zoom()
   treemap.setOptions({
     data: sortedData
   })

@@ -1,8 +1,9 @@
 /* eslint-disable @typescript-eslint/no-empty-object-type */
 
 import { Component, logger } from './component'
+import { DOMEvent } from './dom-event'
 import { Event } from './etoile'
-import { DOMEvent } from './etoile/native/dom'
+import type { ExposedEventMethods } from './primitives/event'
 import { bindParentForModule } from './primitives/struct'
 import type { Module } from './primitives/struct'
 import { mixin } from './shared'
@@ -41,11 +42,11 @@ export interface BasicTreemapInstance {
 export function createTreemap<const P extends readonly Plugin[]>(
   // @ts-expect-error todo fix
   options?: CreateTreemapOptions<P>
-): BasicTreemapInstance & PluginMixins<P> {
+) {
   const { plugins = [] } = options || {}
   let root: HTMLElement | null = null
   let installed = false
-  const domEvent: DOMEvent | null = null
+  let domEvent: DOMEvent | null = null
 
   let component: Component | null = null
 
@@ -64,6 +65,7 @@ export function createTreemap<const P extends readonly Plugin[]>(
 
   function init(el: HTMLElement) {
     component = new Component(el)
+    domEvent = new DOMEvent(component)
     root = el
     ;(root as HTMLDivElement).style.position = 'relative'
     if (!installed) {
@@ -71,11 +73,20 @@ export function createTreemap<const P extends readonly Plugin[]>(
       installed = true
       component.pluginDriver.runHook('onLoad', ctx)
     }
+    domEvent.on('__exposed__', (type, ...args) => exposedEvent.emit(type, ...args))
   }
 
   function dispose() {
     if (root && component && domEvent) {
-      //
+      domEvent.destory()
+      component.destory()
+      root.removeChild(root.firstChild!)
+      for (const evt in exposedEvent.eventCollections) {
+        exposedEvent.off(evt)
+      }
+      root = null
+      component = null
+      domEvent = null
     }
   }
 
@@ -99,10 +110,11 @@ export function createTreemap<const P extends readonly Plugin[]>(
   }
 
   const base = mixin(ctx, [
-    { name: 'on', fn: () => exposedEvent.bindWithContext({}) },
+    { name: 'on', fn: () => exposedEvent.on.bind(exposedEvent) },
     { name: 'off', fn: () => exposedEvent.off.bind(exposedEvent) }
   ])
-  return base as unknown as BasicTreemapInstance & PluginMixins<P>
+
+  return base as typeof base & BasicTreemapInstance & ExposedEventMethods & PluginMixins<P>
 }
 
 export {

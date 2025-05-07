@@ -1,5 +1,6 @@
 import { Component, logger } from '../component'
 import type { ColorMappings } from '../component'
+import { DOMEvent } from '../dom-event'
 import type { DOMEventMetadata, DOMEventType } from '../dom-event'
 import type { BasicTreemapInstance } from '../index'
 import type { LayoutModule } from '../primitives/squarify'
@@ -23,7 +24,8 @@ export interface PluginHooks {
     this: PluginContext,
     name: N,
     event: DOMEventMetadata<N>,
-    module: LayoutModule | null
+    module: LayoutModule | null,
+    domEvent: DOMEvent
   ) => void
 }
 

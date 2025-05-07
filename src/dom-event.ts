@@ -1,6 +1,7 @@
 import { Component } from './component'
-import { Event } from './etoile'
+import { Event, traverse } from './etoile'
 import type { BindThisParameter } from './etoile'
+import { Display, S } from './etoile/graph/display'
 import { DEFAULT_MATRIX_LOC, Matrix2D } from './etoile/native/matrix'
 import type { LayoutModule } from './primitives/squarify'
 import { findRelativeNode } from './primitives/struct'
@@ -32,7 +33,9 @@ type DOMEventHandlers = {
 
 export const STATE_TRANSITION = {
   IDLE: 'IDLE',
+  PRESSED: 'PRESSED',
   DRAGGING: 'DRAGGING',
+  CLICK_POTENTIAL: 'CLICK_POTENTIAL',
   ZOOMING: 'ZOOMING',
   MOVE: 'MOVE'
 } as const
@@ -79,30 +82,37 @@ export function captureBoxXY(c: HTMLElement, evt: unknown, a: number, d: number,
   return { x: 0, y: 0 }
 }
 
-const STATE_TRANSITIONS = {
-  IDLE: ['DRAGGING', 'ZOOMING'],
-  MOVE: ['IDLE'],
-  DRAGGING: ['IDLE'],
-  ZOOMING: ['IDLE']
-}
-
 export class StateManager {
   current: StateTransition
   constructor() {
     this.current = STATE_TRANSITION.IDLE
   }
-  canTransition(state: StateTransition) {
-    return STATE_TRANSITIONS[this.current].includes(state)
-  }
-  transition(state: StateTransition): boolean {
-    if (this.canTransition(state)) {
-      this.current = state
-      return true
+  canTransition(to: StateTransition) {
+    switch (this.current) {
+      case 'IDLE':
+        return to === 'PRESSED' || to === 'MOVE'
+      case 'PRESSED':
+        return to === 'DRAGGING' || to === 'IDLE'
+      case 'DRAGGING':
+        return to === 'IDLE'
+      case 'MOVE':
+        return to === 'PRESSED' || to === 'IDLE'
+      default:
+        return false
     }
-    return false
+  }
+  transition(to: StateTransition): boolean {
+    const valid = this.canTransition(to)
+    if (valid) {
+      this.current = to
+    }
+    return valid
   }
   reset() {
     this.current = STATE_TRANSITION.IDLE
+  }
+  isInState(state: StateTransition) {
+    return this.current === state
   }
 }
 
@@ -118,6 +128,10 @@ export class DOMEvent extends Event<DOMEVEntDefinition> implements DOMEventHandl
   component: Component
   matrix: Matrix2D
   stateManager: StateManager
+  private mouseDownPos: { x: number, y: number } | null
+  private mouseDownTime: number
+  private readonly DRAG_THRESHOLD
+  private readonly CLICK_TIMEOUT
   constructor(component: Component) {
     super()
     this.component = component
@@ -125,6 +139,10 @@ export class DOMEvent extends Event<DOMEVEntDefinition> implements DOMEventHandl
     this.matrix = new Matrix2D()
     this.currentModule = null
     this.stateManager = new StateManager()
+    this.mouseDownPos = null
+    this.mouseDownTime = 0
+    this.DRAG_THRESHOLD = 3
+    this.CLICK_TIMEOUT = 300
     this.domEvents = DOM_EVENTS.map((evt) => bindDOMEvent(this.el!, evt, this))
 
     DOM_EVENTS.forEach((evt) => {
@@ -155,7 +173,7 @@ export class DOMEvent extends Event<DOMEVEntDefinition> implements DOMEventHandl
       method.call(this, e, node)
     }
     this.emit('__exposed__', kind, e, node)
-    this.component.pluginDriver.runHook('onDOMEventTriggered', kind, e, node)
+    this.component.pluginDriver.runHook('onDOMEventTriggered', kind, e, node, this)
     // For MacOS
   }
   onclick() {
@@ -163,25 +181,53 @@ export class DOMEvent extends Event<DOMEVEntDefinition> implements DOMEventHandl
   }
   onmouseover() {}
   onmousedown(metadata: DOMEventMetadata<'mousedown'>, node: LayoutModule | null) {
-    console.log('mousedown')
     if (isScrollWheelOrRightButtonOnMouseupAndDown(metadata.native)) {
       return
     }
-    if (!this.stateManager.canTransition('DRAGGING')) {
-      return
+    this.mouseDownPos = {
+      x: metadata.native.offsetX,
+      y: metadata.native.offsetY
     }
-    this.stateManager.transition('DRAGGING')
+    this.mouseDownTime = Date.now()
+    this.stateManager.transition('PRESSED')
   }
-  onmousemove(metadata: DOMEventMetadata<'mousemove'>, node: LayoutModule | null) {
-    if (this.stateManager.canTransition('MOVE')) {
-      this.stateManager.transition('MOVE')
+  onmousemove(metadata: DOMEventMetadata<'mousemove'>) {
+    if (this.mouseDownPos) {
+      const dx = metadata.native.offsetX - this.mouseDownPos.x
+      const dy = metadata.native.offsetY - this.mouseDownPos.y
+      const distance = Math.sqrt(dx * dx + dy * dy)
+
+      if (distance > this.DRAG_THRESHOLD && this.stateManager.canTransition('DRAGGING')) {
+        this.stateManager.transition('DRAGGING')
+        this.mouseDownPos = {
+          x: metadata.native.offsetX,
+          y: metadata.native.offsetY
+        }
+      } else if (this.stateManager.isInState('DRAGGING')) {
+        this.mouseDownPos = {
+          x: metadata.native.offsetX,
+          y: metadata.native.offsetY
+        }
+      }
     }
-    console.log('mousemove')
-    // for drag
-    // console.log('DRAG EVT')
+    // else if (this.stateManager.canTransition('MOVE')) {
+    //   this.stateManager.transition('MOVE')
+    // }
   }
-  onmouseup(metadata: DOMEventMetadata<'mouseup'>, node: LayoutModule | null) {
-    console.log('mouseup')
+  onmouseup() {
+    const currentTime = Date.now()
+    const isClick = this.mouseDownPos &&
+      currentTime - this.mouseDownTime < this.CLICK_TIMEOUT &&
+      !this.stateManager.isInState('DRAGGING')
+    if (isClick) {
+      //
+    } else if (this.stateManager.isInState('DRAGGING')) {
+      console.log('finished')
+      // this.finishDrag()
+    }
+
+    this.mouseDownPos = null
+    this.stateManager.transition('IDLE')
   }
   onmouseout(metadata: DOMEventMetadata<'mouseout'>, node: LayoutModule | null) {
     //
@@ -202,3 +248,16 @@ interface DuckE {
 function isScrollWheelOrRightButtonOnMouseupAndDown<E extends DuckE = DuckE>(e: E) {
   return e.which === 2 || e.which === 3
 }
+
+function stackMatrixTransform(graph: S, e: number, f: number, scale: number) {
+  graph.x = graph.x * scale + e
+  graph.y = graph.y * scale + f
+  graph.scaleX = scale
+  graph.scaleY = scale
+}
+
+function stackMatrixTransformWithGraphAndLayer(graphs: Display[], e: number, f: number, scale: number) {
+  traverse(graphs, (graph) => stackMatrixTransform(graph, e, f, scale))
+}
+
+function onElementDrag() {}

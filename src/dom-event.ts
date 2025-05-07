@@ -1,4 +1,3 @@
-// export class DOMEvent extends
 import { Component } from './component'
 import { Event } from './etoile'
 import type { BindThisParameter } from './etoile'
@@ -7,7 +6,9 @@ import type { LayoutModule } from './primitives/squarify'
 import { findRelativeNode } from './primitives/struct'
 import { prettyStrJoin } from './shared'
 
-export const DOM_EVENTS = ['click', 'mousedown', 'mousemove', 'mouseup', 'mouseover', 'mouseout', 'wheel'] as const
+// I think those event is enough for user.
+
+export const DOM_EVENTS = ['click', 'mousedown', 'mousemove', 'mouseup', 'mouseover', 'mouseout', 'wheel', 'contextmenu'] as const
 
 export type DOMEventType = typeof DOM_EVENTS[number]
 
@@ -37,13 +38,6 @@ export const STATE_TRANSITION = {
 } as const
 
 export type StateTransition = typeof STATE_TRANSITION[keyof typeof STATE_TRANSITION]
-
-const STATE_TRANSITIONS = {
-  IDLE: ['DRAGGING', 'ZOOMING'],
-  MOVE: ['IDLE'],
-  DRAGGING: ['IDLE'],
-  ZOOMING: ['IDLE']
-}
 
 function bindDOMEvent(el: HTMLElement, evt: DOMEventType, dom: DOMEvent) {
   const handler = (e: unknown) => {
@@ -85,6 +79,13 @@ export function captureBoxXY(c: HTMLElement, evt: unknown, a: number, d: number,
   return { x: 0, y: 0 }
 }
 
+const STATE_TRANSITIONS = {
+  IDLE: ['DRAGGING', 'ZOOMING'],
+  MOVE: ['IDLE'],
+  DRAGGING: ['IDLE'],
+  ZOOMING: ['IDLE']
+}
+
 export class StateManager {
   current: StateTransition
   constructor() {
@@ -104,6 +105,11 @@ export class StateManager {
     this.current = STATE_TRANSITION.IDLE
   }
 }
+
+// We don't consider db click for us library
+// So the trigger step follows:
+// mousedown => mouseup => click
+// For menu click (downstream demand)
 
 export class DOMEvent extends Event<DOMEVEntDefinition> implements DOMEventHandlers {
   domEvents: Array<ReturnType<typeof bindDOMEvent>>
@@ -149,10 +155,15 @@ export class DOMEvent extends Event<DOMEVEntDefinition> implements DOMEventHandl
       method.call(this, e, node)
     }
     this.emit('__exposed__', kind, e, node)
+    this.component.pluginDriver.runHook('onDOMEventTriggered', kind, e, node)
+    // For MacOS
   }
-  onclick() {}
+  onclick() {
+    // noop
+  }
   onmouseover() {}
   onmousedown(metadata: DOMEventMetadata<'mousedown'>, node: LayoutModule | null) {
+    console.log('mousedown')
     if (isScrollWheelOrRightButtonOnMouseupAndDown(metadata.native)) {
       return
     }
@@ -160,24 +171,27 @@ export class DOMEvent extends Event<DOMEVEntDefinition> implements DOMEventHandl
       return
     }
     this.stateManager.transition('DRAGGING')
-    console.log(node)
   }
   onmousemove(metadata: DOMEventMetadata<'mousemove'>, node: LayoutModule | null) {
     if (this.stateManager.canTransition('MOVE')) {
       this.stateManager.transition('MOVE')
     }
-    // for darag
-
+    console.log('mousemove')
+    // for drag
     // console.log('DRAG EVT')
   }
   onmouseup(metadata: DOMEventMetadata<'mouseup'>, node: LayoutModule | null) {
-    //
+    console.log('mouseup')
   }
   onmouseout(metadata: DOMEventMetadata<'mouseout'>, node: LayoutModule | null) {
     //
   }
   onwheel(metadata: DOMEventMetadata<'wheel'>, node: LayoutModule | null) {
     //
+  }
+
+  oncontextmenu() {
+    // noop
   }
 }
 

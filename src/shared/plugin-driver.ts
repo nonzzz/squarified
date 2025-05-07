@@ -1,12 +1,15 @@
 import { Component, logger } from '../component'
 import type { ColorMappings } from '../component'
+import type { DOMEventMetadata, DOMEventType } from '../dom-event'
 import type { BasicTreemapInstance } from '../index'
 import type { LayoutModule } from '../primitives/squarify'
 import type { NativeModule } from '../primitives/struct'
-import { typedForIn } from './index'
+import { findRelativeNodeById } from '../primitives/struct'
 
-export type PluginContext = {
-  resolveModuleById: (this: Component, id: string) => LayoutModule | null
+export interface PluginContext {
+  resolveModuleById: (id: string) => LayoutModule | null
+  getPluginMetadata: <M = Any>(pluginName: string) => M | null
+  get instance(): Component
 }
 
 export interface OnModuleInitResult {
@@ -16,35 +19,46 @@ export interface OnModuleInitResult {
 export interface PluginHooks {
   onLoad?: (this: PluginContext, treemapContext: BasicTreemapInstance) => void | Record<string, Any>
   onModuleInit?: (this: PluginContext, modules: NativeModule[]) => OnModuleInitResult | void
+  onDOMEventTriggered?: <N extends DOMEventType>(
+    this: PluginContext,
+    name: N,
+    event: DOMEventMetadata<N>,
+    module: LayoutModule | null
+  ) => void
 }
 
-export type BasicPluginHooks = Pick<PluginHooks, 'onLoad'>
+export type BasicPluginHooks = Pick<PluginHooks, 'onLoad' | 'onDOMEventTriggered'>
 
 export type CascadedPluginHooks = Pick<PluginHooks, 'onModuleInit'>
 
-export interface Plugin<T = string> extends PluginHooks {
+export interface Plugin<T = string, M = Any> extends PluginHooks {
   name: T
+  meta?: M
 }
 
-export function definePlugin<T extends string, P extends Plugin<T>>(plugin: P) {
+export function definePlugin<
+  T extends string = string,
+  M = Any,
+  P extends Plugin<T, M> = Plugin<T, M>
+>(plugin: P): P {
   return plugin
-}
-
-const pluginContextStaticMethods: PluginContext = {
-  resolveModuleById(id: string) {
-    // console.log(this., id)
-    return {}
-  }
 }
 
 export class PluginDriver<T extends Component> {
   private plugins: Map<string, Plugin> = new Map()
   private pluginContext: PluginContext
-  private component: T
   constructor(component: T) {
-    this.component = component
-    this.pluginContext = { ...pluginContextStaticMethods }
-    typedForIn(this.pluginContext, (name, fn) => this.pluginContext[name] = fn.bind(this.component))
+    this.pluginContext = {
+      resolveModuleById(id: string) {
+        return findRelativeNodeById(id, component.layoutNodes)
+      },
+      getPluginMetadata: <M = Any>(pluginName: string) => {
+        return this.getPluginMetadata<M>(pluginName)
+      },
+      get instance() {
+        return component
+      }
+    }
   }
   use(plugin: Plugin) {
     if (!plugin.name) {
@@ -61,7 +75,8 @@ export class PluginDriver<T extends Component> {
     this.plugins.forEach((plugin) => {
       const hook = plugin[hookName]
       if (hook) {
-        hook.call(this.pluginContext, ...args)
+        // @ts-expect-error fixme
+        hook.apply(this.pluginContext, args)
       }
     })
   }
@@ -83,5 +98,10 @@ export class PluginDriver<T extends Component> {
     })
 
     return finalResult as ReturnType<NonNullable<CascadedPluginHooks[K]>>
+  }
+
+  getPluginMetadata<M = Any>(pluginName: string): M | null {
+    const plugin = this.plugins.get(pluginName)
+    return (plugin?.meta as M) || null
   }
 }

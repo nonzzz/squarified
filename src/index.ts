@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-empty-object-type */
-
 import { Component, logger } from './component'
 import { DOMEvent } from './dom-event'
 import { Event } from './etoile'
@@ -28,8 +26,8 @@ type PluginMixins<P extends readonly Plugin[]> = UnionToIntersection<
     [K in keyof P]: P[K] extends {
       onLoad?: (ctx: Any, component: Any) => infer R
     } ? R extends object ? R
-      : {}
-      : {}
+      : NonNull
+      : NonNull
   }[number]
 >
 export interface BasicTreemapInstance {

@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 import { c2m, createTreemap, sortChildrenByKey } from '../src'
-import { presetColorPlugin, presetZoomablePlugin } from '../src/plugins'
+import { presetColorPlugin, presetHighlightPlugin, presetZoomablePlugin } from '../src/plugins'
 
 import './live-reload'
 
@@ -10,12 +10,10 @@ const root = document.querySelector<HTMLDivElement>('#app')!
 const treemap = createTreemap({
   plugins: [
     presetColorPlugin,
-    presetZoomablePlugin
+    presetZoomablePlugin,
+    presetHighlightPlugin
   ]
 })
-
-// treemap.use('decorator', presetDecorator)
-// presetDecorator,
 
 function loadData() {
   return fetch('data.json').then((res) => res.json()).then((data: Any[]) => data)
@@ -34,6 +32,10 @@ async function main() {
 }
 
 treemap.init(root)
+
+// treemap.on('click', function() {
+//   console.log(this)
+// })
 
 main().catch(console.error)
 // treemap.on('click', function(metadata) {

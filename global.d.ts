@@ -2,3 +2,5 @@
 type Any = any
 
 type AnyObject = Record<keyof Any, Any>
+
+type NonNull = NonNullable<unknown>

@@ -49,7 +49,9 @@ export class Component extends Schedule {
     }
   }
   private drawText(node: LayoutModule) {
-    //
+    // const [x, y, w, h] = node.layout
+    // if (!w || !h) { return }
+    // const { titleHeight, rectGap } = node.decorator
   }
   draw() {
     // prepare data

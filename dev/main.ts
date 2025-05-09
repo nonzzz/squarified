@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
@@ -19,10 +20,21 @@ function loadData() {
   return fetch('data.json').then((res) => res.json()).then((data: Any[]) => data)
 }
 
+function convertChildrenToGroups(item: Any[]) {
+  const result: Any = { ...item }
+  // @ts-expect-error fixme
+  if (item.children) {
+    // @ts-expect-error fixme
+    result.groups = item.children.map(convertChildrenToGroups)
+  }
+  return result
+}
+
 async function main() {
   const data = await loadData()
+  const convertedData = data.map(convertChildrenToGroups)
   const sortedData = sortChildrenByKey(
-    data.map((item) => c2m({ ...item, groups: item.children }, 'value', (d) => ({ ...d, id: d.path, label: d.name }))),
+    convertedData.map((item) => c2m(item, 'value', (d) => ({ ...d, id: d.path, label: d.name }))),
     'weight'
   )
   // treemap.zoom()
@@ -33,8 +45,8 @@ async function main() {
 
 treemap.init(root)
 
-// treemap.on('click', function() {
-//   console.log(this)
+// treemap.on('click', (_, m) => {
+//   console.log(metadata, m)
 // })
 
 main().catch(console.error)

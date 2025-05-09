@@ -4,7 +4,6 @@ import { DOMEvent } from '../dom-event'
 import type { DOMEventMetadata, DOMEventType } from '../dom-event'
 import type { BasicTreemapInstance } from '../index'
 import type { LayoutModule } from '../primitives/squarify'
-import type { NativeModule } from '../primitives/struct'
 import { findRelativeNodeById } from '../primitives/struct'
 
 export interface PluginContext {
@@ -19,7 +18,7 @@ export interface OnModuleInitResult {
 
 export interface PluginHooks {
   onLoad?: (this: PluginContext, treemapContext: BasicTreemapInstance) => void | Record<string, Any>
-  onModuleInit?: (this: PluginContext, modules: NativeModule[]) => OnModuleInitResult | void
+  onModuleInit?: (this: PluginContext, modules: LayoutModule[]) => OnModuleInitResult | void
   onDOMEventTriggered?: <N extends DOMEventType>(
     this: PluginContext,
     name: N,

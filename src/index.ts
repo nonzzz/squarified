@@ -1,6 +1,7 @@
 import { Component, logger } from './component'
 import { DOMEvent } from './dom-event'
 import { Event } from './etoile'
+import type { GraphicConfig } from './interface'
 import type { ExposedEventMethods } from './primitives/event'
 import { bindParentForModule } from './primitives/struct'
 import type { Module } from './primitives/struct'
@@ -10,6 +11,7 @@ import type { Plugin } from './shared/plugin-driver'
 
 export interface CreateTreemapOptions<P extends Plugin[]> {
   plugins: P
+  graphic?: GraphicConfig
 }
 
 export interface TreemapOptions {
@@ -41,7 +43,7 @@ export function createTreemap<const P extends readonly Plugin[]>(
   // @ts-expect-error todo fix
   options?: CreateTreemapOptions<P>
 ) {
-  const { plugins = [] } = options || {}
+  const { plugins = [], graphic = {} } = options || {}
   let root: HTMLElement | null = null
   let installed = false
   let domEvent: DOMEvent | null = null
@@ -62,7 +64,7 @@ export function createTreemap<const P extends readonly Plugin[]>(
   }
 
   function init(el: HTMLElement) {
-    component = new Component(el)
+    component = new Component(graphic, el)
     domEvent = new DOMEvent(component)
     root = el
     ;(root as HTMLDivElement).style.position = 'relative'
@@ -100,10 +102,7 @@ export function createTreemap<const P extends readonly Plugin[]>(
   function setOptions(options: TreemapOptions) {
     assertExists(component, logger, 'Treemap not initialized. Please call `init()` before setOptions.')
     component.data = bindParentForModule(options.data)
-    const result = component.pluginDriver.cascadeHook('onModuleInit', component.data)
-    if (result) {
-      component.colorMappings = result.colorMappings!
-    }
+
     resize()
   }
 

@@ -143,7 +143,7 @@ export function squarify(data: NativeModule[], rect: Rect, config: Required<Grap
       let areaInRun = 0
       let oldWorst = 0
       while (end < processedData.length) {
-        const area = processedData[end].weight * aspectRatio
+        const area = processedData[end].weight * aspectRatio || 0
         const newWorst = worst(start, end, shortestSide, areaInRun + area, aspectRatio)
         if (end > start && oldWorst < newWorst) { break }
         areaInRun += area

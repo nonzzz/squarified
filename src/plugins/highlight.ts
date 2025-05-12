@@ -95,7 +95,7 @@ export const presetHighlightPlugin = definePlugin({
       }
     }
   },
-  onDOMEventTriggered(name, event, module, { stateManager: state, matrix }) {
+  onDOMEventTriggered(name, event, module, { stateManager: state, matrix, component }) {
     if (name === 'mousemove') {
       if (state.canTransition('MOVE')) {
         const meta = this.getPluginMetadata('treemap:preset-highlight') as HighlightMeta
@@ -106,10 +106,11 @@ export const presetHighlightPlugin = definePlugin({
           return
         }
         const [x, y, w, h] = module.layout
+        const effectiveRadius = Math.min(component.config.layout?.rectRadius || 4, w / 4, h / 4)
         smoothFrame((_, cleanup) => {
           cleanup()
           meta.highlight?.reset()
-          const mask = createRoundBlock(x, y, w, h, { fill, opacity: HIGH_LIGHT_OPACITY, radius: 4, padding: 2 })
+          const mask = createRoundBlock(x, y, w, h, { fill, opacity: HIGH_LIGHT_OPACITY, radius: effectiveRadius, padding: 0 })
           meta.highlight?.add(mask)
           meta.highlight?.setZIndexForHighlight('1')
           stackMatrixTransform(mask, matrix.e, matrix.f, 1)

@@ -9,6 +9,13 @@ export interface GraphicLayout {
   titleAreaHeight?: Series<number>
 }
 
+export interface GraphicFont {
+  color?: string
+  fontSize?: Series<number>
+  family?: string
+}
+
 export interface GraphicConfig {
   layout?: GraphicLayout
+  font?: GraphicFont
 }

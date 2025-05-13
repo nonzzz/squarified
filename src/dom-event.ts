@@ -5,7 +5,6 @@ import { Display, S } from './etoile/graph/display'
 import { DEFAULT_MATRIX_LOC, Matrix2D } from './etoile/native/matrix'
 import type { LayoutModule } from './primitives/squarify'
 import { findRelativeNode } from './primitives/struct'
-import { prettyStrJoin } from './shared'
 
 // I think those event is enough for user.
 
@@ -25,11 +24,11 @@ export type DOMEVEntDefinition<API = unknown> =
   }
   & { __exposed__: (type: DOMEventType, metadata: DOMEventMetadata<DOMEventType>, node: LayoutModule | null) => void }
 
-type DOMEventMethod<T extends DOMEventType> = (metadata: DOMEventMetadata<T>, node: LayoutModule | null) => void
+// type DOMEventMethod<T extends DOMEventType> = (metadata: DOMEventMetadata<T>, node: LayoutModule | null) => void
 
-type DOMEventHandlers = {
-  [K in DOMEventType as `on${K}`]: DOMEventMethod<K>
-}
+// type DOMEventHandlers = {
+//   [K in DOMEventType as `on${K}`]: DOMEventMethod<K>
+// }
 
 export const STATE_TRANSITION = {
   IDLE: 'IDLE',
@@ -121,17 +120,13 @@ export class StateManager {
 // mousedown => mouseup => click
 // For menu click (downstream demand)
 
-export class DOMEvent extends Event<DOMEVEntDefinition> implements DOMEventHandlers {
+export class DOMEvent extends Event<DOMEVEntDefinition> {
   domEvents: Array<ReturnType<typeof bindDOMEvent>>
   el: HTMLElement | null
   currentModule: LayoutModule | null
   component: Component
   matrix: Matrix2D
   stateManager: StateManager
-  private mouseDownPos: { x: number, y: number } | null
-  private mouseDownTime: number
-  private readonly DRAG_THRESHOLD
-  private readonly CLICK_TIMEOUT
   constructor(component: Component) {
     super()
     this.component = component
@@ -139,10 +134,6 @@ export class DOMEvent extends Event<DOMEVEntDefinition> implements DOMEventHandl
     this.matrix = new Matrix2D()
     this.currentModule = null
     this.stateManager = new StateManager()
-    this.mouseDownPos = null
-    this.mouseDownTime = 0
-    this.DRAG_THRESHOLD = 3
-    this.CLICK_TIMEOUT = 300
     this.domEvents = DOM_EVENTS.map((evt) => bindDOMEvent(this.el!, evt, this))
 
     DOM_EVENTS.forEach((evt) => {
@@ -168,85 +159,14 @@ export class DOMEvent extends Event<DOMEVEntDefinition> implements DOMEventHandl
       captureBoxXY(this.el!, e.native, this.matrix.a, this.matrix.d, this.matrix.e, this.matrix.f),
       this.component.layoutNodes
     )
-    const method = this[prettyStrJoin('on', kind)] as ((metadata: DOMEventMetadata<T>, node: LayoutModule | null) => void) | undefined
-    if (typeof method === 'function') {
-      method.call(this, e, node)
-    }
-    this.emit('__exposed__', kind, e, node)
+    // const method = this[prettyStrJoin('on', kind)] as ((metadata: DOMEventMetadata<T>, node: LayoutModule | null) => void) | undefined
+    // if (typeof method === 'function') {
+    //   method.call(this, e, node)
+    // }
     this.component.pluginDriver.runHook('onDOMEventTriggered', kind, e, node, this)
+    this.emit('__exposed__', kind, e, node)
     // For MacOS
   }
-  onclick() {
-    // noop
-  }
-  onmouseover() {}
-  onmousedown(metadata: DOMEventMetadata<'mousedown'>, node: LayoutModule | null) {
-    if (isScrollWheelOrRightButtonOnMouseupAndDown(metadata.native)) {
-      return
-    }
-    this.mouseDownPos = {
-      x: metadata.native.offsetX,
-      y: metadata.native.offsetY
-    }
-    this.mouseDownTime = Date.now()
-    this.stateManager.transition('PRESSED')
-  }
-  onmousemove(metadata: DOMEventMetadata<'mousemove'>) {
-    if (this.mouseDownPos) {
-      const dx = metadata.native.offsetX - this.mouseDownPos.x
-      const dy = metadata.native.offsetY - this.mouseDownPos.y
-      const distance = Math.sqrt(dx * dx + dy * dy)
-
-      if (distance > this.DRAG_THRESHOLD && this.stateManager.canTransition('DRAGGING')) {
-        this.stateManager.transition('DRAGGING')
-        this.mouseDownPos = {
-          x: metadata.native.offsetX,
-          y: metadata.native.offsetY
-        }
-      } else if (this.stateManager.isInState('DRAGGING')) {
-        this.mouseDownPos = {
-          x: metadata.native.offsetX,
-          y: metadata.native.offsetY
-        }
-      }
-    }
-    // else if (this.stateManager.canTransition('MOVE')) {
-    //   this.stateManager.transition('MOVE')
-    // }
-  }
-  onmouseup() {
-    const currentTime = Date.now()
-    const isClick = this.mouseDownPos &&
-      currentTime - this.mouseDownTime < this.CLICK_TIMEOUT &&
-      !this.stateManager.isInState('DRAGGING')
-    if (isClick) {
-      //
-    } else if (this.stateManager.isInState('DRAGGING')) {
-      console.log('finished')
-      // this.finishDrag()
-    }
-
-    this.mouseDownPos = null
-    this.stateManager.transition('IDLE')
-  }
-  onmouseout(metadata: DOMEventMetadata<'mouseout'>, node: LayoutModule | null) {
-    //
-  }
-  onwheel(metadata: DOMEventMetadata<'wheel'>, node: LayoutModule | null) {
-    //
-  }
-
-  oncontextmenu() {
-    // noop
-  }
-}
-
-interface DuckE {
-  which: number
-}
-
-function isScrollWheelOrRightButtonOnMouseupAndDown<E extends DuckE = DuckE>(e: E) {
-  return e.which === 2 || e.which === 3
 }
 
 function stackMatrixTransform(graph: S, e: number, f: number, scale: number) {
@@ -259,5 +179,3 @@ function stackMatrixTransform(graph: S, e: number, f: number, scale: number) {
 function stackMatrixTransformWithGraphAndLayer(graphs: Display[], e: number, f: number, scale: number) {
   traverse(graphs, (graph) => stackMatrixTransform(graph, e, f, scale))
 }
-
-function onElementDrag() {}

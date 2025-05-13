@@ -57,7 +57,7 @@ function smoothFrame(callback: (progress: number, cleanup: () => void) => void, 
   })
 }
 
-interface HighlightMeta {
+export interface HighlightMeta {
   highlight: Highlight | null
 }
 
@@ -70,8 +70,10 @@ const fill = <ColorDecoratorResultRGB> { desc: { r: 255, g: 255, b: 255 }, mode:
 export const presetHighlightPlugin = definePlugin({
   name: 'treemap:preset-highlight',
   onLoad(treemapContext) {
-    const meta = this.getPluginMetadata('treemap:preset-highlight') as HighlightMeta
-
+    const meta = this.getPluginMetadata<HighlightMeta>('treemap:preset-highlight')
+    if (!meta) {
+      return
+    }
     if (!meta.highlight) {
       meta.highlight = new Highlight(this.instance.to)
     }
@@ -95,7 +97,7 @@ export const presetHighlightPlugin = definePlugin({
       }
     }
   },
-  onDOMEventTriggered(name, event, module, { stateManager: state, matrix, component }) {
+  onDOMEventTriggered(name, _, module, { stateManager: state, matrix, component }) {
     if (name === 'mousemove') {
       if (state.canTransition('MOVE')) {
         const meta = this.getPluginMetadata('treemap:preset-highlight') as HighlightMeta

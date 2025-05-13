@@ -84,45 +84,43 @@ export class Component extends Schedule {
     }
   }
   private drawText(node: LayoutModule) {
-    if (!node.node.label) { return }
+    if (!node.node.label && !node.node.isCombinedNode) { return }
 
     const [x, y, w, h] = node.layout
     const { titleAreaHeight } = node.config
-    const content: string = node.node.label
+    const content: string = node.node.isCombinedNode ? `+ ${node.node.originalNodeCount} Modules` : node.node.label
     const availableHeight = node.children && node.children.length > 0
       ? titleAreaHeight - DEFAULT_RECT_GAP * 2
       : h - DEFAULT_RECT_GAP * 2
     const availableWidth = w - DEFAULT_RECT_GAP * 2
     if (availableWidth <= 0 || availableHeight <= 0) { return }
+
+    const config: Required<GraphicFont> = {
+      fontSize: this.config.font?.fontSize || DEFAULT_FONT_SIZE,
+      family: this.config.font?.family || DEFAULT_FONT_FAMILY,
+      color: this.config.font?.color || DEFAULT_FONT_COLOR
+    }
+
     const optimalFontSize = evaluateOptimalFontSize(
       this.render.ctx,
       content,
-      {
-        fontSize: this.config.font?.fontSize || DEFAULT_FONT_SIZE,
-        family: this.config.font?.family || DEFAULT_FONT_FAMILY,
-        color: ''
-      },
+      config,
       availableWidth,
       availableHeight
     )
-    this.render.ctx.font = `${optimalFontSize}px ${this.config.font?.family || DEFAULT_FONT_FAMILY}`
+    const font = `${optimalFontSize}px ${config.family}`
+    this.render.ctx.font = font
 
-    const result = getSafeText(this.render.ctx, content, availableWidth, {})
-    if (!result) { return }
-    if (result.width >= w || optimalFontSize >= h) { return }
-    const { text, width } = result
+    const result = getTextLayout(this.render.ctx, content, availableWidth, availableHeight)
+    if (!result.valid) { return }
+    const { text } = result
 
-    const textX = x + Math.round((w - width) / 2)
-    const textY = y + (node.children && node.children.length > 0 ? Math.round(titleAreaHeight / 2) : Math.round(h / 2))
-    this.textLayer.add(
-      createTitleText(
-        text,
-        textX,
-        textY,
-        `${optimalFontSize}px ${this.config.font?.family || DEFAULT_FONT_FAMILY}`,
-        this.config.font?.color || DEFAULT_FONT_COLOR
-      )
-    )
+    const textX = x + Math.round(w / 2)
+    const textY = y + (node.children && node.children.length > 0
+      ? Math.round(titleAreaHeight / 2)
+      : Math.round(h / 2))
+    const textComponent = createTitleText(text, textX, textY, font, config.color)
+    this.textLayer.add(textComponent)
     for (const child of node.children) {
       this.drawText(child)
     }
@@ -142,7 +140,7 @@ export class Component extends Schedule {
     if (flush) {
       const result = this.pluginDriver.cascadeHook('onModuleInit', this.layoutNodes)
       if (result) {
-        this.colorMappings = result.colorMappings!
+        this.colorMappings = result.colorMappings || {}
       }
     }
     for (const node of this.layoutNodes) {
@@ -198,22 +196,26 @@ export function evaluateOptimalFontSize(
   return Math.floor(min)
 }
 
-export function getSafeText(c: CanvasRenderingContext2D, text: string, width: number, cache: Record<string, number>) {
-  let ellipsisWidth = 0
-  if (text in cache) {
-    ellipsisWidth = cache[text]
-  } else {
-    ellipsisWidth = measureTextWidth(c, '...')
-    cache[text] = ellipsisWidth
-  }
+interface TextLayoutResult {
+  valid: boolean
+  text: string
+  width: number
+  direction: 'horizontal' | 'vertical'
+}
+
+export function getTextLayout(c: CanvasRenderingContext2D, text: string, width: number, height: number): TextLayoutResult {
+  const ellipsisWidth = measureTextWidth(c, '...')
   if (width < ellipsisWidth) {
-    return false
+    if (height > ellipsisWidth) {
+      return { valid: true, text: '...', direction: 'vertical', width: ellipsisWidth / 3 }
+    }
+    return { valid: false, text: '', direction: 'horizontal', width: 0 }
   }
   const textWidth = measureTextWidth(c, text)
   if (textWidth < width) {
-    return { text, width: textWidth }
+    return { valid: true, text, direction: 'horizontal', width: textWidth }
   }
-  return { text: '...', width: ellipsisWidth }
+  return { valid: true, text: '...', direction: 'horizontal', width: ellipsisWidth }
 }
 
 function measureTextWidth(c: CanvasRenderingContext2D, text: string) {

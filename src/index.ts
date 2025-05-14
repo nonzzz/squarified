@@ -118,6 +118,7 @@ export function createTreemap<const P extends readonly Plugin[]>(
   return base as typeof base & BasicTreemapInstance & ExposedEventMethods & PluginMixins<P>
 }
 
+export * from './interface'
 export {
   c2m,
   findRelativeNode,

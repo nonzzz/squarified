@@ -7,6 +7,8 @@ import type { HighlightMeta } from './highlight'
 interface DragOptions {
   x: number
   y: number
+  lastX: number
+  lastY: number
 }
 
 interface DragMetadata {
@@ -18,15 +20,15 @@ export const presetDragElementPlugin = definePlugin({
   onDOMEventTriggered(name, event, module, { stateManager: state, matrix, component }) {
     switch (name) {
       case 'mousemove': {
-        const { offsetX, offsetY } = event.native
         const meta = getDragOptions.call(this)
         if (!meta) {
           return
         }
-        if (meta.dragOptions.x === offsetX && meta.dragOptions.y === offsetY) {
+        if (meta.dragOptions.x === 0 && meta.dragOptions.y === 0) {
           state.transition('IDLE')
           return
         }
+
         state.transition('DRAGGING')
         if (state.isInState('DRAGGING')) {
           const highlight = getHighlightInstance.call(this)
@@ -35,6 +37,8 @@ export const presetDragElementPlugin = definePlugin({
             const { offsetX, offsetY } = event.native
             const drawX = offsetX - meta.dragOptions.x
             const drawY = offsetY - meta.dragOptions.y
+            const lastX = meta.dragOptions.x
+            const lastY = meta.dragOptions.y
             if (highlight?.highlight) {
               highlight.highlight.reset()
               highlight.highlight.setZIndexForHighlight()
@@ -42,6 +46,8 @@ export const presetDragElementPlugin = definePlugin({
             matrix.translation(drawX, drawY)
             meta.dragOptions.x = offsetX
             meta.dragOptions.y = offsetY
+            meta.dragOptions.lastX = lastX
+            meta.dragOptions.lastY = lastY
             component.cleanup()
             component.draw(false, false)
             stackMatrixTransformWithGraphAndLayer(component.elements, matrix.e, matrix.f, 1)
@@ -56,6 +62,15 @@ export const presetDragElementPlugin = definePlugin({
         break
       }
       case 'mouseup': {
+        if (state.isInState('PRESSED')) {
+          const meta = getDragOptions.call(this)
+          if (meta && meta.dragOptions) {
+            if (meta.dragOptions.x === meta.dragOptions.lastX && meta.dragOptions.y === meta.dragOptions.lastY) {
+              state.transition('IDLE')
+              return
+            }
+          }
+        }
         if (state.isInState('DRAGGING') && state.canTransition('IDLE')) {
           const highlight = getHighlightInstance.call(this)
           if (highlight && highlight.highlight) {
@@ -66,6 +81,8 @@ export const presetDragElementPlugin = definePlugin({
           if (meta && meta.dragOptions) {
             meta.dragOptions.x = 0
             meta.dragOptions.y = 0
+            meta.dragOptions.lastX = 0
+            meta.dragOptions.lastY = 0
             state.transition('IDLE')
           }
         }
@@ -82,6 +99,8 @@ export const presetDragElementPlugin = definePlugin({
         }
         meta.dragOptions.x = event.native.offsetX
         meta.dragOptions.y = event.native.offsetY
+        meta.dragOptions.lastX = event.native.offsetX
+        meta.dragOptions.lastY = event.native.offsetY
         state.transition('PRESSED')
         break
       }
@@ -90,7 +109,9 @@ export const presetDragElementPlugin = definePlugin({
   meta: {
     dragOptions: {
       x: 0,
-      y: 0
+      y: 0,
+      lastX: 0,
+      lastY: 0
     } satisfies DragOptions
   }
 })

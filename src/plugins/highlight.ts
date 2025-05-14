@@ -1,5 +1,5 @@
-import { Schedule } from '../etoile'
-import { S } from '../etoile/graph/display'
+import { Schedule, traverse } from '../etoile'
+import { Display, S } from '../etoile/graph/display'
 import type { DOMEventDefinition } from '../etoile/native/dom'
 import { createSmoothFrame } from '../etoile/native/dom'
 import type { ColorDecoratorResultRGB } from '../etoile/native/runtime'
@@ -32,7 +32,7 @@ interface EffectOptions {
   deps?: Array<() => boolean>
 }
 
-function smoothFrame(callback: (progress: number, cleanup: () => void) => void, opts: EffectOptions) {
+export function smoothFrame(callback: (progress: number, cleanup: () => void) => void, opts: EffectOptions) {
   const frame = createSmoothFrame()
   const startTime = Date.now()
 
@@ -61,7 +61,7 @@ export interface HighlightMeta {
   highlight: Highlight | null
 }
 
-const ANIMATION_DURATION = 300
+export const ANIMATION_DURATION = 300
 
 const HIGH_LIGHT_OPACITY = 0.3
 
@@ -128,9 +128,13 @@ export const presetHighlightPlugin = definePlugin({
   }
 })
 
-function stackMatrixTransform(graph: S, e: number, f: number, scale: number) {
+export function stackMatrixTransform(graph: S, e: number, f: number, scale: number) {
   graph.x = graph.x * scale + e
   graph.y = graph.y * scale + f
   graph.scaleX = scale
   graph.scaleY = scale
+}
+
+export function stackMatrixTransformWithGraphAndLayer(graphs: Display[], e: number, f: number, scale: number) {
+  traverse(graphs, (graph) => stackMatrixTransform(graph, e, f, scale))
 }

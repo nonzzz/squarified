@@ -67,6 +67,7 @@ export class Component extends Schedule {
       h / 4
     )
     const fill = this.colorMappings[node.node.id] || DEFAULT_RECT_FILL_DESC
+
     const rect = createRoundBlock(x, y, w, h, {
       fill,
       padding: 0,
@@ -125,7 +126,7 @@ export class Component extends Schedule {
       this.drawText(child)
     }
   }
-  draw(flush = true) {
+  draw(flush = true, update = true) {
     // prepare data
     const { width, height } = this.render.options
 
@@ -151,7 +152,9 @@ export class Component extends Schedule {
       this.drawText(node)
     }
     this.add(this.rectLayer, this.textLayer)
-    this.update()
+    if (update) {
+      this.update()
+    }
   }
   cleanup() {
     this.remove(this.rectLayer, this.textLayer)

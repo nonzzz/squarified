@@ -1,15 +1,9 @@
 import type { GraphicLayout } from '../interface'
+import { hashCode } from '../shared'
 import type { NativeModule } from './struct'
 import { getNodeDepth } from './struct'
 
 type Rect = { w: number, h: number, x: number, y: number }
-
-const SELF_ID = {
-  id: 0,
-  get() {
-    return this.id++
-  }
-}
 
 export type SquarifiedModule =
   & NativeModule
@@ -30,6 +24,11 @@ export interface LayoutModule {
     rectGap: number,
     rectRadius: number
   }
+}
+
+function generateStableCombinedNodeId(weight: number, nodes: SquarifiedModule[]) {
+  const name = nodes.map((node) => node.id).sort().join('-')
+  return Math.abs(hashCode(name)) + '-' + weight
 }
 
 function processSquarifyData(data: SquarifiedModule[], totalArea: number, minNodeSize: number, minNodeArea: number) {
@@ -68,7 +67,7 @@ function processSquarifyData(data: SquarifiedModule[], totalArea: number, minNod
 
     if (combinedWeight > 0 && (combinedWeight / totalWeight * totalArea) >= minNodeArea) {
       const combinedNode: SquarifiedModule = {
-        id: `combined-node-${SELF_ID.get()}`,
+        id: `combined-node-${generateStableCombinedNodeId(combinedWeight, tooSmallNodes)}`,
         weight: combinedWeight,
         isCombinedNode: true,
         originalNodeCount: tooSmallNodes.length,

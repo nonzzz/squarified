@@ -135,3 +135,5 @@ export type { Plugin, PluginContext, PluginHooks } from './shared/plugin-driver'
 export { definePlugin } from './shared/plugin-driver'
 
 export type { ExposedEventCallback, ExposedEventDefinition, PrimitiveEventMetadata } from './dom-event'
+
+export * from './plugins'

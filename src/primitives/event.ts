@@ -1,42 +1,18 @@
 // Because of the cache system. scale factor is not needed to apply.
 // Eg. Only use scale factor when the layout is changed.
 
-import { asserts, easing, traverse } from '../etoile'
-import { Display, Graph, S } from '../etoile/graph/display'
+import { easing, traverse } from '../etoile'
+import { Display, S } from '../etoile/graph/display'
 import { DOMEvent, DOM_EVENTS, createSmoothFrame } from '../etoile/native/dom'
 import type { DOMEventMetadata, DOMEventType } from '../etoile/native/dom'
 import { Event as _Event } from '../etoile/native/event'
-import type { BindThisParameter } from '../etoile/native/event'
 import { useMagicTrackPad } from '../etoile/native/magic-trackpad'
-import type { ColorDecoratorResultRGB } from '../etoile/native/runtime'
-import { createRoundBlock, isMacOS, mixin, prettyStrJoin } from '../shared'
+import { isMacOS, mixin, prettyStrJoin } from '../shared'
 import type { InheritedCollections } from '../shared'
-import type { App, TreemapInstanceAPI } from './component'
+import type { App } from './component'
 import { TreemapLayout, resetLayout } from './component'
 import type { LayoutModule } from './squarify'
 import { findRelativeNode } from './struct'
-
-export interface PrimitiveEventMetadata<T extends keyof HTMLElementEventMap> {
-  native: HTMLElementEventMap[T]
-  module: LayoutModule | null
-}
-
-export type ExposedEventCallback<T extends DOMEventType> = (metadata: PrimitiveEventMetadata<T>) => void
-
-export type ExposedEventDefinition = {
-  [K in DOMEventType]: BindThisParameter<ExposedEventCallback<K>, TreemapInstanceAPI>
-}
-
-export interface ExposedEventMethods<C = TreemapInstanceAPI, D = ExposedEventDefinition> {
-  on<Evt extends keyof D>(
-    evt: Evt,
-    handler: BindThisParameter<D[Evt], unknown extends C ? this : C>
-  ): void
-  off<Evt extends keyof D>(
-    evt: keyof D,
-    handler?: BindThisParameter<D[Evt], unknown extends C ? this : C>
-  ): void
-}
 
 export interface TreemapEventContext {
   type: DOMEventType | 'macOSWheel'
@@ -89,8 +65,6 @@ export type InternalEventDefinition = {
 
 const ANIMATION_DURATION = 300
 
-const fill = <ColorDecoratorResultRGB> { desc: { r: 255, g: 255, b: 255 }, mode: 'rgb' }
-
 function smoothFrame(callback: (progress: number, cleanup: () => void) => void, opts: EffectOptions) {
   const frame = createSmoothFrame()
   const startTime = Date.now()
@@ -114,41 +88,6 @@ function smoothFrame(callback: (progress: number, cleanup: () => void) => void, 
     }
     return callback(progress, frame.stop)
   })
-}
-
-export function applyForOpacity(graph: Graph, lastState: number, nextState: number, easedProgress: number) {
-  const alpha = lastState + (nextState - lastState) * easedProgress
-  if (asserts.isRoundRect(graph)) {
-    graph.style.opacity = alpha
-  }
-}
-
-const HIGH_LIGHT_OPACITY = 0.3
-
-function drawHighlight(treemap: TreemapLayout, evt: TreemapEvent) {
-  const { highlight } = treemap
-  const { currentNode } = evt.state
-  if (currentNode) {
-    const [x, y, w, h] = currentNode.layout
-    smoothFrame((_, cleanup) => {
-      cleanup()
-      highlight.reset()
-      const mask = createRoundBlock(x, y, w, h, { fill, opacity: HIGH_LIGHT_OPACITY, radius: 4, padding: 2 })
-      highlight.add(mask)
-      highlight.setZIndexForHighlight('1')
-      stackMatrixTransform(mask, evt.matrix.e, evt.matrix.f, 1)
-      highlight.update()
-      if (!evt.state.currentNode) {
-        return true
-      }
-    }, {
-      duration: ANIMATION_DURATION,
-      deps: [() => evt.state.isDragging, () => evt.state.isWheeling, () => evt.state.isZooming]
-    })
-  } else {
-    highlight.reset()
-    highlight.setZIndexForHighlight()
-  }
 }
 
 // TODO: Do we need turn off internal events?
@@ -212,72 +151,6 @@ export class TreemapEvent extends DOMEvent {
 
     // For macOS
     this.exposedEvent.emit(ctx.type === 'macOSWheel' ? 'wheel' : ctx.type, { native: metadata.native, module: node })
-  }
-
-  private onmousemove(ctx: TreemapEventContext, metadata: DOMEventMetadata<'mousemove'>, node: LayoutModule | null) {
-    if (!this.state.isDragging) {
-      if (this.state.currentNode !== node || !node) {
-        this.state.currentNode = node
-      }
-      drawHighlight(ctx.treemap, this)
-    } else {
-      // for drag
-      const { treemap } = ctx
-      smoothFrame((_, cleanup) => {
-        cleanup()
-        const { offsetX: x, offsetY: y } = metadata.native
-        const { dragX: lastX, dragY: lastY } = this.state
-        const drawX = x - lastX
-        const drawY = y - lastY
-        treemap.highlight.reset()
-        treemap.highlight.setZIndexForHighlight()
-        treemap.reset()
-        this.matrix.translation(drawX, drawY)
-        Object.assign(this.state, { isDragging: true, dragX: x, dragY: y })
-        stackMatrixTransformWithGraphAndLayer(treemap.elements, this.matrix.e, this.matrix.f, 1)
-        treemap.update()
-        return true
-      }, {
-        duration: ANIMATION_DURATION,
-        deps: [() => this.state.forceDestroy],
-        onStop: () => {
-          this.state.isDragging = false
-        }
-      })
-    }
-  }
-
-  private onmouseout(ctx: TreemapEventContext) {
-    this.state.currentNode = null
-    drawHighlight(ctx.treemap, this)
-  }
-
-  private onmousedown(ctx: TreemapEventContext, metadata: DOMEventMetadata<'mousedown'>) {
-    if (isScrollWheelOrRightButtonOnMouseupAndDown(metadata.native)) {
-      return
-    }
-    this.state.isDragging = true
-    this.state.dragX = metadata.native.offsetX
-    this.state.dragY = metadata.native.offsetY
-    this.state.forceDestroy = false
-    if (!ctx.treemap.renderCache.state) {
-      this.exposedEvent.silent('mousemove')
-      this.silent('mousemove')
-      ctx.treemap.renderCache.flush(ctx.treemap, this.matrix)
-      this.active('mousemove')
-      this.exposedEvent.active('mousemove')
-    }
-  }
-
-  private onmouseup(ctx: TreemapEventContext) {
-    if (!this.state.isDragging) {
-      return
-    }
-    this.state.forceDestroy = true
-    this.state.isDragging = false
-    const { treemap } = ctx
-    treemap.highlight.reset()
-    treemap.highlight.setZIndexForHighlight()
   }
 
   private onwheel(ctx: TreemapEventContext, metadata: DOMEventMetadata<'wheel'>) {

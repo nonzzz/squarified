@@ -19,3 +19,7 @@ export interface GraphicConfig {
   layout?: GraphicLayout
   font?: GraphicFont
 }
+
+export interface TreemapInstanceAPI {
+  foo: () => void
+}

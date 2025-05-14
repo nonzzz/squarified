@@ -1,11 +1,11 @@
 import { Component, logger } from './component'
 import { DOMEvent } from './dom-event'
+import type { ExposedEventMethods } from './dom-event'
 import { Event } from './etoile'
-import type { GraphicConfig } from './interface'
-import type { ExposedEventMethods } from './primitives/event'
+import type { GraphicConfig, TreemapInstanceAPI } from './interface'
 import { bindParentForModule } from './primitives/struct'
 import type { Module } from './primitives/struct'
-import { mixin } from './shared'
+import { mixin, noop } from './shared'
 import { assertExists } from './shared/logger'
 import type { Plugin } from './shared/plugin-driver'
 
@@ -56,6 +56,10 @@ export function createTreemap<const P extends readonly Plugin[]>(
     logger.panic('Plugins should be an array')
   }
 
+  const api: TreemapInstanceAPI = {
+    foo: noop
+  }
+
   const ctx = {
     init,
     dispose,
@@ -73,7 +77,7 @@ export function createTreemap<const P extends readonly Plugin[]>(
       installed = true
       component.pluginDriver.runHook('onLoad', ctx)
     }
-    domEvent.on('__exposed__', (type, ...args) => exposedEvent.emit(type, ...args))
+    domEvent.on('__exposed__', (type, args) => exposedEvent.emit(type, args))
   }
 
   function dispose() {
@@ -107,7 +111,7 @@ export function createTreemap<const P extends readonly Plugin[]>(
   }
 
   const base = mixin(ctx, [
-    { name: 'on', fn: () => exposedEvent.on.bind(exposedEvent) },
+    { name: 'on', fn: () => exposedEvent.bindWithContext(api) },
     { name: 'off', fn: () => exposedEvent.off.bind(exposedEvent) }
   ])
 
@@ -125,3 +129,5 @@ export {
 } from './primitives/struct'
 export type { Plugin, PluginContext, PluginHooks } from './shared/plugin-driver'
 export { definePlugin } from './shared/plugin-driver'
+
+export type { ExposedEventCallback, ExposedEventDefinition, PrimitiveEventMetadata } from './dom-event'

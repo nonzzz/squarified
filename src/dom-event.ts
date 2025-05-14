@@ -1,8 +1,8 @@
 import { Component } from './component'
-import { Event, traverse } from './etoile'
+import { Event } from './etoile'
 import type { BindThisParameter } from './etoile'
-import { Display, S } from './etoile/graph/display'
 import { DEFAULT_MATRIX_LOC, Matrix2D } from './etoile/native/matrix'
+import type { TreemapInstanceAPI } from './interface'
 import type { LayoutModule } from './primitives/squarify'
 import { findRelativeNode } from './primitives/struct'
 
@@ -18,17 +18,33 @@ export interface DOMEventMetadata<T extends keyof HTMLElementEventMap = Any> {
 
 export type DOMEventCallback<T extends DOMEventType> = (metadata: DOMEventMetadata<T>) => void
 
+export interface PrimitiveEventMetadata<T extends keyof HTMLElementEventMap> {
+  native: HTMLElementEventMap[T]
+  module: LayoutModule | null
+}
+
+export type ExposedEventCallback<T extends DOMEventType> = (metadata: PrimitiveEventMetadata<T>) => void
+
+export type ExposedEventDefinition = {
+  [K in DOMEventType]: BindThisParameter<ExposedEventCallback<K>, TreemapInstanceAPI>
+}
+
+export interface ExposedEventMethods<C = TreemapInstanceAPI, D = ExposedEventDefinition> {
+  on<Evt extends keyof D>(
+    evt: Evt,
+    handler: BindThisParameter<D[Evt], unknown extends C ? this : C>
+  ): void
+  off<Evt extends keyof D>(
+    evt: keyof D,
+    handler?: BindThisParameter<D[Evt], unknown extends C ? this : C>
+  ): void
+}
+
 export type DOMEVEntDefinition<API = unknown> =
   & {
     [K in DOMEventType]: BindThisParameter<DOMEventCallback<K>, API>
   }
-  & { __exposed__: (type: DOMEventType, metadata: DOMEventMetadata<DOMEventType>, node: LayoutModule | null) => void }
-
-// type DOMEventMethod<T extends DOMEventType> = (metadata: DOMEventMetadata<T>, node: LayoutModule | null) => void
-
-// type DOMEventHandlers = {
-//   [K in DOMEventType as `on${K}`]: DOMEventMethod<K>
-// }
+  & { __exposed__: (type: DOMEventType, metadata: PrimitiveEventMetadata<DOMEventType>) => void }
 
 export const STATE_TRANSITION = {
   IDLE: 'IDLE',
@@ -164,18 +180,7 @@ export class DOMEvent extends Event<DOMEVEntDefinition> {
     //   method.call(this, e, node)
     // }
     this.component.pluginDriver.runHook('onDOMEventTriggered', kind, e, node, this)
-    this.emit('__exposed__', kind, e, node)
+    this.emit('__exposed__', kind, { native: e.native, module: node })
     // For MacOS
   }
-}
-
-function stackMatrixTransform(graph: S, e: number, f: number, scale: number) {
-  graph.x = graph.x * scale + e
-  graph.y = graph.y * scale + f
-  graph.scaleX = scale
-  graph.scaleY = scale
-}
-
-function stackMatrixTransformWithGraphAndLayer(graphs: Display[], e: number, f: number, scale: number) {
-  traverse(graphs, (graph) => stackMatrixTransform(graph, e, f, scale))
 }

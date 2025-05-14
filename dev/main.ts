@@ -47,14 +47,11 @@ async function main() {
 
 treemap.init(root)
 
-// treemap.on('click', (_, m) => {
-//   console.log(metadata, m)
-// })
+treemap.on('click', function() {
+  console.log(this)
+})
 
 main().catch(console.error)
-// treemap.on('click', function(metadata) {
-//   this.zoom(metadata.module)
-// })
 
 new ResizeObserver(() => treemap.resize()).observe(root)
 

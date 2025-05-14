@@ -1,4 +1,4 @@
-import { smoothFrame, stackMatrixTransformWithGraphAndLayer } from '../shared'
+import { isScrollWheelOrRightButtonOnMouseupAndDown, smoothFrame, stackMatrixTransformWithGraphAndLayer } from '../shared'
 import { definePlugin } from '../shared/plugin-driver'
 import type { PluginContext } from '../shared/plugin-driver'
 import { ANIMATION_DURATION } from './highlight'
@@ -95,19 +95,11 @@ export const presetDragElementPlugin = definePlugin({
   }
 })
 
-function getHighlightInstance(this: PluginContext) {
+export function getHighlightInstance(this: PluginContext) {
   return this.getPluginMetadata<HighlightMeta>('treemap:preset-highlight')
 }
 
-function getDragOptions(this: PluginContext) {
+export function getDragOptions(this: PluginContext) {
   const meta = this.getPluginMetadata<DragMetadata>('treemap:preset-drag-element')
   return meta
-}
-
-interface DuckE {
-  which: number
-}
-
-function isScrollWheelOrRightButtonOnMouseupAndDown<E extends DuckE = DuckE>(e: E) {
-  return e.which === 2 || e.which === 3
 }

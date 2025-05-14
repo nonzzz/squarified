@@ -161,3 +161,11 @@ export function smoothFrame(callback: (progress: number, cleanup: () => void) =>
     return callback(progress, frame.stop)
   })
 }
+
+interface DuckE {
+  which: number
+}
+
+export function isScrollWheelOrRightButtonOnMouseupAndDown<E extends DuckE = DuckE>(e: E) {
+  return e.which === 2 || e.which === 3
+}

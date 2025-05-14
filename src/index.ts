@@ -88,6 +88,7 @@ export function createTreemap<const P extends readonly Plugin[]>(
       for (const evt in exposedEvent.eventCollections) {
         exposedEvent.off(evt)
       }
+      component.pluginDriver.runHook('onDispose')
       root = null
       component = null
       domEvent = null
@@ -99,6 +100,9 @@ export function createTreemap<const P extends readonly Plugin[]>(
     const { width, height } = root.getBoundingClientRect()
     component.render.initOptions({ height, width, devicePixelRatio: window.devicePixelRatio })
     component.render.canvas.style.position = 'absolute'
+    if (domEvent) {
+      component.pluginDriver.runHook('onResize', domEvent)
+    }
     component.cleanup()
     component.draw()
   }
@@ -106,7 +110,6 @@ export function createTreemap<const P extends readonly Plugin[]>(
   function setOptions(options: TreemapOptions) {
     assertExists(component, logger, 'Treemap not initialized. Please call `init()` before setOptions.')
     component.data = bindParentForModule(options.data)
-
     resize()
   }
 

@@ -37,32 +37,13 @@ const fill = <ColorDecoratorResultRGB> { desc: { r: 255, g: 255, b: 255 }, mode:
 
 export const presetHighlightPlugin = definePlugin({
   name: 'treemap:preset-highlight',
-  onLoad(treemapContext) {
+  onLoad() {
     const meta = this.getPluginMetadata<HighlightMeta>('treemap:preset-highlight')
     if (!meta) {
       return
     }
     if (!meta.highlight) {
       meta.highlight = new Highlight(this.instance.to)
-    }
-    const _resize = treemapContext.resize
-    const _dispose = treemapContext.dispose
-    treemapContext.resize = () => {
-      _resize()
-      if (this.instance) {
-        meta.highlight?.render.initOptions({ ...this.instance.render.options })
-        meta.highlight?.reset()
-        meta.highlight?.init()
-      }
-    }
-    treemapContext.dispose = () => {
-      if (this.instance) {
-        _dispose()
-        if (meta.highlight) {
-          meta.highlight.destory()
-          meta.highlight = null
-        }
-      }
     }
   },
   onDOMEventTriggered(name, _, module, { stateManager: state, matrix, component }) {
@@ -76,6 +57,7 @@ export const presetHighlightPlugin = definePlugin({
           return
         }
         const [x, y, w, h] = module.layout
+        // console.log(module)
         const effectiveRadius = Math.min(component.config.layout?.rectRadius || 4, w / 4, h / 4)
         smoothFrame((_, cleanup) => {
           cleanup()
@@ -89,6 +71,23 @@ export const presetHighlightPlugin = definePlugin({
           duration: ANIMATION_DURATION
         })
       }
+    }
+  },
+  onResize() {
+    const meta = this.getPluginMetadata<HighlightMeta>('treemap:preset-highlight')
+    if (!meta) {
+      return
+    }
+    console.log(this.instance.render.options)
+    meta.highlight?.render.initOptions({ ...this.instance.render.options })
+    meta.highlight?.reset()
+    meta.highlight?.init()
+  },
+  onDispose() {
+    const meta = this.getPluginMetadata<HighlightMeta>('treemap:preset-highlight')
+    if (meta && meta.highlight) {
+      meta.highlight.destory()
+      meta.highlight = null
     }
   },
   meta: {

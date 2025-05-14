@@ -26,9 +26,11 @@ export interface PluginHooks {
     module: LayoutModule | null,
     domEvent: DOMEvent
   ) => void
+  onResize?: (this: PluginContext, domEvent: DOMEvent) => void
+  onDispose?: (this: PluginContext) => void
 }
 
-export type BasicPluginHooks = Pick<PluginHooks, 'onLoad' | 'onDOMEventTriggered'>
+export type BasicPluginHooks = Pick<PluginHooks, 'onLoad' | 'onDOMEventTriggered' | 'onResize' | 'onDispose'>
 
 export type CascadedPluginHooks = Pick<PluginHooks, 'onModuleInit'>
 

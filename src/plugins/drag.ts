@@ -1,3 +1,4 @@
+import { DEFAULT_MATRIX_LOC } from '../etoile/native/matrix'
 import { isScrollWheelOrRightButtonOnMouseupAndDown, smoothFrame, stackMatrixTransformWithGraphAndLayer } from '../shared'
 import { definePlugin } from '../shared/plugin-driver'
 import type { PluginContext } from '../shared/plugin-driver'
@@ -113,6 +114,9 @@ export const presetDragElementPlugin = definePlugin({
       lastX: 0,
       lastY: 0
     } satisfies DragOptions
+  },
+  onResize({ matrix }) {
+    matrix.create(DEFAULT_MATRIX_LOC)
   }
 })
 

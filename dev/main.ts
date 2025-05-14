@@ -3,7 +3,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 import { c2m, createTreemap, sortChildrenByKey } from '../src'
-import { presetColorPlugin, presetDragElementPlugin, presetHighlightPlugin, presetZoomablePlugin } from '../src/plugins'
+import { presetColorPlugin, presetDragElementPlugin, presetHighlightPlugin, presetScalePlugin, presetZoomablePlugin } from '../src/plugins'
 
 import './live-reload'
 
@@ -13,7 +13,8 @@ const treemap = createTreemap({
     presetColorPlugin,
     presetZoomablePlugin,
     presetHighlightPlugin,
-    presetDragElementPlugin
+    presetDragElementPlugin,
+    presetScalePlugin
   ]
 })
 

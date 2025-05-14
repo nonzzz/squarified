@@ -1,5 +1,7 @@
-import { RoundRect, Text } from '../etoile'
+import { RoundRect, Text, traverse } from '../etoile'
+import { Display, S } from '../etoile/graph/display'
 import type { RoundRectStyleOptions } from '../etoile/graph/rect'
+import { createSmoothFrame } from '../etoile/native/dom'
 import { Matrix2D } from '../etoile/native/matrix'
 
 export function hashCode(str: string) {
@@ -116,4 +118,46 @@ export function typedForIn<T extends NonNullable<object>>(obj: T, callback: (key
       callback(key satisfies keyof T, obj[key satisfies keyof T])
     }
   }
+}
+
+export function stackMatrixTransform(graph: S, e: number, f: number, scale: number) {
+  graph.x = graph.x * scale + e
+  graph.y = graph.y * scale + f
+  graph.scaleX = scale
+  graph.scaleY = scale
+}
+
+export function stackMatrixTransformWithGraphAndLayer(graphs: Display[], e: number, f: number, scale: number) {
+  traverse(graphs, (graph) => stackMatrixTransform(graph, e, f, scale))
+}
+
+interface EffectOptions {
+  duration: number
+  onStop?: () => void
+  deps?: Array<() => boolean>
+}
+
+export function smoothFrame(callback: (progress: number, cleanup: () => void) => void, opts: EffectOptions) {
+  const frame = createSmoothFrame()
+  const startTime = Date.now()
+
+  const condtion = (process: number) => {
+    if (Array.isArray(opts.deps)) {
+      return opts.deps.some((dep) => dep())
+    }
+    return process >= 1
+  }
+
+  frame.run(() => {
+    const elapsed = Date.now() - startTime
+    const progress = Math.min(elapsed / opts.duration, 1)
+    if (condtion(progress)) {
+      frame.stop()
+      if (opts.onStop) {
+        opts.onStop()
+      }
+      return true
+    }
+    return callback(progress, frame.stop)
+  })
 }

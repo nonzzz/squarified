@@ -136,7 +136,9 @@ export class Component extends Schedule {
       rectGap: this.config.layout?.rectGap || DEFAULT_RECT_GAP
     }
 
-    this.layoutNodes = squarify(this.data, { w: width, h: height, x: 0, y: 0 }, config)
+    if (update) {
+      this.layoutNodes = squarify(this.data, { w: width, h: height, x: 0, y: 0 }, config)
+    }
 
     if (flush) {
       const result = this.pluginDriver.cascadeHook('onModuleInit', this.layoutNodes)

@@ -1,9 +1,7 @@
-import { Schedule, traverse } from '../etoile'
-import { Display, S } from '../etoile/graph/display'
+import { Schedule } from '../etoile'
 import type { DOMEventDefinition } from '../etoile/native/dom'
-import { createSmoothFrame } from '../etoile/native/dom'
 import type { ColorDecoratorResultRGB } from '../etoile/native/runtime'
-import { createRoundBlock } from '../shared'
+import { createRoundBlock, smoothFrame, stackMatrixTransform } from '../shared'
 import { definePlugin } from '../shared/plugin-driver'
 
 export class Highlight extends Schedule<DOMEventDefinition> {
@@ -25,36 +23,6 @@ export class Highlight extends Schedule<DOMEventDefinition> {
     this.canvas.style.position = 'absolute'
     this.canvas.style.pointerEvents = 'none'
   }
-}
-interface EffectOptions {
-  duration: number
-  onStop?: () => void
-  deps?: Array<() => boolean>
-}
-
-export function smoothFrame(callback: (progress: number, cleanup: () => void) => void, opts: EffectOptions) {
-  const frame = createSmoothFrame()
-  const startTime = Date.now()
-
-  const condtion = (process: number) => {
-    if (Array.isArray(opts.deps)) {
-      return opts.deps.some((dep) => dep())
-    }
-    return process >= 1
-  }
-
-  frame.run(() => {
-    const elapsed = Date.now() - startTime
-    const progress = Math.min(elapsed / opts.duration, 1)
-    if (condtion(progress)) {
-      frame.stop()
-      if (opts.onStop) {
-        opts.onStop()
-      }
-      return true
-    }
-    return callback(progress, frame.stop)
-  })
 }
 
 export interface HighlightMeta {
@@ -127,14 +95,3 @@ export const presetHighlightPlugin = definePlugin({
     highlight: null
   }
 })
-
-export function stackMatrixTransform(graph: S, e: number, f: number, scale: number) {
-  graph.x = graph.x * scale + e
-  graph.y = graph.y * scale + f
-  graph.scaleX = scale
-  graph.scaleY = scale
-}
-
-export function stackMatrixTransformWithGraphAndLayer(graphs: Display[], e: number, f: number, scale: number) {
-  traverse(graphs, (graph) => stackMatrixTransform(graph, e, f, scale))
-}

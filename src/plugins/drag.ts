@@ -1,6 +1,7 @@
+import { smoothFrame, stackMatrixTransformWithGraphAndLayer } from '../shared'
 import { definePlugin } from '../shared/plugin-driver'
 import type { PluginContext } from '../shared/plugin-driver'
-import { ANIMATION_DURATION, smoothFrame, stackMatrixTransformWithGraphAndLayer } from './highlight'
+import { ANIMATION_DURATION } from './highlight'
 import type { HighlightMeta } from './highlight'
 
 interface DragOptions {
@@ -47,7 +48,8 @@ export const presetDragElementPlugin = definePlugin({
             component.update()
             return true
           }, {
-            duration: ANIMATION_DURATION
+            duration: ANIMATION_DURATION,
+            deps: [() => state.isInState('IDLE')]
           })
         }
 

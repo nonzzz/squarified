@@ -20,6 +20,13 @@ export interface GraphicConfig {
   font?: GraphicFont
 }
 
+/**
+ * @deprecated `TreemapInstanceAPI` don't provide methods anymore. (will be removed in the future versions)
+ * Keep it only for migration convenience
+ */
 export interface TreemapInstanceAPI {
-  foo: () => void
+  /**
+   * @deprecated don't call this method anymore.
+   */
+  zoom: () => void
 }

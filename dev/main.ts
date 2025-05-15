@@ -47,8 +47,8 @@ async function main() {
 
 treemap.init(root)
 
-treemap.on('click', function() {
-  console.log(this)
+treemap.on('click', function(m) {
+  console.log(m.module)
 })
 
 main().catch(console.error)

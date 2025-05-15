@@ -57,7 +57,7 @@ export function createTreemap<const P extends readonly Plugin[]>(
   }
 
   const api: TreemapInstanceAPI = {
-    foo: noop
+    zoom: noop
   }
 
   const ctx = {
@@ -134,4 +134,6 @@ export {
 export type { Plugin, PluginContext, PluginHooks } from './shared/plugin-driver'
 export { definePlugin } from './shared/plugin-driver'
 
-export type { ExposedEventCallback, ExposedEventDefinition, PrimitiveEventMetadata } from './dom-event'
+export type { DOMEventType, ExposedEventCallback, ExposedEventDefinition, ExposedEventMethods, PrimitiveEventMetadata } from './dom-event'
+export type { LayoutModule } from './primitives/squarify'
+export type { Module, NativeModule } from './primitives/struct'

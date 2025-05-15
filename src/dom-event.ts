@@ -52,7 +52,8 @@ export const STATE_TRANSITION = {
   DRAGGING: 'DRAGGING',
   CLICK_POTENTIAL: 'CLICK_POTENTIAL',
   ZOOMING: 'ZOOMING',
-  MOVE: 'MOVE'
+  MOVE: 'MOVE',
+  SCALING: 'SCALING'
 } as const
 
 export type StateTransition = typeof STATE_TRANSITION[keyof typeof STATE_TRANSITION]
@@ -105,13 +106,15 @@ export class StateManager {
   canTransition(to: StateTransition) {
     switch (this.current) {
       case 'IDLE':
-        return to === 'PRESSED' || to === 'MOVE'
+        return to === 'PRESSED' || to === 'MOVE' || to === 'SCALING'
       case 'PRESSED':
         return to === 'DRAGGING' || to === 'IDLE'
       case 'DRAGGING':
         return to === 'IDLE'
       case 'MOVE':
         return to === 'PRESSED' || to === 'IDLE'
+      case 'SCALING':
+        return to === 'IDLE'
       default:
         return false
     }

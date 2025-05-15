@@ -56,8 +56,9 @@ export const presetHighlightPlugin = definePlugin({
           meta.highlight?.setZIndexForHighlight()
           return
         }
+
         const [x, y, w, h] = module.layout
-        // console.log(module)
+
         const effectiveRadius = Math.min(component.config.layout?.rectRadius || 4, w / 4, h / 4)
         smoothFrame((_, cleanup) => {
           cleanup()
@@ -65,7 +66,7 @@ export const presetHighlightPlugin = definePlugin({
           const mask = createRoundBlock(x, y, w, h, { fill, opacity: HIGH_LIGHT_OPACITY, radius: effectiveRadius, padding: 0 })
           meta.highlight?.add(mask)
           meta.highlight?.setZIndexForHighlight('1')
-          stackMatrixTransform(mask, matrix.e, matrix.f, 1)
+          stackMatrixTransform(mask, matrix.e, matrix.f, matrix.a)
           meta.highlight?.update()
         }, {
           duration: ANIMATION_DURATION
@@ -78,7 +79,6 @@ export const presetHighlightPlugin = definePlugin({
     if (!meta) {
       return
     }
-    console.log(this.instance.render.options)
     meta.highlight?.render.initOptions({ ...this.instance.render.options })
     meta.highlight?.reset()
     meta.highlight?.init()

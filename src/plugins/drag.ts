@@ -51,7 +51,7 @@ export const presetDragElementPlugin = definePlugin({
             meta.dragOptions.lastY = lastY
             component.cleanup()
             component.draw(false, false)
-            stackMatrixTransformWithGraphAndLayer(component.elements, matrix.e, matrix.f, 1)
+            stackMatrixTransformWithGraphAndLayer(component.elements, matrix.e, matrix.f, matrix.a)
             component.update()
             return true
           }, {
@@ -115,8 +115,9 @@ export const presetDragElementPlugin = definePlugin({
       lastY: 0
     } satisfies DragOptions
   },
-  onResize({ matrix }) {
+  onResize({ matrix, stateManager: state }) {
     matrix.create(DEFAULT_MATRIX_LOC)
+    state.reset()
   }
 })
 

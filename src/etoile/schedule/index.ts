@@ -50,7 +50,7 @@ export class Schedule<D extends DefaultEventDefinition = DefaultEventDefinition>
     super()
     this.to = typeof to === 'string' ? document.querySelector(to)! : to
     if (!this.to) {
-      throw new Error(log.error('The element to bind is not found.'))
+      log.panic('The element to bind is not found.')
     }
     const { width, height } = this.to.getBoundingClientRect()
     Object.assign(renderOptions, { width, height }, { devicePixelRatio: window.devicePixelRatio || 1 })

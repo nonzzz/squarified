@@ -1,6 +1,7 @@
 import { Component } from './component'
 import { Event } from './etoile'
 import type { BindThisParameter } from './etoile'
+import { captureBoxXY } from './etoile/native/dom'
 import { DEFAULT_MATRIX_LOC, Matrix2D } from './etoile/native/matrix'
 import type { TreemapInstanceAPI } from './interface'
 import type { LayoutModule } from './primitives/squarify'
@@ -64,38 +65,6 @@ function bindDOMEvent(el: HTMLElement, evt: DOMEventType, dom: DOMEvent) {
   }
   el.addEventListener(evt, handler)
   return { evt, handler }
-}
-
-export function getOffset(el: HTMLElement) {
-  let e = 0
-  let f = 0
-  if (document.documentElement.getBoundingClientRect && el.getBoundingClientRect) {
-    const { top, left } = el.getBoundingClientRect()
-    e = top
-    f = left
-  } else {
-    for (let elt: HTMLElement | null = el; elt; elt = el.offsetParent as HTMLElement | null) {
-      e += el.offsetLeft
-      f += el.offsetTop
-    }
-  }
-
-  return [
-    e + Math.max(document.documentElement.scrollLeft, document.body.scrollLeft),
-    f + Math.max(document.documentElement.scrollTop, document.body.scrollTop)
-  ]
-}
-
-export function captureBoxXY(c: HTMLElement, evt: unknown, a: number, d: number, translateX: number, translateY: number) {
-  const boundingClientRect = c.getBoundingClientRect()
-  if (evt instanceof MouseEvent) {
-    const [e, f] = getOffset(c)
-    return {
-      x: ((evt.clientX - boundingClientRect.left - e - translateX) / a),
-      y: ((evt.clientY - boundingClientRect.top - f - translateY) / d)
-    }
-  }
-  return { x: 0, y: 0 }
 }
 
 export class StateManager {

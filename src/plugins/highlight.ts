@@ -1,10 +1,10 @@
+import type { DOMEVEntDefinition } from '../dom-event'
 import { Schedule } from '../etoile'
-import type { DOMEventDefinition } from '../etoile/native/dom'
 import type { ColorDecoratorResultRGB } from '../etoile/native/runtime'
 import { createRoundBlock, smoothFrame, stackMatrixTransform } from '../shared'
 import { definePlugin } from '../shared/plugin-driver'
 
-export class Highlight extends Schedule<DOMEventDefinition> {
+export class Highlight extends Schedule<DOMEVEntDefinition> {
   reset() {
     this.destory()
     this.update()
@@ -46,7 +46,7 @@ export const presetHighlightPlugin = definePlugin({
       meta.highlight = new Highlight(this.instance.to)
     }
   },
-  onDOMEventTriggered(name, _, module, { stateManager: state, matrix, component }) {
+  onDOMEventTriggered(name, _, module, { stateManager: state, matrix }) {
     if (name === 'mousemove') {
       if (state.canTransition('MOVE')) {
         const meta = this.getPluginMetadata('treemap:preset-highlight') as HighlightMeta

@@ -1,28 +1,4 @@
 import { raf } from '../../shared'
-import { Event } from './event'
-import type { BindThisParameter } from './event'
-import { Matrix2D } from './matrix'
-
-// primitive types
-export const DOM_EVENTS = ['click', 'mousedown', 'mousemove', 'mouseup', 'mouseover', 'mouseout', 'wheel'] as const
-
-export type DOMEventType = typeof DOM_EVENTS[number]
-
-export interface DOMLoc {
-  x: number
-  y: number
-}
-
-export interface DOMEventMetadata<T extends keyof HTMLElementEventMap = Any> {
-  native: HTMLElementEventMap[T]
-  loc: DOMLoc
-}
-
-export type DOMEventCallback<T extends DOMEventType> = (metadata: DOMEventMetadata<T>) => void
-
-export type DOMEventDefinition<API = unknown> = {
-  [K in DOMEventType]: BindThisParameter<DOMEventCallback<K>, API>
-}
 
 export function getOffset(el: HTMLElement) {
   let e = 0
@@ -92,28 +68,4 @@ export function createSmoothFrame() {
   const stop = createEffectStop(c)
 
   return { run, stop }
-}
-
-// Some thoughts DOMEvent was designed this way intentionally. I don't have any idea of splitting the general libray yet.
-// The follow captureBoxXy matrix a and d be 1 is because of the scaled canvas (without zoomed) is with a new layout.
-export function bindDOMEvent(el: HTMLElement, evt: DOMEventType | (string & {}), dom: DOMEvent<Any>) {
-  const handler = (e: unknown) => {
-    const { x, y } = captureBoxXY(el, e, 1, 1, dom.matrix.e, dom.matrix.f)
-    // @ts-expect-error safe
-    dom.emit(evt, { native: e, loc: { x, y } })
-  }
-  el.addEventListener(evt, handler)
-  return handler
-}
-
-export class DOMEvent<API = unknown> extends Event<DOMEventDefinition<API>> {
-  el: HTMLElement | null
-  events: Array<ReturnType<typeof bindDOMEvent>>
-  matrix: Matrix2D
-  constructor(el: HTMLElement) {
-    super()
-    this.el = el
-    this.matrix = new Matrix2D()
-    this.events = DOM_EVENTS.map((evt) => bindDOMEvent(this.el!, evt, this))
-  }
 }

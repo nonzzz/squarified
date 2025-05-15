@@ -25,6 +25,7 @@ build-lib:
 
 analyze-lib:
 	@echo "Analyze library"
+	rm -rf dist
 	export ANALYZE=1 && $(ROLLDOWN)
 	
 build-pub: bootstrap

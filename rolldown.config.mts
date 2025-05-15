@@ -6,8 +6,25 @@ import fs from 'fs'
 import { builtinModules } from 'module'
 import path from 'path'
 import { defineConfig } from 'rolldown'
+import type { RolldownPlugin } from 'rolldown'
 import ts from 'typescript'
-const external = [...builtinModules, 'vite']
+import { analyzer, unstableRolldownAdapter } from 'vite-bundle-analyzer'
+
+const external = [...builtinModules]
+
+const plugins: RolldownPlugin[] = []
+
+if (process.env.ANALYZE) {
+  plugins.push(unstableRolldownAdapter(analyzer()))
+} else {
+  plugins.push({
+    name: 'dts',
+    closeBundle() {
+      generateDTS()
+      fs.rmSync(path.join(process.cwd(), 'dist/src'), { recursive: true })
+    }
+  })
+}
 
 export default defineConfig([
   {
@@ -21,15 +38,7 @@ export default defineConfig([
       { dir: 'dist', format: 'esm', exports: 'named', entryFileNames: '[name].mjs', chunkFileNames: '[name]-[hash].mjs' },
       { dir: 'dist', format: 'cjs', exports: 'named', entryFileNames: '[name].js' }
     ],
-    plugins: [
-      {
-        name: 'dts',
-        closeBundle() {
-          generateDTS()
-          fs.rmSync(path.join(process.cwd(), 'dist/src'), { recursive: true })
-        }
-      }
-    ]
+    plugins
   }
 ])
 

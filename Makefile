@@ -22,6 +22,10 @@ bootstrap:
 build-lib:
 	@echo "Build library"
 	$(ROLLDOWN)
+
+analyze-lib:
+	@echo "Analyze library"
+	export ANALYZE=1 && $(ROLLDOWN)
 	
 build-pub: bootstrap
 	@echo "Build publish"

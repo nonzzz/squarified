@@ -1,7 +1,6 @@
 import type { DOMEventMetadata, DOMEventType } from '../dom-event'
 import { DOMEvent } from '../dom-event'
 import { DEFAULT_MATRIX_LOC } from '../etoile/native/matrix'
-import type { LayoutModule } from '../primitives/squarify'
 import { smoothFrame, stackMatrixTransformWithGraphAndLayer } from '../shared'
 import { definePlugin } from '../shared/plugin-driver'
 import type { PluginContext } from '../shared/plugin-driver'
@@ -43,7 +42,7 @@ export function presetScalePlugin(options?: ScalePluginOptions) {
     name: 'treemap:preset-scale',
     onDOMEventTriggered(name, event, module, evt) {
       if (isWheelEvent(name, event)) {
-        onWheel(this, event, module, evt)
+        onWheel(this, event, evt)
       }
     },
     meta: {
@@ -73,7 +72,6 @@ export function getScaleOptions(this: PluginContext) {
 function onWheel(
   pluginContext: PluginContext,
   event: DOMEventMetadata<'wheel'>,
-  module: LayoutModule | null,
   { stateManager: state, component, matrix }: DOMEvent
 ) {
   event.native.preventDefault()

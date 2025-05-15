@@ -3,7 +3,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 import { c2m, createTreemap, sortChildrenByKey } from '../src'
-import { presetColorPlugin, presetDragElementPlugin, presetHighlightPlugin, presetScalePlugin, presetZoomablePlugin } from '../src/plugins'
+import { presetColorPlugin, presetDragElementPlugin, presetHighlightPlugin, presetScalePlugin } from '../src/plugins'
 
 import './live-reload'
 
@@ -11,7 +11,7 @@ const root = document.querySelector<HTMLDivElement>('#app')!
 const treemap = createTreemap({
   plugins: [
     presetColorPlugin,
-    presetZoomablePlugin,
+    // presetZoomablePlugin,
     presetHighlightPlugin,
     presetDragElementPlugin,
     presetScalePlugin()
@@ -48,7 +48,9 @@ async function main() {
 treemap.init(root)
 
 treemap.on('click', function(m) {
-  console.log(m.module)
+  if (m.module?.node) {
+    treemap.zoom(m.module.node.id)
+  }
 })
 
 main().catch(console.error)

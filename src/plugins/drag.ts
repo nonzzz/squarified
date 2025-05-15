@@ -25,6 +25,7 @@ export const presetDragElementPlugin = definePlugin({
         if (!meta) {
           return
         }
+
         if (meta.dragOptions.x === 0 && meta.dragOptions.y === 0) {
           state.transition('IDLE')
           return

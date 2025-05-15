@@ -17,7 +17,7 @@ export interface OnModuleInitResult {
 }
 
 export interface PluginHooks {
-  onLoad?: (this: PluginContext, treemapContext: BasicTreemapInstance) => void | Record<string, Any>
+  onLoad?: (this: PluginContext, treemapContext: BasicTreemapInstance, domEvent: DOMEvent) => void | Record<string, Any>
   onModuleInit?: (this: PluginContext, modules: LayoutModule[]) => OnModuleInitResult | void
   onDOMEventTriggered?: <N extends DOMEventType>(
     this: PluginContext,

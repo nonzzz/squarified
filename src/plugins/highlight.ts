@@ -59,7 +59,7 @@ export const presetHighlightPlugin = definePlugin({
 
         const [x, y, w, h] = module.layout
 
-        const effectiveRadius = Math.min(component.config.layout?.rectRadius || 4, w / 4, h / 4)
+        const effectiveRadius = Math.min(module.config.rectRadius, w / 4, h / 4)
         smoothFrame((_, cleanup) => {
           cleanup()
           meta.highlight?.reset()

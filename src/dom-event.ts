@@ -106,7 +106,7 @@ export class StateManager {
   canTransition(to: StateTransition) {
     switch (this.current) {
       case 'IDLE':
-        return to === 'PRESSED' || to === 'MOVE' || to === 'SCALING'
+        return to === 'PRESSED' || to === 'MOVE' || to === 'SCALING' || to === 'ZOOMING'
       case 'PRESSED':
         return to === 'DRAGGING' || to === 'IDLE'
       case 'DRAGGING':
@@ -114,6 +114,8 @@ export class StateManager {
       case 'MOVE':
         return to === 'PRESSED' || to === 'IDLE'
       case 'SCALING':
+        return to === 'IDLE'
+      case 'ZOOMING':
         return to === 'IDLE'
       default:
         return false

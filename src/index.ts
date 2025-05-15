@@ -75,7 +75,7 @@ export function createTreemap<const P extends readonly Plugin[]>(
     if (!installed) {
       plugins.forEach((plugin) => component?.pluginDriver.use(plugin))
       installed = true
-      component.pluginDriver.runHook('onLoad', ctx)
+      component.pluginDriver.runHook('onLoad', ctx, domEvent)
     }
     domEvent.on('__exposed__', (type, args) => exposedEvent.emit(type, args))
   }

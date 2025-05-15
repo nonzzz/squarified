@@ -19,23 +19,23 @@ const DEFAULT_RECT_FILL_DESC: ColorDecoratorResult = {
   desc: { r: 0, g: 0, b: 0 }
 }
 
-const DEFAULT_TITLE_AREA_HEIGHT: Series<number> = {
+export const DEFAULT_TITLE_AREA_HEIGHT: Series<number> = {
   min: 30,
   max: 60
 }
 
-const DEFAULT_RECT_GAP = 4
+export const DEFAULT_RECT_GAP = 4
 
-const DEFAULT_RECT_BORDER_RADIUS = 4
+export const DEFAULT_RECT_BORDER_RADIUS = 4
 
 const DEFAULT_FONT_SIZE: Series<number> = {
   max: 70,
   min: 12
 }
 
-const DEFAULT_FONT_FAMILY = 'sans-serif'
+export const DEFAULT_FONT_FAMILY = 'sans-serif'
 
-const DEFAULT_FONT_COLOR = '#000'
+export const DEFAULT_FONT_COLOR = '#000'
 
 export class Component extends Schedule {
   pluginDriver: PluginDriver<Component>

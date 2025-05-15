@@ -24,31 +24,46 @@ function isWheelEvent(name: DOMEventType, event: DOMEventMetadata<Any>): event i
 
 // refer https://developer.mozilla.org/en-US/docs/Web/API/Element/mousewheel_event
 // we shouldn't use wheelDelta property anymore.
-//
-export const presetScalePlugin = definePlugin({
-  name: 'treemap:preset-scale',
-  onDOMEventTriggered(name, event, module, evt) {
-    if (isWheelEvent(name, event)) {
-      onWheel(this, event, module, evt)
+
+export interface ScalePluginOptions {
+  /**
+   * @default Infinity
+   * @description The maximum scale factor for the treemap.
+   */
+  max?: number
+  /**
+   * @default 0.1
+   * @description The minimum scale factor for the treemap.
+   */
+  min?: number
+}
+
+export function presetScalePlugin(options?: ScalePluginOptions) {
+  return definePlugin({
+    name: 'treemap:preset-scale',
+    onDOMEventTriggered(name, event, module, evt) {
+      if (isWheelEvent(name, event)) {
+        onWheel(this, event, module, evt)
+      }
+    },
+    meta: {
+      scaleOptions: {
+        scale: 1,
+        minScale: options?.min || 0.1,
+        maxScale: options?.max || Infinity,
+        scaleFactor: 0.05
+      } satisfies ScaleOptions
+    },
+    onResize({ matrix, stateManager: state }) {
+      const meta = getScaleOptions.call(this)
+      if (meta) {
+        meta.scaleOptions.scale = 1
+      }
+      matrix.create(DEFAULT_MATRIX_LOC)
+      state.reset()
     }
-  },
-  meta: {
-    scaleOptions: {
-      scale: 1,
-      minScale: 0.1,
-      maxScale: 5,
-      scaleFactor: 0.05
-    } satisfies ScaleOptions
-  },
-  onResize({ matrix, stateManager: state }) {
-    const meta = getScaleOptions.call(this)
-    if (meta) {
-      meta.scaleOptions.scale = 1
-    }
-    matrix.create(DEFAULT_MATRIX_LOC)
-    state.reset()
-  }
-})
+  })
+}
 
 export function getScaleOptions(this: PluginContext) {
   const meta = this.getPluginMetadata<ScaleMetadata>('treemap:preset-scale')

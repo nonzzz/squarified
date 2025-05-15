@@ -14,7 +14,7 @@ const treemap = createTreemap({
     presetZoomablePlugin,
     presetHighlightPlugin,
     presetDragElementPlugin,
-    presetScalePlugin
+    presetScalePlugin()
   ]
 })
 

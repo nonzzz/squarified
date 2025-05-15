@@ -10,6 +10,12 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",
       "require": "./dist/index.js"
+    },
+    "./package.json": "./package.json",
+    "./plugin": {
+      "types": "./dist/plugin.d.ts",
+      "import": "./dist/plugin.mjs",
+      "require": "./dist/plugin.js"
     }
   },
   "keywords": [

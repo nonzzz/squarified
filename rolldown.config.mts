@@ -12,7 +12,8 @@ const external = [...builtinModules, 'vite']
 export default defineConfig([
   {
     input: {
-      index: 'src/index.ts'
+      index: 'src/index.ts',
+      plugin: 'src/plugins/index.ts'
     },
     external,
     platform: 'node',
@@ -31,6 +32,9 @@ export default defineConfig([
     ]
   }
 ])
+
+// refer https://github.com/microsoft/rushstack/issues/5106
+// We should define a config only work for dts generation.
 
 function generateDTS() {
   const files: Record<string, string> = {}
@@ -56,8 +60,10 @@ function generateDTS() {
   console.log('Generating dts...')
 
   const rootFiles = [
-    'src/index.ts'
+    'src/index.ts',
+    'src/plugins/index.ts'
   ]
+
   const program = ts.createProgram(rootFiles, compilerOptions, host)
   const emitResult = program.emit()
 
@@ -80,65 +86,62 @@ function generateDTS() {
     fs.writeFileSync(outputPath, files[filePath])
   }
 
-  const config = ExtractorConfig.prepare({
-    configObject: {
-      mainEntryPointFilePath: path.join(process.cwd(), 'dist/src/index.d.ts'),
-      bundledPackages: [],
-      projectFolder: process.cwd(),
-      compiler: {
-        tsconfigFilePath: path.join(process.cwd(), 'tsconfig.json')
-      },
-      apiReport: {
-        enabled: false,
-        reportFileName: 'api-report.md',
-        reportFolder: '<projectFolder>/temp/'
-      },
-      docModel: {
-        enabled: false,
-        apiJsonFilePath: '<projectFolder>/temp/api.json'
-      },
-      dtsRollup: {
-        enabled: true,
-        untrimmedFilePath: path.join(process.cwd(), 'dist/index.d.ts')
-      },
-      tsdocMetadata: {
-        enabled: false
-      },
-      messages: {
-        extractorMessageReporting: {
-          'ae-missing-release-tag': { logLevel: ExtractorLogLevel.None },
-          'ae-unresolved-link': { logLevel: ExtractorLogLevel.None }
+  const destFiles = [
+    { input: 'dist/src/index.d.ts', output: 'dist/index.d.ts' },
+    { input: 'dist/src/plugins/index.d.ts', output: 'dist/plugin.d.ts' }
+  ]
+
+  for (const { input, output } of destFiles) {
+    const inputPath = path.join(process.cwd(), input)
+    const outputPath = path.join(process.cwd(), output)
+    const config = ExtractorConfig.prepare({
+      configObject: {
+        mainEntryPointFilePath: inputPath,
+        projectFolder: process.cwd(),
+        compiler: {
+          tsconfigFilePath: path.join(process.cwd(), 'tsconfig.build.json')
+        },
+        dtsRollup: {
+          enabled: true,
+          untrimmedFilePath: outputPath,
+          publicTrimmedFilePath: outputPath
+        },
+        messages: {
+          extractorMessageReporting: {
+            'ae-missing-release-tag': { logLevel: ExtractorLogLevel.None },
+            'ae-unresolved-link': { logLevel: ExtractorLogLevel.None }
+          }
         }
-      }
-    },
-    packageJsonFullPath: path.join(process.cwd(), 'package.json'),
-    configObjectFullPath: undefined
-  })
+      },
+      packageJsonFullPath: path.join(process.cwd(), 'package.json'),
+      configObjectFullPath: undefined
+    })
 
-  const extractorResult = Extractor.invoke(config, {
-    localBuild: true,
-    showVerboseMessages: false
-  })
+    const extractorResult = Extractor.invoke(config, {
+      localBuild: true,
+      showVerboseMessages: false
+    })
 
-  if (extractorResult.succeeded) {
-    const dtsPath = path.join(process.cwd(), 'dist/index.d.ts')
-    const dmtsPath = path.join(process.cwd(), 'dist/index.d.mts')
-    const globalDTS = fs.readFileSync('./global.d.ts', 'utf8').replace(
-      /declare module ['"]html\.mjs['"] \{[\s\S]*?export function html.*?\n\}/g,
-      ''
-    )
-    if (fs.existsSync(dtsPath)) {
-      fs.copyFileSync(dtsPath, dmtsPath)
-      // then copy global.d.ts into
-      for (const file of [dtsPath, dmtsPath]) {
-        const c = fs.readFileSync(file, 'utf-8')
-        fs.writeFileSync(file, globalDTS + '\n\n' + c)
+    if (extractorResult.succeeded) {
+      const dtsPath = outputPath
+      const dmtsPath = dtsPath.replace('.d.ts', '.d.mts')
+      const globalDTS = fs.readFileSync('./global.d.ts', 'utf8').replace(
+        /declare module ['"]html\.mjs['"] \{[\s\S]*?export function html.*?\n\}/g,
+        ''
+      )
+      if (fs.existsSync(dtsPath)) {
+        fs.copyFileSync(dtsPath, dmtsPath)
+        // then copy global.d.ts into
+        for (const file of [dtsPath, dmtsPath]) {
+          const c = fs.readFileSync(file, 'utf-8')
+          fs.writeFileSync(file, globalDTS + '\n\n' + c)
+        }
+        console.log('Generated bundled declaration files successfully')
       }
-      console.log('Generated bundled declaration files successfully')
+    } else {
+      console.error(
+        `API Extractor completed with ${extractorResult.errorCount} errors and ${extractorResult.warningCount} warnings`
+      )
     }
-  } else {
-    console.error(
-      `API Extractor completed with ${extractorResult.errorCount} errors and ${extractorResult.warningCount} warnings`
-    )
   }
 }

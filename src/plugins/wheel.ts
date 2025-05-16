@@ -1,5 +1,5 @@
-import type { DOMEventMetadata, DOMEventType } from '../dom-event'
-import { DOMEvent } from '../dom-event'
+import type { DOMEventMetadata } from '../dom-event'
+import { DOMEvent, isWheelEvent } from '../dom-event'
 import { DEFAULT_MATRIX_LOC } from '../etoile/native/matrix'
 import { smoothFrame, stackMatrixTransformWithGraphAndLayer } from '../shared'
 import { definePlugin } from '../shared/plugin-driver'
@@ -15,10 +15,6 @@ interface ScaleOptions {
 }
 interface ScaleMetadata {
   scaleOptions: ScaleOptions
-}
-
-function isWheelEvent(name: DOMEventType, event: DOMEventMetadata<Any>): event is DOMEventMetadata<'wheel'> {
-  return name === 'wheel'
 }
 
 // refer https://developer.mozilla.org/en-US/docs/Web/API/Element/mousewheel_event
@@ -40,8 +36,8 @@ export interface ScalePluginOptions {
 export function presetScalePlugin(options?: ScalePluginOptions) {
   return definePlugin({
     name: 'treemap:preset-scale',
-    onDOMEventTriggered(name, event, module, evt) {
-      if (isWheelEvent(name, event)) {
+    onDOMEventTriggered(_, event, module, evt) {
+      if (isWheelEvent(event)) {
         onWheel(this, event, evt)
       }
     },

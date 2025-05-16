@@ -15,6 +15,7 @@ export type DOMEventType = typeof DOM_EVENTS[number]
 
 export interface DOMEventMetadata<T extends keyof HTMLElementEventMap = Any> {
   native: HTMLElementEventMap[T]
+  readonly kind: T
 }
 
 export type DOMEventCallback<T extends DOMEventType> = (metadata: DOMEventMetadata<T>) => void
@@ -59,14 +60,6 @@ export const STATE_TRANSITION = {
 
 export type StateTransition = typeof STATE_TRANSITION[keyof typeof STATE_TRANSITION]
 
-function bindDOMEvent(el: HTMLElement, evt: DOMEventType, dom: DOMEvent) {
-  const handler = (e: unknown) => {
-    dom.emit(evt, { native: e as HTMLElementEventMap[DOMEventType] })
-  }
-  el.addEventListener(evt, handler)
-  return { evt, handler }
-}
-
 export class StateManager {
   current: StateTransition
   constructor() {
@@ -103,6 +96,45 @@ export class StateManager {
   isInState(state: StateTransition) {
     return this.current === state
   }
+}
+
+export function isWheelEvent(metadata: DOMEventMetadata<DOMEventType>): metadata is DOMEventMetadata<'wheel'> {
+  return metadata.kind === 'wheel'
+}
+
+export function isMouseEvent(
+  metadata: DOMEventMetadata<DOMEventType>
+): metadata is DOMEventMetadata<'mousedown' | 'mouseup' | 'mousemove'> {
+  return ['mousedown', 'mouseup', 'mousemove'].includes(metadata.kind)
+}
+
+export function isClickEvent(metadata: DOMEventMetadata<DOMEventType>): metadata is DOMEventMetadata<'click'> {
+  return metadata.kind === 'click'
+}
+
+export function isContextMenuEvent(
+  metadata: DOMEventMetadata<DOMEventType>
+): metadata is DOMEventMetadata<'contextmenu'> {
+  return metadata.kind === 'contextmenu'
+}
+
+function bindDOMEvent(el: HTMLElement, evt: DOMEventType, dom: DOMEvent) {
+  const handler = (e: unknown) => {
+    const data = {
+      native: e as HTMLElementEventMap[DOMEventType]
+    }
+    Object.defineProperty(data, 'kind', {
+      value: evt,
+      enumerable: true,
+      configurable: false,
+      writable: false
+    })
+    // @ts-expect-error safe operation
+    dom.emit(evt, data)
+  }
+  el.addEventListener(evt, handler)
+
+  return { evt, handler }
 }
 
 // We don't consider db click for us library
@@ -149,10 +181,7 @@ export class DOMEvent extends Event<DOMEVEntDefinition> {
       captureBoxXY(this.el!, e.native, this.matrix.a, this.matrix.d, this.matrix.e, this.matrix.f),
       this.component.layoutNodes
     )
-    // const method = this[prettyStrJoin('on', kind)] as ((metadata: DOMEventMetadata<T>, node: LayoutModule | null) => void) | undefined
-    // if (typeof method === 'function') {
-    //   method.call(this, e, node)
-    // }
+
     this.component.pluginDriver.runHook('onDOMEventTriggered', kind, e, node, this)
     this.emit('__exposed__', kind, { native: e.native, module: node })
     // For MacOS

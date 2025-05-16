@@ -135,5 +135,6 @@ export type { Plugin, PluginContext, PluginHooks } from './shared/plugin-driver'
 export { definePlugin } from './shared/plugin-driver'
 
 export type { DOMEventType, ExposedEventCallback, ExposedEventDefinition, ExposedEventMethods, PrimitiveEventMetadata } from './dom-event'
+export { isClickEvent, isContextMenuEvent, isMouseEvent, isWheelEvent } from './dom-event'
 export type { LayoutModule } from './primitives/squarify'
 export type { Module, NativeModule } from './primitives/struct'

@@ -138,3 +138,4 @@ export type { DOMEventType, ExposedEventCallback, ExposedEventDefinition, Expose
 export { isClickEvent, isContextMenuEvent, isMouseEvent, isWheelEvent } from './dom-event'
 export type { LayoutModule } from './primitives/squarify'
 export type { Module, NativeModule } from './primitives/struct'
+export * from './shared'

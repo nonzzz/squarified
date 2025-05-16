@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
-/* eslint-disable @typescript-eslint/no-unsafe-return */
+
 import { perferNumeric } from '../shared'
 import type { LayoutModule } from './squarify'
 
@@ -30,7 +30,9 @@ export function c2m<T extends AnyObject & { groups: Any[] }, K extends keyof T>(
     data.groups = sortChildrenByKey(data.groups.map((d) => c2m(d as T, key as string, modifier)), 'weight')
   }
   const obj = { ...data, weight: data[key] }
-  if (modifier) { return modifier(obj) as Any }
+  if (modifier) {
+    Object.assign(obj, modifier(obj))
+  }
   return obj
 }
 
@@ -61,7 +63,7 @@ export function bindParentForModule<T extends Module & { parent: Module }>(modul
 
 export type NativeModule = ReturnType<typeof bindParentForModule>[number] & {
   id: string,
-  parent: NativeModule,
+  parent: NativeModule | null,
   groups: NativeModule[]
 }
 

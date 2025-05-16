@@ -28,6 +28,7 @@ export class Text extends Graph {
       this.instruction.font(this.style.font)
       this.instruction.lineWidth(this.style.lineWidth)
       this.instruction.textBaseline(this.style.baseline)
+      this.instruction.textAlign(this.style.textAlign)
       this.instruction.fillStyle(this.style.fill)
       this.instruction.fillText(this.text, 0, 0)
     }

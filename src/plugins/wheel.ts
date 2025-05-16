@@ -80,7 +80,6 @@ function onWheel(
   if (newScale === scale) { return }
 
   state.transition('SCALING')
-
   const mouseX = event.native.offsetX
   const mouseY = event.native.offsetY
 

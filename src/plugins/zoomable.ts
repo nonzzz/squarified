@@ -110,7 +110,6 @@ export const presetZoomablePlugin = definePlugin({
             component.update()
           }, {
             duration: ANIMATION_DURATION,
-            deps: [() => state.isInState('DRAGGING')],
             onStop: () => {
               state.reset()
             }

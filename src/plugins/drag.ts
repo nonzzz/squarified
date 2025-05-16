@@ -18,9 +18,16 @@ interface DragMetadata {
 
 export const presetDragElementPlugin = definePlugin({
   name: 'treemap:preset-drag-element',
-  onDOMEventTriggered(name, event, module, { stateManager: state, matrix, component }) {
+  onDOMEventTriggered(name, event, module, domEvent) {
+    const { stateManager: state, matrix, component } = domEvent
     switch (name) {
       case 'mousemove': {
+        if (state.isInState('DRAGGING')) {
+          domEvent.silent('click')
+        } else {
+          domEvent.active('click')
+        }
+
         const meta = getDragOptions.call(this)
         if (!meta) {
           return

@@ -1,0 +1,5 @@
+export { presetDragElementPlugin } from './drag'
+export { presetHighlightPlugin } from './highlight'
+export { presetColorPlugin } from './preset-color'
+export { presetScalePlugin } from './wheel'
+export { presetZoomablePlugin } from './zoomable'

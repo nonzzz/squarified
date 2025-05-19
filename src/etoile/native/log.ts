@@ -1,7 +1,5 @@
+import { createLogger } from '../../shared/logger'
+
 const NAME_SPACE = 'etoile'
 
-export const log = {
-  error: (message: string) => {
-    return `[${NAME_SPACE}] ${message}`
-  }
-}
+export const log = createLogger(NAME_SPACE)

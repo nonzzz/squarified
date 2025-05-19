@@ -35,18 +35,7 @@ export function drawGraphIntoCanvas(
   if (asserts.isGraph(graph)) {
     const matrix = graph.matrix.create({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 })
     matrix.transform(graph.x, graph.y, graph.scaleX, graph.scaleY, graph.rotation, graph.skewX, graph.skewY)
-    if (asserts.isRoundRect(graph)) {
-      const effectiveWidth = graph.width - graph.style.padding * 2
-      const effectiveHeight = graph.height - graph.style.padding * 2
-      if (effectiveWidth <= 0 || effectiveHeight <= 0) {
-        ctx.restore()
-        return
-      }
-      if (graph.style.radius >= effectiveHeight / 2 || graph.style.radius >= effectiveWidth / 2) {
-        ctx.restore()
-        return
-      }
-    }
+
     applyCanvasTransform(ctx, matrix, dpr)
     graph.render(ctx)
   }
@@ -61,7 +50,7 @@ export class Schedule<D extends DefaultEventDefinition = DefaultEventDefinition>
     super()
     this.to = typeof to === 'string' ? document.querySelector(to)! : to
     if (!this.to) {
-      throw new Error(log.error('The element to bind is not found.'))
+      log.panic('The element to bind is not found.')
     }
     const { width, height } = this.to.getBoundingClientRect()
     Object.assign(renderOptions, { width, height }, { devicePixelRatio: window.devicePixelRatio || 1 })

@@ -1,25 +1,73 @@
+/* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
-import { c2m, createTreemap, presetDecorator, sortChildrenByKey } from '../src'
+import { presetMenuPlugin } from 'src/plugins/menu'
+import { c2m, createTreemap, sortChildrenByKey } from '../src'
+import { presetColorPlugin, presetDragElementPlugin, presetHighlightPlugin, presetScalePlugin, presetZoomablePlugin } from '../src/plugins'
 
 import './live-reload'
 
 const root = document.querySelector<HTMLDivElement>('#app')!
-const treemap = createTreemap()
-treemap.use('decorator', presetDecorator)
+const treemap = createTreemap({
+  plugins: [
+    presetColorPlugin,
+    presetZoomablePlugin,
+    presetHighlightPlugin,
+    presetDragElementPlugin,
+    presetScalePlugin(),
+    presetMenuPlugin({
+      style: {
+        borderRadius: '5px',
+        padding: '6px 3px',
+        boxSizing: 'border-box',
+        cursor: 'pointer',
+        width: '120px',
+        textAlign: 'center',
+        userSelect: 'none'
+      },
+      render: () => [
+        { html: '<p>Zoom</p>', action: 'zoom' },
+        { html: '<p>Reset</p>', action: 'reset' }
+      ],
+      onClick(action, module) {
+        switch (action) {
+          case 'zoom': {
+            if (module?.node.id) {
+              treemap.zoom(module.node.id)
+            }
+            break
+          }
+          case 'reset':
+            treemap.resize()
+        }
+      }
+    })
+  ]
+})
 
 function loadData() {
   return fetch('data.json').then((res) => res.json()).then((data: Any[]) => data)
 }
 
+function convertChildrenToGroups(item: Any[]) {
+  const result: Any = { ...item }
+  // @ts-expect-error fixme
+  if (item.children) {
+    // @ts-expect-error fixme
+    result.groups = item.children.map(convertChildrenToGroups)
+  }
+  return result
+}
+
 async function main() {
   const data = await loadData()
+  const convertedData = data.map(convertChildrenToGroups)
   const sortedData = sortChildrenByKey(
-    data.map((item) => c2m({ ...item, groups: item.children }, 'value', (d) => ({ ...d, id: d.path, label: d.name }))),
+    convertedData.map((item) => c2m(item, 'value', (d) => ({ ...d, id: d.path, label: d.name }))),
     'weight'
   )
-
+  // treemap.zoom()
   treemap.setOptions({
     data: sortedData
   })
@@ -27,10 +75,10 @@ async function main() {
 
 treemap.init(root)
 
-main().catch(console.error)
-treemap.on('click', function(metadata) {
-  this.zoom(metadata.module)
+treemap.on('click', function() {
 })
+
+main().catch(console.error)
 
 new ResizeObserver(() => treemap.resize()).observe(root)
 

@@ -1,33 +1,127 @@
-export { TreemapLayout, createTreemap } from './primitives/component'
-export type { App, TreemapInstanceAPI, TreemapOptions, unstable_use } from './primitives/component'
-export * from './primitives/decorator'
+import { Component, logger } from './component'
+import { DOMEvent } from './dom-event'
+import type { ExposedEventMethods } from './dom-event'
+import { Event } from './etoile'
+import type { GraphicConfig, TreemapInstanceAPI } from './interface'
+import { bindParentForModule } from './primitives/struct'
+import type { Module } from './primitives/struct'
+import { mixin, noop } from './shared'
+import { assertExists } from './shared/logger'
+import type { Plugin } from './shared/plugin-driver'
 
-import type { DOMEventType } from './etoile/native/dom'
-import type { ExposedEventCallback, ExposedEventDefinition, ExposedEventMethods } from './primitives/event'
+export interface CreateTreemapOptions<P extends Plugin[]> {
+  plugins: P
+  graphic?: GraphicConfig
+}
 
-/**
- * @deprecated compat `PrimitiveEvent` using `DOMEventType` replace it. (will be removed in the next three versions.)
- */
-export type PrimitiveEvent = DOMEventType
+export interface TreemapOptions {
+  data: Module[]
+}
 
-/**
- * @deprecated compat `EventMethods` using `ExposedEventMethods` replace it. (will be removed in the next three versions.)
- */
-export type EventMethods = ExposedEventMethods
+type UnionToIntersection<U> = (
+  U extends Any ? (k: U) => void : never
+) extends (k: infer I) => void ? I
+  : never
 
-/**
- * @deprecated compat `PrimitiveEventCallback` using `ExposedEventCallback` replace it. (will be removed in the next three versions.)
- */
-export type PrimitiveEventCallback<T extends PrimitiveEvent> = ExposedEventCallback<T>
+type PluginMixins<P extends readonly Plugin[]> = UnionToIntersection<
+  {
+    [K in keyof P]: P[K] extends {
+      onLoad?: (ctx: Any, component: Any) => infer R
+    } ? R extends object ? R
+      : NonNull
+      : NonNull
+  }[number]
+>
+export interface BasicTreemapInstance {
+  init: (el: HTMLElement) => void
+  dispose: () => void
+  resize: () => void
+  setOptions: (options: TreemapOptions) => void
+}
 
-/**
- * @deprecated compat `PrimitiveEventDefinition` using `ExposedEventDefinition` replace it. (will be removed in the next three versions.)
- */
-export type PrimitiveEventDefinition = ExposedEventDefinition
+export function createTreemap<const P extends readonly Plugin[]>(
+  // @ts-expect-error todo fix
+  options?: CreateTreemapOptions<P>
+) {
+  const { plugins = [], graphic = {} } = options || {}
+  let root: HTMLElement | null = null
+  let installed = false
+  let domEvent: DOMEvent | null = null
 
-export type { DOMEventType } from './etoile/native/dom'
-export type { ExposedEventCallback, ExposedEventDefinition, ExposedEventMethods, PrimitiveEventMetadata } from './primitives/event'
-export type { LayoutModule } from './primitives/squarify'
+  let component: Component | null = null
+
+  const exposedEvent = new Event()
+
+  if (!Array.isArray(plugins)) {
+    logger.panic('Plugins should be an array')
+  }
+
+  const api: TreemapInstanceAPI = {
+    zoom: noop
+  }
+
+  const ctx = {
+    init,
+    dispose,
+    resize,
+    setOptions
+  }
+
+  function init(el: HTMLElement) {
+    component = new Component(graphic, el)
+    domEvent = new DOMEvent(component)
+    root = el
+    ;(root as HTMLDivElement).style.position = 'relative'
+    if (!installed) {
+      plugins.forEach((plugin) => component?.pluginDriver.use(plugin))
+      installed = true
+      component.pluginDriver.runHook('onLoad', ctx, domEvent)
+    }
+    domEvent.on('__exposed__', (type, args) => exposedEvent.emit(type, args))
+  }
+
+  function dispose() {
+    if (root && component && domEvent) {
+      domEvent.destory()
+      component.destory()
+      root.removeChild(root.firstChild!)
+      for (const evt in exposedEvent.eventCollections) {
+        exposedEvent.off(evt)
+      }
+      component.pluginDriver.runHook('onDispose')
+      root = null
+      component = null
+      domEvent = null
+    }
+  }
+
+  function resize() {
+    if (!component || !root) { return }
+    const { width, height } = root.getBoundingClientRect()
+    component.render.initOptions({ height, width, devicePixelRatio: window.devicePixelRatio })
+    component.render.canvas.style.position = 'absolute'
+    if (domEvent) {
+      component.pluginDriver.runHook('onResize', domEvent)
+    }
+    component.cleanup()
+    component.draw()
+  }
+
+  function setOptions(options: TreemapOptions) {
+    assertExists(component, logger, 'Treemap not initialized. Please call `init()` before setOptions.')
+    component.data = bindParentForModule(options.data)
+    resize()
+  }
+
+  const base = mixin(ctx, [
+    { name: 'on', fn: () => exposedEvent.bindWithContext(api) },
+    { name: 'off', fn: () => exposedEvent.off.bind(exposedEvent) }
+  ])
+
+  return base as typeof base & BasicTreemapInstance & ExposedEventMethods & PluginMixins<P>
+}
+
+export * from './interface'
 export {
   c2m,
   findRelativeNode,
@@ -37,4 +131,11 @@ export {
   sortChildrenByKey,
   visit
 } from './primitives/struct'
+export type { Plugin, PluginContext, PluginHooks } from './shared/plugin-driver'
+export { definePlugin } from './shared/plugin-driver'
+
+export type { DOMEventType, ExposedEventCallback, ExposedEventDefinition, ExposedEventMethods, PrimitiveEventMetadata } from './dom-event'
+export { isClickEvent, isContextMenuEvent, isMouseEvent, isWheelEvent } from './dom-event'
+export type { LayoutModule } from './primitives/squarify'
 export type { Module, NativeModule } from './primitives/struct'
+export * from './shared'

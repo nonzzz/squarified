@@ -1,5 +1,7 @@
-import { RoundRect, Text } from '../etoile'
+import { RoundRect, Text, traverse } from '../etoile'
+import { Display, S } from '../etoile/graph/display'
 import type { RoundRectStyleOptions } from '../etoile/graph/rect'
+import { createSmoothFrame } from '../etoile/native/dom'
 import { Matrix2D } from '../etoile/native/matrix'
 
 export function hashCode(str: string) {
@@ -48,13 +50,51 @@ export interface InheritedCollections<T = object> {
   fn: (instance: T) => void
 }
 
-export function mixin<T>(app: T, methods: InheritedCollections<T>[]) {
+type MixinHelp<T extends InheritedCollections[]> = T extends [infer L, ...infer R]
+  ? L extends InheritedCollections ? R extends InheritedCollections[] ? { [key in L['name']]: L['fn'] } & MixinHelp<R>
+    : Record<string, never>
+  : Record<string, never>
+  : Record<string, never>
+
+export function mixin<T extends AnyObject, const I extends InheritedCollections<T>[]>(app: T, methods: I) {
   methods.forEach(({ name, fn }) => {
     Object.defineProperty(app, name, {
       value: fn(app),
       writable: false
     })
   })
+  // @ts-expect-error not
+  return app as T & MixinHelp<I>
+}
+
+export interface InheritedCollectionsWithParamter<T = Any> {
+  name: string
+  fn: (instance: T) => (...args: Any[]) => Any
+}
+
+type MixinHelpWithParamater<T extends InheritedCollectionsWithParamter[]> = T extends [infer L, ...infer R]
+  ? L extends InheritedCollectionsWithParamter
+    ? R extends InheritedCollectionsWithParamter[] ? { [key in L['name']]: ReturnType<L['fn']> } & MixinHelpWithParamater<R>
+    : Record<string, never>
+  : Record<string, never>
+  : Record<string, never>
+
+export function mixinWithParams<
+  T extends AnyObject,
+  const M extends InheritedCollectionsWithParamter<T>[]
+>(
+  app: T,
+  methods: M
+) {
+  methods.forEach(({ name, fn }) => {
+    Object.defineProperty(app, name, {
+      value: fn(app),
+      writable: false,
+      enumerable: true
+    })
+  })
+
+  return app as T & MixinHelpWithParamater<M>
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -70,4 +110,84 @@ export function prettyStrJoin<T extends string[]>(...s: T) {
 
 export function isMacOS() {
   return /Mac OS X/.test(navigator.userAgent)
+}
+
+export function typedForIn<T extends NonNullable<object>>(obj: T, callback: (key: keyof T, value: T[keyof T]) => void) {
+  for (const key in obj) {
+    if (Object.prototype.hasOwnProperty.call(obj, key)) {
+      callback(key satisfies keyof T, obj[key satisfies keyof T])
+    }
+  }
+}
+
+export function stackMatrixTransform(graph: S, e: number, f: number, scale: number) {
+  graph.x = graph.x * scale + e
+  graph.y = graph.y * scale + f
+  graph.scaleX = scale
+  graph.scaleY = scale
+}
+
+export function stackMatrixTransformWithGraphAndLayer(graphs: Display[], e: number, f: number, scale: number) {
+  traverse(graphs, (graph) => stackMatrixTransform(graph, e, f, scale))
+}
+
+interface EffectOptions {
+  duration: number
+  onStop?: () => void
+  deps?: Array<() => boolean>
+}
+
+export function smoothFrame(callback: (progress: number, cleanup: () => void) => void, opts: EffectOptions) {
+  const frame = createSmoothFrame()
+  const startTime = Date.now()
+
+  const condtion = (process: number) => {
+    if (Array.isArray(opts.deps)) {
+      return opts.deps.some((dep) => dep())
+    }
+    return process >= 1
+  }
+
+  frame.run(() => {
+    const elapsed = Date.now() - startTime
+    const progress = Math.min(elapsed / opts.duration, 1)
+    if (condtion(progress)) {
+      frame.stop()
+      if (opts.onStop) {
+        opts.onStop()
+      }
+      return true
+    }
+    return callback(progress, frame.stop)
+  })
+}
+
+interface DuckE {
+  which: number
+}
+
+export function isScrollWheelOrRightButtonOnMouseupAndDown<E extends DuckE = DuckE>(e: E) {
+  return e.which === 2 || e.which === 3
+}
+
+export class DefaultMap<K, V> extends Map<K, V> {
+  private defaultFactory: () => V
+  constructor(defaultFactory: () => V, entries?: readonly [K, V][] | null) {
+    super(entries)
+    this.defaultFactory = defaultFactory
+  }
+  get(key: K): V {
+    if (!super.has(key)) {
+      return this.defaultFactory()
+    }
+    return super.get(key)!
+  }
+  getOrInsert(key: K, value?: V): V {
+    if (!super.has(key)) {
+      const defaultValue = value || this.defaultFactory()
+      super.set(key, defaultValue)
+      return defaultValue
+    }
+    return super.get(key)!
+  }
 }

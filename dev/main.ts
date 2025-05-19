@@ -2,6 +2,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
+import { presetMenuPlugin } from 'src/plugins/menu'
 import { c2m, createTreemap, sortChildrenByKey } from '../src'
 import { presetColorPlugin, presetDragElementPlugin, presetHighlightPlugin, presetScalePlugin, presetZoomablePlugin } from '../src/plugins'
 
@@ -14,7 +15,34 @@ const treemap = createTreemap({
     presetZoomablePlugin,
     presetHighlightPlugin,
     presetDragElementPlugin,
-    presetScalePlugin()
+    presetScalePlugin(),
+    presetMenuPlugin({
+      style: {
+        borderRadius: '5px',
+        padding: '6px 3px',
+        boxSizing: 'border-box',
+        cursor: 'pointer',
+        width: '120px',
+        textAlign: 'center',
+        userSelect: 'none'
+      },
+      render: () => [
+        { html: '<p>Zoom</p>', action: 'zoom' },
+        { html: '<p>Reset</p>', action: 'reset' }
+      ],
+      onClick(action, module) {
+        switch (action) {
+          case 'zoom': {
+            if (module?.node.id) {
+              treemap.zoom(module.node.id)
+            }
+            break
+          }
+          case 'reset':
+            treemap.resize()
+        }
+      }
+    })
   ]
 })
 
@@ -47,10 +75,7 @@ async function main() {
 
 treemap.init(root)
 
-treemap.on('click', function(m) {
-  if (m.module?.node) {
-    treemap.zoom(m.module.node.id)
-  }
+treemap.on('click', function() {
 })
 
 main().catch(console.error)

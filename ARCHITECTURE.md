@@ -1,69 +1,174 @@
-# Architecture Documentation
+# Squarified Architecture Documentation
 
-This document covers how `Squarified` works. It's intended to aid in understanding the code, in understanding what tricks `Squarified` use to improve performance.
+This document describes the architecture of `squarified`, explaining its design principles, core components, and optimization techniques.
 
-Note this project is self-gratification so it have been made differently than other `treemap` component. The way things work now is not necessarily the best way of doing things.
+## Core Design Principles
 
-### Design Principles
+### 1. Layered Rendering Architecture
 
-- **Use a simple render engine manage your application**
-
-Most of `treemap component` which don't base on `2D render engine` or `svg render engine` often using canvas or svg primitive command to draw. (It can make logic hard to read) If the scene is simple enough, it's fine but is difficult to do optimize.
-
-- **Split your canvas as multiple layer**
-
-For example, you want to draw a background with a lot of stars and the background won't change. So we can split this scene with two layer. One is background the other is star collection.
-When we update us star collection the background layer can skip update. If the star layer do animation we can save a lot of unnecessary rendering to improve performance.
-
-- **Cache everything as possible**
-
-Like offset Sceen and other can cache thing. Use them as much as possible to reduce drawing.
-
-## Overview
+Squarified implements a multi-layered rendering approach that logically separates different visualization concerns:
 
 ```mermaid
 flowchart TB
-    squarified([squarified])
-
-    subgraph render_engine [render engine]
-        etoile([etoile])
-        schedule([Schedule])
-        graphics([Graphics])
-        transformations([Transformations])
-        layer([Layer])
-        etoile --> schedule
-        etoile --> graphics
-        etoile --> transformations
-        etoile --> layer
-    end
-
-    subgraph view_layer [view layer]
-        view([view])
-        event([Event])
-        animation([Animation])
-        theme([Theme])
-        view --> event
-        view --> animation
-        view --> theme
-    end
-
-    squarified --> etoile
-    squarified --> view
-    etoile --> view
+    Canvas[Canvas Element]
+    BaseLayer[Base Content Layer]
+    InteractionLayer[Interaction Layer]
+    HighlightLayer[Highlight Layer]
+    
+    Canvas --> BaseLayer
+    Canvas --> InteractionLayer
+    Canvas --> HighlightLayer
 ```
 
-### Etoile
+**Benefits:**
 
-`etoile` is a simple 2D render engine only contain basic `2D Matrix transform` and simple `graphics` and `layer`. As you see
-it's very simple and is just an abstraction of the original command.
+- **Selective Updates**: Each layer can be updated independently, avoiding costly full redraws
+- **Performance Optimization**: The highlight layer can animate without affecting static content
+- **Render Isolation**: User interactions (hovering, selection) don't trigger unnecessary redraws of stable content
+- **Visual Separation**: Clear separation between base content, interactive elements, and highlighting
 
-### View
+### 2. Etoile: A Purpose-Built Rendering Engine
 
-`view` is in the `primitives` directory, it contain `event`,`animation`, and other use in `treemap` functions.
+Squarified uses a dedicated rendering engine called "Etoile" that abstracts Canvas API complexity:
 
-### Note about view
+```mermaid
+flowchart TB
+    Component[Component] --> Etoile[Etoile Engine]
+    Etoile --> Graphics[Graphics Primitives]
+    Etoile --> Matrix[Matrix Transformations]
+    Etoile --> Schedule[Render Scheduling]
+    Graphics --> RoundRect[RoundRect]
+    Graphics --> Text[Text]
+    Graphics --> Box[Box Container]
+```
 
-`component` is the core for `primitives` directory. we split render with those part. `drawBackgroundNode`、`drawForegroundNode`、`highlight view`、
-`cache with background`. First we draw the treemap with `drawBackgroundNode` and `drawForegroundNode` then we called us render engine to update the
-view.(It will cache the `backgroundNode` by using `drawImage`) so that when we trigger `wheel` and `drag`. we only reset `foreground` and do transform
-for cache. When we trigger highlight. we only draw a highlight mask in `highlight view` the anoher canvas won't be update. so it quick.
+**Benefits:**
+
+- **Abstracted Rendering**: Replaces direct Canvas API calls with a maintainable object model
+- **Composition**: Creates reusable, composable rendering units
+- **Transformation Management**: Simplifies matrix-based transformations
+- **Performance Optimizations**: Implements specialized rendering techniques for treemaps
+- **Render Batching**: Groups similar operations for better performance
+
+### 3. Plugin-Based Architecture
+
+The core system is kept minimal and stable, with functionality added through a plugin system:
+
+```typescript
+export const presetColorPlugin = definePlugin({
+  name: 'treemap:preset-color',
+  onModuleInit(modules) {
+    // Logic isolated in plugin
+  }
+})
+```
+
+**Current plugins:**
+
+- `preset-color`: Handles color assignment for treemap nodes
+- `highlight`: Manages node highlighting during interactions
+- `zoomable`: Controls zoom behavior and animations
+- `drag`: Implements drag interaction
+- `wheel`: Handles scroll wheel navigation
+
+**Benefits:**
+
+- **Core Stability**: Plugin isolation prevents bugs in extensions from affecting the rendering core
+- **Logic Separation**: Each functional area is encapsulated in its own plugin
+- **Independent Testing**: Plugins can be tested in isolation
+- **Extensibility**: New features can be added without modifying core code
+- **On-demand Loading**: Plugins can be loaded only when needed
+
+### 4. State Machine for Interaction Management
+
+Instead of complex conditional logic for handling interactions, Squarified employs a robust state machine:
+
+```mermaid
+stateDiagram-v2
+    [*] --> IDLE
+    IDLE --> ZOOMING: zoom()
+    IDLE --> DRAGGING: mousedown
+    ZOOMING --> IDLE: animation complete
+    DRAGGING --> IDLE: mouseup
+    DRAGGING --> CANCELLED: escape key
+    CANCELLED --> IDLE: reset
+```
+
+**Benefits:**
+
+- **Conflict Prevention**: Eliminates gesture conflicts (e.g., simultaneous drag and zoom)
+- **Predictable Behavior**: Clearly defines allowed state transitions
+- **Maintainable Logic**: Reduces complex conditional branches
+- **Debugging**: State transitions are easily traceable
+- **Extensibility**: New interaction modes can be added with minimal changes
+
+### 5. Advanced Caching Strategies
+
+Squarified implements multiple caching techniques to optimize performance:
+
+#### Measurement Caching
+
+Text measurement operations (particularly expensive in Canvas) are cached:
+
+```typescript
+// Font measurement cache
+const fontMeasureCache = new Map<string, TextMetrics>()
+```
+
+#### Binary Search for Optimal Sizing
+
+Font size calculation uses binary search algorithms to efficiently find optimal text sizing:
+
+```typescript
+function findOptimalFontSize(text, maxWidth, minSize, maxSize) {
+  // Binary search between minSize and maxSize
+  // Significantly faster than linear approaches
+}
+```
+
+#### Layout Result Memoization
+
+Node layout calculations are memoized to avoid recomputation during animations:
+
+## Data Flow Pipeline
+
+```mermaid
+flowchart TD
+    Input[Input Hierarchical Data] --> Preprocessor[Data Preprocessor]
+    Preprocessor --> Squarify[Squarify Algorithm]
+    Squarify --> LayoutModules[Layout Module Generation]
+    LayoutModules --> Plugins[Plugin Processing]
+    Plugins --> Renderer[Etoile Renderer]
+    Renderer --> Display[Canvas Display]
+    
+    UserInteraction[User Interaction] --> StateMachine[State Machine]
+    StateMachine --> UpdateSelection[Selection Update]
+    UpdateSelection --> Renderer
+```
+
+## Performance Considerations
+
+1. **Adaptive Detail Rendering**:
+   - Small nodes are automatically combined to reduce rendering load
+   - Detail level adjusts based on zoom level and available space
+
+2. **Incremental Updates**:
+   - Only changed parts of the visualization are redrawn
+   - The component implements diffing to identify changed nodes
+
+3. **Optimized Text Rendering**:
+   - Text is only rendered when it will be visible and legible
+   - Labels are cached and reused when possible
+
+4. **Event Throttling and Debouncing**:
+   - Intensive operations like resizing and scrolling are throttled
+   - Expensive recalculations are debounced during rapid interactions
+
+## Future Considerations
+
+1. **WebGL Acceleration**: For extremely large datasets
+2. **Worker-based Layout**: Moving intensive calculations off the main thread
+3. **Virtual Rendering**: Only rendering visible portions of large treemaps
+4. **Further Plugin Isolation**: Reducing coupling between plugins
+
+By implementing these architectural patterns, Squarified achieves both a maintainable codebase and high-performance visualizations for hierarchical data.

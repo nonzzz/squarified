@@ -95,9 +95,9 @@ function onWheel(
       highlight.highlight.setZIndexForHighlight()
     }
 
-    matrix.translation(mouseX, mouseY)
     matrix.scale(scaleDiff, scaleDiff)
-    matrix.translation(-mouseX, -mouseY)
+    matrix.e = mouseX - (mouseX - matrix.e) * scaleDiff
+    matrix.f = mouseY - (mouseY - matrix.f) * scaleDiff
 
     component.cleanup()
     component.draw(false, false)

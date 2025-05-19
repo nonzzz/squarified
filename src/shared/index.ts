@@ -169,3 +169,25 @@ interface DuckE {
 export function isScrollWheelOrRightButtonOnMouseupAndDown<E extends DuckE = DuckE>(e: E) {
   return e.which === 2 || e.which === 3
 }
+
+export class DefaultMap<K, V> extends Map<K, V> {
+  private defaultFactory: () => V
+  constructor(defaultFactory: () => V, entries?: readonly [K, V][] | null) {
+    super(entries)
+    this.defaultFactory = defaultFactory
+  }
+  get(key: K): V {
+    if (!super.has(key)) {
+      return this.defaultFactory()
+    }
+    return super.get(key)!
+  }
+  getOrInsert(key: K, value?: V): V {
+    if (!super.has(key)) {
+      const defaultValue = value || this.defaultFactory()
+      super.set(key, defaultValue)
+      return defaultValue
+    }
+    return super.get(key)!
+  }
+}

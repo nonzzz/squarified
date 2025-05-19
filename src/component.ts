@@ -6,7 +6,7 @@ import type { GraphicConfig, GraphicFont, GraphicLayout, Series } from './interf
 import type { LayoutModule } from './primitives/squarify'
 import { squarify } from './primitives/squarify'
 import type { NativeModule } from './primitives/struct'
-import { createRoundBlock, createTitleText } from './shared'
+import { DefaultMap, createRoundBlock, createTitleText } from './shared'
 import { createLogger } from './shared/logger'
 import { PluginDriver } from './shared/plugin-driver'
 
@@ -45,6 +45,8 @@ export class Component extends Schedule {
   textLayer: Box
   layoutNodes: LayoutModule[]
   config: GraphicConfig
+  caches: DefaultMap<string, number>
+
   constructor(config: GraphicConfig, ...args: ConstructorParameters<typeof Schedule>) {
     super(...args)
     this.data = []
@@ -53,6 +55,7 @@ export class Component extends Schedule {
     this.pluginDriver = new PluginDriver(this)
     this.rectLayer = new Box()
     this.textLayer = new Box()
+    this.caches = new DefaultMap(() => 14)
     this.layoutNodes = []
   }
   private drawBroundRect(node: LayoutModule) {
@@ -102,12 +105,15 @@ export class Component extends Schedule {
       color: this.config.font?.color || DEFAULT_FONT_COLOR
     }
 
-    const optimalFontSize = evaluateOptimalFontSize(
-      this.render.ctx,
-      content,
-      config,
-      availableWidth,
-      availableHeight
+    const optimalFontSize = this.caches.getOrInsert(
+      node.node.id,
+      evaluateOptimalFontSize(
+        this.render.ctx,
+        content,
+        config,
+        availableWidth,
+        availableHeight
+      )
     )
     const font = `${optimalFontSize}px ${config.family}`
     this.render.ctx.font = font

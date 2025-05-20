@@ -12,22 +12,3 @@ export function traverse(graphs: Display[], handler: (graph: S) => void) {
     }
   }
 }
-
-// https://jhildenbiddle.github.io/canvas-size/#/?id=maxheight
-function getCanvasBoundarySize() {
-  const ua = navigator.userAgent
-  let size = 16384
-
-  if (/Firefox\/(\d+)/.test(ua)) {
-    const version = parseInt(RegExp.$1, 10)
-    if (version >= 122) {
-      size = 23168
-    } else {
-      size = 11180
-    }
-  }
-
-  return { size }
-}
-
-export const canvasBoundarySize = getCanvasBoundarySize()

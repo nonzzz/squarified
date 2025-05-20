@@ -1,22 +1,89 @@
 import esbuild from 'esbuild'
 import fs from 'fs'
 import fsp from 'fs/promises'
-import hljs from 'highlight.js'
-import yaml from 'js-yaml'
+import matter from 'gray-matter'
 import markdownit from 'markdown-it'
+import markdownItAnchor from 'markdown-it-anchor'
+import markdownhighlight from 'markdown-it-highlightjs'
+import { Token } from 'markdown-it/index.js'
 import path from 'path'
-import type { Component } from './h'
+import { globSync } from 'tinyglobby'
+import { injectHTMLTag } from 'vite-bundle-analyzer'
 import { Fragment, h, onClient, renderToString } from './h'
 /// <reference path="./jsx-namespace.d.ts" />
 
-const md = markdownit({ html: true })
+interface MarkdownFrontMatter {
+  title: string
+  level?: number
+}
 
-const Dirs = {
-  docs: path.resolve(__dirname, '../docs'),
-  src: path.resolve(__dirname, '../src'),
-  dest: path.resolve(__dirname, '../display'),
-  example: path.resolve(__dirname, '../dev'),
+const md = markdownit({ html: true }).use(markdownItAnchor, {
+  slugify: toID,
+  permalink: markdownItAnchor.permalink.linkInsideHeader({
+    symbol: '#',
+    renderAttrs: () => ({ 'aria-hidden': 'true' })
+  })
+}).use(markdownhighlight, {})
+
+const defaultWD = process.cwd()
+
+const dirs = {
+  docs: path.join(defaultWD, 'docs'),
+  src: path.join(defaultWD, 'src'),
+  dest: path.join(defaultWD, 'display'),
+  example: path.join(defaultWD, 'dev'),
   script: __dirname
+}
+
+const target = ['chrome58', 'safari11', 'firefox57', 'edge16']
+
+const pages = globSync('**/*.md', { cwd: path.join(defaultWD, 'docs') })
+
+interface FormatedData {
+  html: string
+  title: string
+  filePath: string
+  frontmatter: MarkdownFrontMatter
+  tokens: Token[]
+}
+
+const formatedPages = pages.map((page) => {
+  const filePath = path.join(defaultWD, 'docs', page)
+  const content = fs.readFileSync(filePath, 'utf8')
+  const { data: frontmatter, content: markdownContent } = matter(content)
+  return {
+    html: md.render(markdownContent),
+    title: path.basename(page, '.md'),
+    filePath,
+    frontmatter,
+    tokens: md.parse(markdownContent, {})
+  } as FormatedData
+}).sort((a, b) => (a.frontmatter.level || 0) - (b.frontmatter.level || 0))
+
+const commonCSS = minifyCSS(fs.readFileSync(path.join(dirs.script, 'style.css'), 'utf8'))
+
+function minifyCSS(css: string) {
+  return esbuild.transformSync(css, { target, loader: 'css', minify: true }).code
+}
+
+function buildAndMinifyJS(entry: string) {
+  const r = esbuild.buildSync({
+    bundle: true,
+    format: 'iife',
+    loader: {
+      '.ts': 'ts'
+    },
+    define: {
+      LIVE_RELOAD: 'false'
+    },
+    minify: true,
+    write: false,
+    entryPoints: [entry]
+  })
+  if (r.outputFiles.length) {
+    return r.outputFiles[0].text
+  }
+  throw new Error('No output files')
 }
 
 interface HeadProps {
@@ -24,6 +91,17 @@ interface HeadProps {
 }
 
 export type Theme = 'light' | 'dark'
+
+function pipeOriginalCSSIntoThemeSystem(css: string, theme: Theme) {
+  let wrappered = ''
+  if (theme === 'dark') {
+    wrappered = `html[data-theme="dark"] { ${css} }\n`
+  } else {
+    wrappered = `html:not([data-theme="dark"]) { ${css} }\n`
+  }
+
+  return minifyCSS(wrappered)
+}
 
 const Icons = {
   Moon: () => (
@@ -85,97 +163,14 @@ const Icons = {
   )
 }
 
-type DocTagElement = 'p' | 'ul' | 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'pre' | `pre.${string}`
-
-type DocTagValue<T extends DocTagElement> = T extends 'ul' ? string[] : string
-
-interface FormattedDocTag<T extends DocTagElement> {
-  tag: T
-  value: DocTagValue<T>
-}
-
-type AnyFormattedDocTag = FormattedDocTag<DocTagElement>
-
-interface RenderMetadata {
-  title: string
-  body: AnyFormattedDocTag[]
-}
-
-const target = ['chrome58', 'safari11', 'firefox57', 'edge16']
-
-const data = yaml.load(fs.readFileSync(path.join(Dirs.docs, 'index.yaml'), 'utf8')) as Record<string, RenderMetadata | string>
-
-const pages = Object.entries(data)
-
-const commonCSS = minifyCSS(fs.readFileSync(path.join(Dirs.script, 'style.css'), 'utf8'))
-
-function createTag<T extends DocTagElement>(tag: T, value: DocTagValue<T>): FormattedDocTag<T> {
-  return { tag, value }
-}
-
-const formatedPages = pages.reduce((acc, [page, pageData]) => {
-  if (typeof pageData === 'string') {
-    if (pageData.endsWith('.yaml')) {
-      pageData = yaml.load(fs.readFileSync(path.join(Dirs.docs, pageData), 'utf8')) as RenderMetadata
-    }
-  }
-  if (typeof pageData === 'object') {
-    pageData.body = pageData.body.map((sec) => {
-      const tag = Object.keys(sec)[0]
-      // @ts-expect-error safe
-      return createTag(tag as DocTagElement, sec[tag] as DocTagValue<typeof tag>)
-    })
-  }
-  // @ts-expect-error safe
-  acc.push([page, pageData])
-  return acc
-}, [] as [string, RenderMetadata][])
-
-function minifyCSS(css: string) {
-  return esbuild.transformSync(css, { target, loader: 'css', minify: true }).code
-}
-
-function buildAndMinifyJS(entry: string) {
-  const r = esbuild.buildSync({
-    bundle: true,
-    format: 'iife',
-    loader: {
-      '.ts': 'ts'
-    },
-    define: {
-      LIVE_RELOAD: 'false'
-    },
-    minify: true,
-    write: false,
-    entryPoints: [entry]
-  })
-  if (r.outputFiles.length) {
-    return r.outputFiles[0].text
-  }
-  throw new Error('No output files')
-}
-
-// We use github highlighting style
-
-function pipeOriginalCSSIntoThemeSystem(css: string, theme: Theme) {
-  let wrappered = ''
-  if (theme === 'dark') {
-    wrappered = `html[data-theme="dark"] { ${css} }\n`
-  } else {
-    wrappered = `html:not([data-theme="dark"]) { ${css} }\n`
-  }
-
-  return minifyCSS(wrappered)
-}
-
-const hljsPath = path.dirname(require.resolve('highlight.js/package.json', { paths: [process.cwd()] }))
+const hljsPath = path.dirname(require.resolve('highlight.js/package.json', { paths: [defaultWD] }))
 
 const hljsGitHubCSS = {
   light: pipeOriginalCSSIntoThemeSystem(fs.readFileSync(path.join(hljsPath, 'styles/github.css'), 'utf-8'), 'light'),
   dark: pipeOriginalCSSIntoThemeSystem(fs.readFileSync(path.join(hljsPath, 'styles/github-dark.css'), 'utf-8'), 'dark')
 }
 
-export function Logo() {
+function Logo() {
   return (
     <svg
       className="logo"
@@ -261,6 +256,7 @@ export function Logo() {
     </svg>
   )
 }
+
 function Head(props: HeadProps) {
   const { title } = props
   return (
@@ -286,10 +282,6 @@ function Head(props: HeadProps) {
   )
 }
 
-function toID(text: string) {
-  return text.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '')
-}
-
 interface HeadingBase {
   value: string
   id: string
@@ -305,53 +297,43 @@ interface HeadingStruct {
   h2s: HeadingMetadata[]
 }
 
-const assert = {
-  ul: (tag: FormattedDocTag<DocTagElement>): tag is FormattedDocTag<'ul'> => {
-    return tag.tag === 'ul'
-  },
-  pre: (tag: FormattedDocTag<DocTagElement>): tag is FormattedDocTag<'pre' | `pre.${string}`> => {
-    if (tag.tag.startsWith('pre')) { return true }
-    return false
-  },
-  base: (tag: FormattedDocTag<DocTagElement>): tag is FormattedDocTag<Exclude<DocTagElement, 'ul'>> => {
-    if (tag.tag !== 'ul') { return true }
-    return false
-  }
-}
-
-declare global {
-  interface Window {
-    useTheme: () => {
-      preferredDark: boolean,
-      updateTheme: (theme: Theme) => void,
-      toggleTheme: () => void
-    }
-  }
+function toID(text: string) {
+  return text.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '')
 }
 
 function Menu() {
   const structure: HeadingStruct[] = []
+  for (const page of formatedPages) {
+    if (page.title === 'index') { continue }
 
-  for (const [pageName, pageData] of formatedPages) {
-    if (pageName === 'index') { continue }
     const h2s: HeadingMetadata[] = []
-    const root = { key: pageName, title: pageData.title, h2s }
-    let h3s: HeadingBase[] = []
+    const root = { key: page.title, title: page.frontmatter.title, h2s }
+    structure.push(root)
 
-    for (const c of pageData.body) {
-      if (assert.base(c)) {
-        if (c.tag === 'h2') {
-          h3s = []
-          h2s.push({ value: c.value, id: toID(c.value), h3s })
-        } else if (c.tag === 'h3') {
-          h3s.push({ value: c.value, id: toID(c.value) })
+    let currentH2: HeadingMetadata | null = null
+
+    for (let i = 0; i < page.tokens.length; i++) {
+      const token = page.tokens[i]
+      if (token.type === 'heading_open') {
+        if (i + 1 < page.tokens.length && page.tokens[i + 1].type === 'inline') {
+          const inlineToken = page.tokens[i + 1]
+          const titleText = inlineToken.content
+          const titleId = toID(titleText)
+          if (token.tag === 'h2') {
+            const h3s: HeadingBase[] = []
+            currentH2 = { value: titleText, id: titleId, h3s }
+            h2s.push(currentH2)
+          } else if (token.tag === 'h3' && currentH2) {
+            const h3: HeadingBase = { value: titleText, id: titleId }
+            currentH2.h3s.push(h3)
+          }
         }
       }
     }
-    structure.push(root)
   }
 
   onClient(() => {
+    // @ts-expect-error safe
     const { toggleTheme } = window.useTheme()
     const btn = document.querySelector<HTMLAnchorElement>('#theme-toggle')!
     btn.addEventListener('click', toggleTheme)
@@ -412,59 +394,9 @@ function Menu() {
   )
 }
 
-interface ArticleProps {
-  data: RenderMetadata
-}
-
-export function Article(props: ArticleProps) {
-  const { data } = props
-
-  return (
-    <main>
-      {data.body.map((c: FormattedDocTag<DocTagElement>) => {
-        if (assert.ul(c)) {
-          return (
-            <ul>
-              {c.value.map((li) => (
-                <li>
-                  {<li>${md.renderInline(li.trim())}</li>}
-                </li>
-              ))}
-            </ul>
-          )
-        }
-        if (assert.pre(c)) {
-          if (c.tag.startsWith('pre.')) {
-            const lang = c.tag.split('.')[1]
-            return (
-              <pre className={`language-${lang}`}>
-                {hljs.highlight(c.value.trim(), { language: lang }).value}
-              </pre>
-            )
-          }
-          return <pre>${md.render(c.value.trim())}</pre>
-        }
-        if (assert.base(c)) {
-          const Tag = c.tag as unknown as Component<Any>
-          if (/^h[2-6]$/.test(c.tag)) {
-            const slug = toID(c.value)
-            return (
-              <Tag id={slug}>
-                <a className="anchorlink" aria-hidden="true" href="#${slug}">#</a>
-                {md.renderInline(c.value.trim())}
-              </Tag>
-            )
-          }
-          return <Tag>{md.renderInline(c.value.trim())}</Tag>
-        }
-        throw new Error('Unreachable')
-      })}
-    </main>
-  )
-}
-
-export function Layout(props: ArticleProps) {
+function Layout(props: FormatedData) {
   onClient(() => {
+    // @ts-expect-error safe
     const { preferredDark, updateTheme } = window.useTheme()
     updateTheme(preferredDark ? 'dark' : 'light')
 
@@ -490,64 +422,28 @@ export function Layout(props: ArticleProps) {
         </a>
       </div>
       <div id="shadow" />
-      <Menu />
-      <Article data={props.data} />
+      <main>
+        {props.html}
+      </main>
     </Fragment>
   )
 }
 
-export interface Descriptor {
-  kind: 'script' | 'style' | 'title'
-  text: string
-  attrs?: string[]
-}
-
-interface InjectHTMLTagOptions {
-  html: string
-  injectTo: 'body' | 'head'
-  descriptors: Descriptor | Descriptor[]
-}
-
-// Refactor this function
-export function injectHTMLTag(options: InjectHTMLTagOptions) {
-  const regExp = options.injectTo === 'head' ? /([ \t]*)<\/head>/i : /([ \t]*)<\/body>/i
-  options.descriptors = Array.isArray(options.descriptors) ? options.descriptors : [options.descriptors]
-  const descriptors = options.descriptors.map((d) => {
-    if (d.attrs && d.attrs.length > 0) {
-      return `<${d.kind} ${d.attrs.join(' ')}>${d.text}</${d.kind}>`
-    }
-    return `<${d.kind}>${d.text}</${d.kind}>`
-  })
-  return options.html.replace(regExp, (match) => `${descriptors.join('\n')}${match}`)
-}
-
-function buildExampleDisplay() {
-  let html = fs.readFileSync(path.join(Dirs.example, 'index.html'), 'utf8')
-  html = html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-  html = injectHTMLTag({
-    html,
-    injectTo: 'body',
-    descriptors: {
-      kind: 'script',
-      text: buildAndMinifyJS(path.join(Dirs.example, 'main.ts'))
-    }
-  })
-  return html
-}
-
 async function main() {
-  for (const [page, pageData] of formatedPages) {
+  for (const page of formatedPages) {
     const html: string[] = []
 
     html.push('<!DOCTYPE html>')
     const { html: s, onClientMethods } = renderToString(
       <html lang="en">
-        <Head title={pageData.title} />
+        <Head title={page.frontmatter.title} />
         <body>
-          <Layout data={pageData} />
+          <Menu />
+          <Layout {...page} />
         </body>
       </html>
     )
+
     html.push(s)
     html.push(`<script>
       function useTheme() {
@@ -577,15 +473,32 @@ async function main() {
       });
     </script>`)
 
-    if (!fs.existsSync(Dirs.dest)) {
-      fs.mkdirSync(Dirs.dest)
+    if (!fs.existsSync(dirs.dest)) {
+      fs.mkdirSync(dirs.dest)
+    }
+    if (!fs.existsSync(dirs.dest)) {
+      fs.mkdirSync(dirs.dest)
     }
 
-    await fsp.writeFile(path.join(Dirs.dest, `${page}.html`), html.join(''), 'utf8')
+    await fsp.writeFile(path.join(dirs.dest, `${page.title}.html`), html.join(''), 'utf8')
   }
   const example = buildExampleDisplay()
-  await fsp.copyFile(path.join(Dirs.example, 'data.json'), path.join(Dirs.dest, 'data.json'))
-  await fsp.writeFile(path.join(Dirs.dest, 'example.html'), example, 'utf8')
+  await fsp.copyFile(path.join(dirs.example, 'data.json'), path.join(dirs.dest, 'data.json'))
+  await fsp.writeFile(path.join(dirs.dest, 'example.html'), example, 'utf8')
 }
 
 main().catch(console.error)
+
+function buildExampleDisplay() {
+  let html = fs.readFileSync(path.join(dirs.example, 'index.html'), 'utf8')
+  html = html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+  html = injectHTMLTag({
+    html,
+    injectTo: 'body',
+    descriptors: {
+      kind: 'script',
+      text: buildAndMinifyJS(path.join(dirs.example, 'main.ts'))
+    }
+  })
+  return html
+}

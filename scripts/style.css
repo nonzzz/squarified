@@ -146,11 +146,6 @@ code {
   white-space: pre-wrap;
 }
 
-code:before,
-code:after {
-  content: "`";
-}
-
 pre {
   padding: 14px 16px;
   background-color: var(--accents_1);
@@ -253,7 +248,7 @@ main {
   display: var(--theme-display-dark);
 }
 
-.anchorlink {
+.header-anchor {
   opacity: 0;
   color: var(--anchor-color);
   font-size: 0.85em;
@@ -262,7 +257,7 @@ main {
   margin-left: -1em;
   margin-top: 0.15em;
 }
-.anchorlink:hover {
+.header-anchor:hover {
   opacity: 1;
 }
 

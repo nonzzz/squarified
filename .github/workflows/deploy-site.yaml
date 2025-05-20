@@ -14,6 +14,8 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: 22.9.0
+      - name: Install puppeteer
+        run: npx puppeteer browsers install chrome
       - name: Build site
         run: make build-docs
 

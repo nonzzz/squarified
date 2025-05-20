@@ -3,10 +3,14 @@ import fs from 'fs'
 import fsp from 'fs/promises'
 import matter from 'gray-matter'
 import markdownit from 'markdown-it'
+import MarkdownIt from 'markdown-it'
 import markdownItAnchor from 'markdown-it-anchor'
 import markdownhighlight from 'markdown-it-highlightjs'
 import { Token } from 'markdown-it/index.js'
+import { Mermaid } from 'mermaid'
 import path from 'path'
+import puppeteer from 'puppeteer'
+import { Browser } from 'puppeteer'
 import { globSync } from 'tinyglobby'
 import { injectHTMLTag } from 'vite-bundle-analyzer'
 import { Fragment, h, onClient, renderToString } from './h'
@@ -17,13 +21,42 @@ interface MarkdownFrontMatter {
   level?: number
 }
 
+function hashCode(str: string) {
+  let hash = 0
+  for (let i = 0; i < str.length; i++) {
+    const code = str.charCodeAt(i)
+    hash = (hash << 5) - hash + code
+    hash = hash & hash
+  }
+  return hash
+}
+
+const mermaidContents: Record<string, string> = {}
+
+function setupMermaid(md: MarkdownIt) {
+  const defaultFenceRenderer = md.renderer.rules.fence || function(tokens, idx, options, env, self) {
+    return self.renderToken(tokens, idx, options)
+  }
+  md.renderer.rules.fence = function(tokens, idx, options, env, self) {
+    const token = tokens[idx]
+    if (token.info === 'mermaid') {
+      const code = token.content.trim()
+      const hash = Math.abs(hashCode(code))
+      mermaidContents['mermaid' + hash] = code
+      return `<mermaid id="${`mermaid-` + hash}"></mermaid>`
+    }
+    return defaultFenceRenderer(tokens, idx, options, env, self)
+  }
+  return md
+}
+
 const md = markdownit({ html: true }).use(markdownItAnchor, {
   slugify: toID,
   permalink: markdownItAnchor.permalink.linkInsideHeader({
     symbol: '#',
     renderAttrs: () => ({ 'aria-hidden': 'true' })
   })
-}).use(markdownhighlight, {})
+}).use(markdownhighlight, {}).use(setupMermaid)
 
 const defaultWD = process.cwd()
 
@@ -429,10 +462,86 @@ function Layout(props: FormatedData) {
   )
 }
 
+let browser: Browser | null = null
+
+function collectMermaidTags() {
+  const regex = /<mermaid\s+id=["']mermaid-(\d+)["']\s*><\/mermaid>/g
+  const collections: Array<{ id: string, code: string, belong: string }> = []
+
+  for (const page of formatedPages) {
+    let match
+    while ((match = regex.exec(page.html)) !== null) {
+      const index = match[1]
+      const id = 'mermaid' + '-' + index
+      const mermaidCode = mermaidContents['mermaid' + index]
+      if (!mermaidCode) {
+        continue
+      }
+      collections.push({ id, code: mermaidCode, belong: page.title })
+    }
+  }
+  return collections
+}
+
 async function main() {
+  const collections = collectMermaidTags()
+  try {
+    if (!browser) {
+      browser = await puppeteer.launch({
+        headless: true,
+        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+        defaultViewport: {
+          width: 1280,
+          height: 750
+        }
+      })
+    }
+    await Promise.all(collections.map(async ({ id, code, belong }) => {
+      const page = await browser!.newPage()
+      await page.addScriptTag({
+        type: 'module',
+        content: `
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.esm.min.mjs';
+    globalThis.mermaid = mermaid;
+  `
+      })
+      await page.setContent(`<div id="${id}">x</div>`)
+      const svg = await page.$eval(
+        '#' + id,
+        async (el, code) => {
+          const { mermaid } = globalThis as Any as { mermaid: Mermaid, code: string, id: string }
+          mermaid.initialize({
+            theme: 'neutral',
+            startOnLoad: false,
+            securityLevel: 'loose',
+            fontFamily: 'sans-serif'
+          })
+          const { svg: svgText } = await mermaid.render('graph', code, el)
+          el.innerHTML = svgText
+
+          const svg = el.getElementsByTagName?.('svg')?.[0]
+
+          if (svg.style) {
+            svg.style.backgroundColor = 'transparent'
+            svg.style.maxWidth = '750px'
+          }
+
+          return new XMLSerializer().serializeToString(svg)
+        },
+        code
+      )
+      formatedPages.find((p) => p.title === belong)!.html = formatedPages
+        .find((p) => p.title === belong)!.html
+        .replace(`<mermaid id="${id}"></mermaid>`, svg)
+    }))
+  } finally {
+    if (browser) {
+      await browser.close()
+    }
+  }
+
   for (const page of formatedPages) {
     const html: string[] = []
-
     html.push('<!DOCTYPE html>')
     const { html: s, onClientMethods } = renderToString(
       <html lang="en">

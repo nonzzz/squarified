@@ -11,7 +11,7 @@ A treemap layout algorithm that optimizes for aspect ratio.
 ## Major features
 
 - Minimalistic API
-- Powerful layout algorithm, based on [Squarified Treemaps]('https://vanwijk.win.tue.nl/stm.pdf')
+- Powerful layout algorithm, based on [Squarified Treemaps](https://vanwijk.win.tue.nl/stm.pdf)
 - Highly customizable
 - Supports zooming and panning
 

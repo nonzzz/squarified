@@ -93,7 +93,7 @@ h1 {
 }
 
 h2 {
-  font-size: 2.25rem;
+  font-size: 1.75rem;
   letter-spacing: -0.02em;
   font-weight: 600;
 }
@@ -147,9 +147,6 @@ code {
 }
 
 pre {
-  padding: 14px 16px;
-  background-color: var(--accents_1);
-  margin: 16px 0;
   font-family: var(--font-mono);
   white-space: pre;
   line-height: 1.5;
@@ -276,6 +273,7 @@ main {
   }
   main {
     padding: 0;
+    padding-left: 80px;
     position: relative;
     z-index: 1;
   }
@@ -298,6 +296,7 @@ main {
     top: 0;
     bottom: 0;
     padding: 50px 0 30px 30px;
+    overflow-y: scroll;
   }
 
   #menu > div svg {

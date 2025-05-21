@@ -334,6 +334,28 @@ function toID(text: string) {
   return text.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '')
 }
 
+// #build-setup
+function useTheme() {
+  const darkMediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+  const doc = document.documentElement
+  const docDataset = doc.dataset
+  const preferredDark = darkMediaQuery.matches || localStorage.getItem('theme') === 'dark'
+
+  const updateTheme = function(theme: Theme) {
+    localStorage.setItem('theme', theme)
+    docDataset.theme = theme
+  }
+
+  const toggleTheme = function() {
+    const theme = docDataset.theme === 'light' ? 'dark' : 'light'
+    updateTheme(theme)
+  }
+
+  return { preferredDark, updateTheme, toggleTheme }
+}
+
+// #build-end
+
 function Menu() {
   const structure: HeadingStruct[] = []
   for (const page of formatedPages) {
@@ -366,8 +388,7 @@ function Menu() {
   }
 
   onClient(() => {
-    // @ts-expect-error safe
-    const { toggleTheme } = window.useTheme()
+    const { toggleTheme } = useTheme()
     const btn = document.querySelector<HTMLAnchorElement>('#theme-toggle')!
     btn.addEventListener('click', toggleTheme)
   })
@@ -429,8 +450,7 @@ function Menu() {
 
 function Layout(props: FormatedData) {
   onClient(() => {
-    // @ts-expect-error safe
-    const { preferredDark, updateTheme } = window.useTheme()
+    const { preferredDark, updateTheme } = useTheme()
     updateTheme(preferredDark ? 'dark' : 'light')
 
     const menuButton = document.querySelector<HTMLAnchorElement>('#menu-toggle')!
@@ -505,11 +525,11 @@ async function main() {
     globalThis.mermaid = mermaid;
   `
       })
-      await page.setContent(`<div id="${id}">x</div>`)
+      await page.setContent(`<div id="${id}"></div>`)
       const svg = await page.$eval(
         '#' + id,
         async (el, code) => {
-          const { mermaid } = globalThis as Any as { mermaid: Mermaid, code: string, id: string }
+          const { mermaid } = globalThis as Any as { mermaid: Mermaid }
           mermaid.initialize({
             theme: 'neutral',
             startOnLoad: false,
@@ -555,24 +575,7 @@ async function main() {
 
     html.push(s)
     html.push(`<script>
-      function useTheme() {
-        const darkMediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-        const doc = document.documentElement
-        const docDataset = doc.dataset
-        const preferredDark = darkMediaQuery.matches || localStorage.getItem('theme') === 'dark'
-      
-        const updateTheme = function(theme) {
-          localStorage.setItem('theme', theme)
-          docDataset.theme = theme
-        }
-
-        const toggleTheme = function() {
-         const theme = docDataset.theme === 'light' ? 'dark' : 'light'
-         updateTheme(theme)
-        }
-
-        return { preferredDark, updateTheme, toggleTheme }
-      };
+      ${captureConditionalCompile()}
       window.__MOUNTED_CALLBACKS__ = ${JSON.stringify(onClientMethods.map((c) => ({ f: c.toString() })))};
       window.addEventListener('DOMContentLoaded', () => {
          window.__MOUNTED_CALLBACKS__.forEach(({f}) => {
@@ -610,4 +613,18 @@ function buildExampleDisplay() {
     }
   })
   return html
+}
+
+function captureConditionalCompile() {
+  const code = fs.readFileSync(__filename, 'utf8')
+  const regex = /\/\/ #build-setup([\s\S]*?)\/\/ #build-end/g
+  const matches = code.match(regex)
+  if (matches && matches.length > 0) {
+    const content = matches[0].replace(/\/\/ #build-setup/g, '').replace(/\/\/ #build-end/g, '')
+    const result = esbuild.transformSync(content, { target, loader: 'ts', minify: true })
+    if (result.code) {
+      return result.code
+    }
+  }
+  return ''
 }

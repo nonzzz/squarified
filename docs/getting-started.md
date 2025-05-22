@@ -43,7 +43,8 @@ copy and paste the following code into the files respectively and then run the `
 
 ```js
 // pre.js
-import { createTreemap, presetDecorator } from 'squarified'
+import { createTreemap } from 'squarified'
+import { presetColorPlugin } from 'squarified/plugin'
 const data = [{
   name: 'root',
   weight: 100,
@@ -54,8 +55,7 @@ const data = [{
     { name: 'd', weight: 40 }
   ]
 }]
-const treemap = createTreemap()
-treemap.use('decorator', presetDecorator())
+const treemap = createTreemap({ plugins: [presetColorPlugin] })
 const el = document.getElementById('app')
 treemap.init(el)
 treemap.setOptions({ data })

@@ -76,7 +76,7 @@ function processSquarifyData(data: SquarifiedModule[], totalArea: number, minNod
   return processedNodes
 }
 
-export function squarify(data: NativeModule[], rect: Rect, config: Required<GraphicLayout>) {
+export function squarify(data: NativeModule[], rect: Rect, config: Required<GraphicLayout>, scale = 1) {
   const result: LayoutModule[] = []
   if (!data.length) { return result }
 
@@ -85,7 +85,7 @@ export function squarify(data: NativeModule[], rect: Rect, config: Required<Grap
   const scaleFactor = Math.max(0.5, Math.min(1, containerSize / 800))
 
   // evaluate minimum renderable size
-  const minRenderableSize = Math.max(35, containerSize * 0.05)
+  const minRenderableSize = (Math.max(20, containerSize * 0.05)) / scale
   const minRenderableArea = minRenderableSize * minRenderableSize
 
   const scaledGap = config.rectGap * scaleFactor
@@ -207,7 +207,8 @@ export function squarify(data: NativeModule[], rect: Rect, config: Required<Grap
             childrenLayout = squarify(
               children.groups || [],
               childRect,
-              { ...config, rectGap: currentGap, rectRadius: currentRadius }
+              { ...config, rectGap: currentGap, rectRadius: currentRadius },
+              scale
             )
           }
         }

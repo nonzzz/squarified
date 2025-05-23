@@ -17,6 +17,8 @@ interface ZoomableMetadata {
   }
 }
 
+const MAX_SCALE_MULTIPLIER = 2.0
+
 export const presetZoomablePlugin = definePlugin({
   name: 'treemap:preset-zoomable',
   onLoad(treemap, { stateManager: state, matrix }) {
@@ -45,9 +47,14 @@ export const presetZoomablePlugin = definePlugin({
           const [nodeX, nodeY, nodeW, nodeH] = targetModule.layout
           const { width, height } = component.render.options
 
+          const currentScale = matrix.a
           const scaleX = width / nodeW
           const scaleY = height / nodeH
-          const scale = Math.min(scaleX, scaleY) * 0.9
+          const fullScale = Math.min(scaleX, scaleY) * 0.9
+
+          const targetScale = Math.min(fullScale, currentScale * MAX_SCALE_MULTIPLIER)
+
+          const scale = targetScale
 
           const nodeCenterX = nodeX + nodeW / 2
           const nodeCenterY = nodeY + nodeH / 2
@@ -57,7 +64,6 @@ export const presetZoomablePlugin = definePlugin({
           const targetE = viewCenterX - nodeCenterX * scale
           const targetF = viewCenterY - nodeCenterY * scale
 
-          // Update scale in wheel plugin metadata
           const scaleMeta = getScaleOptions.call(this)
           if (scaleMeta) {
             scaleMeta.scaleOptions.scale = scale
@@ -100,7 +106,12 @@ export const presetZoomablePlugin = definePlugin({
             }
 
             component.cleanup()
-            component.draw(false, false)
+
+            const { width, height } = component.render.options
+
+            component.layoutNodes = component.calculateLayoutNodes(component.data, { w: width, h: height, x: 0, y: 0 }, matrix.a)
+
+            component.draw(true, false)
             stackMatrixTransformWithGraphAndLayer(
               component.elements,
               matrix.e,

@@ -1,3 +1,7 @@
+## 0.4.0
+
+Better layout
+
 ## 0.3.7
 
 Rebuild

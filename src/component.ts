@@ -61,8 +61,6 @@ export class Component extends Schedule {
   private drawBroundRect(node: LayoutModule) {
     const [x, y, w, h] = node.layout
     const { rectRadius } = node.config
-    const isCombinedNode = !!node.node.isCombinedNode
-    const originalNodeCount = node.node.originalNodeCount || 0
 
     const effectiveRadius = Math.min(
       rectRadius,
@@ -79,9 +77,6 @@ export class Component extends Schedule {
 
     rect.__widget__ = node
 
-    if (isCombinedNode && originalNodeCount > 0) {
-      //  TODO add tag for combined node
-    }
     this.rectLayer.add(rect)
     for (const child of node.children) {
       this.drawBroundRect(child)
@@ -136,14 +131,8 @@ export class Component extends Schedule {
     // prepare data
     const { width, height } = this.render.options
 
-    const config: Required<GraphicLayout> = {
-      titleAreaHeight: this.config.layout?.titleAreaHeight || DEFAULT_TITLE_AREA_HEIGHT,
-      rectRadius: this.config.layout?.rectRadius || DEFAULT_RECT_BORDER_RADIUS,
-      rectGap: this.config.layout?.rectGap || DEFAULT_RECT_GAP
-    }
-
     if (update) {
-      this.layoutNodes = squarify(this.data, { w: width, h: height, x: 0, y: 0 }, config)
+      this.layoutNodes = this.calculateLayoutNodes(this.data, { w: width, h: height, x: 0, y: 0 })
     }
 
     if (flush) {
@@ -168,6 +157,14 @@ export class Component extends Schedule {
     this.remove(this.rectLayer, this.textLayer)
     this.rectLayer.destory()
     this.textLayer.destory()
+  }
+  calculateLayoutNodes(data: NativeModule[], rect: Parameters<typeof squarify>[1], scale = 1) {
+    const config: Required<GraphicLayout> = {
+      titleAreaHeight: this.config.layout?.titleAreaHeight || DEFAULT_TITLE_AREA_HEIGHT,
+      rectRadius: this.config.layout?.rectRadius || DEFAULT_RECT_BORDER_RADIUS,
+      rectGap: this.config.layout?.rectGap || DEFAULT_RECT_GAP
+    }
+    return squarify(data, rect, config, scale)
   }
 }
 

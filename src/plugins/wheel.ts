@@ -1,7 +1,6 @@
-import { Component } from '../component'
 import type { DOMEventMetadata } from '../dom-event'
 import { DOMEvent, isWheelEvent } from '../dom-event'
-import { DEFAULT_MATRIX_LOC, Matrix2D } from '../etoile/native/matrix'
+import { DEFAULT_MATRIX_LOC } from '../etoile/native/matrix'
 import { smoothFrame, stackMatrixTransformWithGraphAndLayer } from '../shared'
 import { definePlugin } from '../shared/plugin-driver'
 import type { PluginContext } from '../shared/plugin-driver'
@@ -102,9 +101,11 @@ function onWheel(
 
     component.cleanup()
 
-    calculateShouldUpdatedArea(matrix, component)
+    const { width, height } = component.render.options
 
-    component.draw(false, false)
+    component.layoutNodes = component.calculateLayoutNodes(component.data, { w: width, h: height, x: 0, y: 0 }, matrix.a)
+
+    component.draw(true, false)
 
     stackMatrixTransformWithGraphAndLayer(
       component.elements,
@@ -121,16 +122,4 @@ function onWheel(
   }, {
     duration: ANIMATION_DURATION
   })
-}
-
-// squarify will collapse the nodes
-// so this is designed to flatten the nodes and rebuild the tree
-// Need to be considered is component.draw should never pass flush and update parameters
-// I guess modifying the node metadata directly via squarify is the right way.
-// 1. calculate should be updated area
-// 2. if updated area contains combined nodes flatten them and rebuild the tree
-// 3. replace the nodes in the tree
-// 4. repeat the process
-
-export function calculateShouldUpdatedArea(domMatrix: Matrix2D, component: Component) {
 }

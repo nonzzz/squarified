@@ -9,7 +9,7 @@ import markdownhighlight from 'markdown-it-highlightjs'
 import { Token } from 'markdown-it/index.js'
 import { Mermaid } from 'mermaid'
 import path from 'path'
-import puppeteer from 'puppeteer'
+import puppeteer, { ResponseForRequest } from 'puppeteer'
 import { Browser } from 'puppeteer'
 import { globSync } from 'tinyglobby'
 import { injectHTMLTag } from 'vite-bundle-analyzer'
@@ -505,6 +505,25 @@ function collectMermaidTags() {
 
 async function main() {
   const collections = collectMermaidTags()
+
+  const headers = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'Get',
+    'Access-Control-Allow-Headers': 'Content-Type'
+  }
+
+  const responseBody: ResponseForRequest = {
+    status: 200,
+    body: '',
+    headers,
+    contentType: 'application/javascript'
+  }
+
+  const resolveMermaidChunk = (p: string) => {
+    p = p.replace('http://mermaid/', 'mermaid/dist/')
+    return fs.readFileSync(require.resolve(p))
+  }
+
   try {
     if (!browser) {
       browser = await puppeteer.launch({
@@ -518,10 +537,42 @@ async function main() {
     }
     await Promise.all(collections.map(async ({ id, code, belong }) => {
       const page = await browser!.newPage()
+      await page.setRequestInterception(true)
+      page.on('request', (request) => {
+        const url = request.url()
+
+        if (url === 'http://mermaid/') {
+          request.respond({ ...responseBody, body: resolveMermaidChunk(url + 'mermaid.esm.min.mjs') }).catch(() => {
+            request.respond({
+              status: 404,
+              contentType: 'text/plain',
+              body: 'Not Found!'
+            }).catch(() => request.abort('failed'))
+          })
+        } else {
+          if (url.includes('chunks/mermaid')) {
+            request.respond({ ...responseBody, body: resolveMermaidChunk(url) }).catch(() => {
+              request.respond({
+                status: 404,
+                contentType: 'text/plain',
+                body: 'Not Found!'
+              }).catch(() => request.abort('failed'))
+            })
+            return
+          }
+          request.continue().catch(() => {
+            request.respond({
+              status: 404,
+              contentType: 'text/plain',
+              body: 'Not Found!'
+            }).catch(() => request.abort('failed'))
+          })
+        }
+      })
       await page.addScriptTag({
         type: 'module',
         content: `
-    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.esm.min.mjs';
+    import mermaid from 'http://mermaid';
     globalThis.mermaid = mermaid;
   `
       })

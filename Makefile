@@ -1,4 +1,4 @@
-ROLLDOWN = ./node_modules/.bin/rolldown --config ./rolldown.config.mts
+ROLLUP = ./node_modules/.bin/rollup --config ./rollup.config.mts --configPlugin swc3
 
 FLAGS += --bundle
 FLAGS += --loader:.html=copy
@@ -21,12 +21,12 @@ bootstrap:
 
 build-lib:
 	@echo "Build library"
-	$(ROLLDOWN)
+	$(ROLLUP)
 
 analyze-lib:
 	@echo "Analyze library"
 	rm -rf dist
-	export ANALYZE=1 && $(ROLLDOWN)
+	export ANALYZE=1 && $(ROLLUP)
 	
 build-pub: bootstrap
 	@echo "Build publish"

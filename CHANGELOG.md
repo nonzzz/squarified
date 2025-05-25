@@ -1,3 +1,7 @@
+## 0.4.1
+
+Fix types error
+
 ## 0.4.0
 
 Better layout

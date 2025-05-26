@@ -1,3 +1,7 @@
+## 0.4.2
+
+Add more type
+
 ## 0.4.1
 
 Fix types error

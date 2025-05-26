@@ -1,3 +1,4 @@
+import fs from 'fs'
 import { builtinModules } from 'module'
 import { defineConfig } from 'rollup'
 import { dts } from 'rollup-plugin-dts'
@@ -36,7 +37,24 @@ export default defineConfig([
           composite: true,
           preserveSymlinks: false
         }
-      })
+      }),
+      {
+        name: 'copy-global-dts',
+        generateBundle(_, bundle) {
+          for (const file in bundle) {
+            if (file.endsWith('.d.ts')) {
+              const mod = bundle[file]
+              if (mod.type === 'chunk') {
+                const pattern = /(\w+)-!~\{(\d+)\}~\.d\.ts$/
+                if (pattern.test(mod.preliminaryFileName)) {
+                  const content = fs.readFileSync('./global.d.ts', 'utf-8')
+                  mod.code = content + '\n' + mod.code
+                }
+              }
+            }
+          }
+        }
+      }
     ]
   }
 ])

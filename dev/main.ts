@@ -2,9 +2,15 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
-import { presetMenuPlugin } from 'src/plugins/menu'
 import { c2m, createTreemap, sortChildrenByKey } from '../src'
-import { presetColorPlugin, presetDragElementPlugin, presetHighlightPlugin, presetScalePlugin, presetZoomablePlugin } from '../src/plugins'
+import {
+  presetColorPlugin,
+  presetDragElementPlugin,
+  presetHighlightPlugin,
+  presetMenuPlugin,
+  presetScalePlugin,
+  presetZoomablePlugin
+} from '../src/plugins'
 
 import './live-reload'
 

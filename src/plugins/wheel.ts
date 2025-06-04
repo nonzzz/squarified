@@ -75,7 +75,9 @@ function onWheel(
   if (!meta) { return }
   const { scale, minScale, maxScale, scaleFactor } = meta.scaleOptions
 
-  const delta = event.native.deltaY < 0 ? scaleFactor : -scaleFactor
+  const dynamicScaleFactor = Math.max(scaleFactor, scale * 0.1)
+
+  const delta = event.native.deltaY < 0 ? dynamicScaleFactor : -dynamicScaleFactor
   const newScale = Math.max(minScale, Math.min(maxScale, scale + delta))
   if (newScale === scale) { return }
 

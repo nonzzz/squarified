@@ -1,3 +1,7 @@
+## 0.5.0
+
+Support Magic Trackpad two fingers action. (For Pan/Zoom)
+
 ## 0.4.3
 
 Smooth scrolling

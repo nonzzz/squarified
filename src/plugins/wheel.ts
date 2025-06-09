@@ -115,10 +115,26 @@ function determineGestureType(event: WheelEvent, gestureState: GestureState): 'p
     gestureState.lockGestureType = true
     return 'zoom'
   }
+
+  // windows/macos mouse wheel
+  // Usually the dettaY is large and deltaX maybe 0 or small number.
+  const isMouseWheel = (Math.abs(event.deltaX) >= 100 && Math.abs(event.deltaX) <= 10) ||
+    (
+      Math.abs(event.deltaY) > 50 &&
+      Math.abs(event.deltaX) < Math.abs(event.deltaY) * 0.1
+    )
+
+  if (isMouseWheel) {
+    gestureState.gestureType = 'zoom'
+    gestureState.lockGestureType = true
+    return 'zoom'
+  }
+
   if (gestureState.lockGestureType && gestureState.gestureType !== 'unknown') {
     return gestureState.gestureType
   }
 
+  // Magic trackpad
   if (gestureState.eventCount >= 3) {
     const avgDeltaY = gestureState.totalDeltaY / gestureState.eventCount
     const avgDeltaX = gestureState.totalDeltaX / gestureState.eventCount

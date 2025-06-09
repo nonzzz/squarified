@@ -1,3 +1,7 @@
+## 0.4.3
+
+Smooth scrolling
+
 ## 0.4.2
 
 Add more type

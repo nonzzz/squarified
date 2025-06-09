@@ -13,8 +13,21 @@ interface ScaleOptions {
   maxScale: number
   scaleFactor: number
 }
+
+interface GestureState {
+  isTrackingGesture: boolean
+  lastEventTime: number
+  eventCount: number
+  totalDeltaY: number
+  totalDeltaX: number
+  consecutivePinchEvents: number
+  gestureType: 'unknown' | 'pan' | 'zoom'
+  lockGestureType: boolean
+}
+
 interface ScaleMetadata {
   scaleOptions: ScaleOptions
+  gestureState: GestureState
 }
 
 // refer https://developer.mozilla.org/en-US/docs/Web/API/Element/mousewheel_event
@@ -47,7 +60,17 @@ export function presetScalePlugin(options?: ScalePluginOptions) {
         minScale: options?.min || 0.1,
         maxScale: options?.max || Infinity,
         scaleFactor: 0.05
-      } satisfies ScaleOptions
+      } satisfies ScaleOptions,
+      gestureState: {
+        isTrackingGesture: false,
+        lastEventTime: 0,
+        eventCount: 0,
+        totalDeltaY: 0,
+        totalDeltaX: 0,
+        consecutivePinchEvents: 0,
+        gestureType: 'unknown',
+        lockGestureType: false
+      } satisfies GestureState
     },
     onResize({ matrix, stateManager: state }) {
       const meta = getScaleOptions.call(this)
@@ -65,12 +88,132 @@ export function getScaleOptions(this: PluginContext) {
   return meta
 }
 
+function determineGestureType(event: WheelEvent, gestureState: GestureState): 'pan' | 'zoom' {
+  const now = Date.now()
+  const timeDiff = now - gestureState.lastEventTime
+
+  if (timeDiff > 150) {
+    Object.assign(gestureState, {
+      isTrackingGesture: false,
+      lastEventTime: now,
+      eventCount: 1,
+      totalDeltaY: Math.abs(event.deltaY),
+      totalDeltaX: Math.abs(event.deltaX),
+      consecutivePinchEvents: 0,
+      gestureType: 'unknown',
+      lockGestureType: false
+    })
+  } else {
+    gestureState.eventCount++
+    gestureState.totalDeltaY += Math.abs(event.deltaY)
+    gestureState.totalDeltaX += Math.abs(event.deltaX)
+    gestureState.lastEventTime = now
+  }
+
+  if (event.ctrlKey) {
+    gestureState.gestureType = 'zoom'
+    gestureState.lockGestureType = true
+    return 'zoom'
+  }
+  if (gestureState.lockGestureType && gestureState.gestureType !== 'unknown') {
+    return gestureState.gestureType
+  }
+
+  if (gestureState.eventCount >= 3) {
+    const avgDeltaY = gestureState.totalDeltaY / gestureState.eventCount
+    const avgDeltaX = gestureState.totalDeltaX / gestureState.eventCount
+    const ratio = avgDeltaX / (avgDeltaY + 0.1)
+
+    const isZoomGesture = avgDeltaY > 8 &&
+      ratio < 0.3 &&
+      Math.abs(event.deltaY) > 5
+
+    if (isZoomGesture) {
+      gestureState.gestureType = 'zoom'
+      gestureState.lockGestureType = true
+      return 'zoom'
+    } else {
+      gestureState.gestureType = 'pan'
+      gestureState.lockGestureType = true
+      return 'pan'
+    }
+  }
+
+  return 'pan'
+}
+
 function onWheel(
   pluginContext: PluginContext,
   event: DOMEventMetadata<'wheel'>,
-  { stateManager: state, component, matrix }: DOMEvent
+  domEvent: DOMEvent
 ) {
   event.native.preventDefault()
+  const meta = getScaleOptions.call(pluginContext)
+  if (!meta) { return }
+
+  const gestureType = determineGestureType(event.native, meta.gestureState)
+
+  if (gestureType === 'zoom') {
+    handleZoom(pluginContext, event, domEvent)
+  } else {
+    handlePan(pluginContext, event, domEvent)
+  }
+}
+
+function updateViewport(
+  pluginContext: PluginContext,
+  { stateManager: state, component, matrix }: DOMEvent,
+  useAnimation: boolean = false
+) {
+  const highlight = getHighlightInstance.apply(pluginContext)
+
+  const doUpdate = () => {
+    if (highlight && highlight.highlight) {
+      highlight.highlight.reset()
+      highlight.highlight.setZIndexForHighlight()
+    }
+
+    component.cleanup()
+    const { width, height } = component.render.options
+    component.layoutNodes = component.calculateLayoutNodes(
+      component.data,
+      { w: width, h: height, x: 0, y: 0 },
+      matrix.a
+    )
+    component.draw(true, false)
+
+    stackMatrixTransformWithGraphAndLayer(
+      component.elements,
+      matrix.e,
+      matrix.f,
+      matrix.a
+    )
+    component.update()
+
+    if (state.canTransition('IDLE')) {
+      state.transition('IDLE')
+    }
+  }
+
+  if (useAnimation) {
+    smoothFrame((_, cleanup) => {
+      cleanup()
+      doUpdate()
+      return true
+    }, {
+      duration: ANIMATION_DURATION
+    })
+  } else {
+    doUpdate()
+  }
+}
+
+function handleZoom(
+  pluginContext: PluginContext,
+  event: DOMEventMetadata<'wheel'>,
+  domEvent: DOMEvent
+) {
+  const { stateManager: state, matrix } = domEvent
   const meta = getScaleOptions.call(pluginContext)
   if (!meta) { return }
   const { scale, minScale, maxScale, scaleFactor } = meta.scaleOptions
@@ -88,40 +231,28 @@ function onWheel(
   const scaleDiff = newScale / scale
 
   meta.scaleOptions.scale = newScale
+  matrix.scale(scaleDiff, scaleDiff)
 
-  const highlight = getHighlightInstance.apply(pluginContext)
-  smoothFrame((_, cleanup) => {
-    cleanup()
-    if (highlight && highlight.highlight) {
-      highlight.highlight.reset()
-      highlight.highlight.setZIndexForHighlight()
-    }
+  matrix.e = mouseX - (mouseX - matrix.e) * scaleDiff
+  matrix.f = mouseY - (mouseY - matrix.f) * scaleDiff
 
-    matrix.scale(scaleDiff, scaleDiff)
-    matrix.e = mouseX - (mouseX - matrix.e) * scaleDiff
-    matrix.f = mouseY - (mouseY - matrix.f) * scaleDiff
+  updateViewport(pluginContext, domEvent, false)
+}
 
-    component.cleanup()
+function handlePan(
+  pluginContext: PluginContext,
+  event: DOMEventMetadata<'wheel'>,
+  domEvent: DOMEvent
+) {
+  const { stateManager: state, matrix } = domEvent
+  const panSpeed = 0.8
+  const deltaX = event.native.deltaX * panSpeed
+  const deltaY = event.native.deltaY * panSpeed
 
-    const { width, height } = component.render.options
+  state.transition('PANNING')
 
-    component.layoutNodes = component.calculateLayoutNodes(component.data, { w: width, h: height, x: 0, y: 0 }, matrix.a)
+  matrix.e -= deltaX
+  matrix.f -= deltaY
 
-    component.draw(true, false)
-
-    stackMatrixTransformWithGraphAndLayer(
-      component.elements,
-      matrix.e,
-      matrix.f,
-      newScale
-    )
-    component.update()
-
-    if (state.canTransition('IDLE')) {
-      state.transition('IDLE')
-    }
-    return true
-  }, {
-    duration: ANIMATION_DURATION
-  })
+  updateViewport(pluginContext, domEvent, true)
 }

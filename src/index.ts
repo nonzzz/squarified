@@ -2,10 +2,10 @@ import { Component, logger } from './component'
 import { DOMEvent } from './dom-event'
 import type { ExposedEventMethods } from './dom-event'
 import { Event } from './etoile'
-import type { GraphicConfig, TreemapInstanceAPI } from './interface'
+import type { GraphicConfig } from './interface'
 import { bindParentForModule } from './primitives/struct'
 import type { Module } from './primitives/struct'
-import { mixin, noop } from './shared'
+import { mixin } from './shared'
 import { assertExists } from './shared/logger'
 import type { Plugin } from './shared/plugin-driver'
 
@@ -54,10 +54,6 @@ export function createTreemap<const P extends readonly Plugin[]>(
 
   if (!Array.isArray(plugins)) {
     logger.panic('Plugins should be an array')
-  }
-
-  const api: TreemapInstanceAPI = {
-    zoom: noop
   }
 
   const ctx = {
@@ -114,7 +110,7 @@ export function createTreemap<const P extends readonly Plugin[]>(
   }
 
   const base = mixin(ctx, [
-    { name: 'on', fn: () => exposedEvent.bindWithContext(api) },
+    { name: 'on', fn: () => exposedEvent.on.bind(exposedEvent) },
     { name: 'off', fn: () => exposedEvent.off.bind(exposedEvent) }
   ])
 

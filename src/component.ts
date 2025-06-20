@@ -164,7 +164,12 @@ export class Component extends Schedule {
       rectRadius: this.config.layout?.rectRadius || DEFAULT_RECT_BORDER_RADIUS,
       rectGap: this.config.layout?.rectGap || DEFAULT_RECT_GAP
     }
-    return squarify(data, rect, config, scale)
+    const layoutNodes = squarify(data, rect, config, scale)
+    const result = this.pluginDriver.cascadeHook('onLayoutCalculated', layoutNodes, rect, config)
+    if (result && result.layoutNodes?.length) {
+      return result.layoutNodes
+    }
+    return layoutNodes
   }
 }
 

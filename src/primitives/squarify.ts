@@ -3,7 +3,7 @@ import { hashCode } from '../shared'
 import type { NativeModule } from './struct'
 import { getNodeDepth } from './struct'
 
-type Rect = { w: number, h: number, x: number, y: number }
+export type Rect = { w: number, h: number, x: number, y: number }
 
 export type SquarifiedModule =
   & NativeModule

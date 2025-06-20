@@ -1,7 +1,6 @@
 import { easing } from '../etoile'
 import { DEFAULT_MATRIX_LOC } from '../etoile/native/matrix'
-import { smoothFrame, stackMatrixTransformWithGraphAndLayer } from '../shared'
-import { mixinWithParams } from '../shared'
+import { mixin, smoothFrame, stackMatrixTransformWithGraphAndLayer } from '../shared'
 import { definePlugin } from '../shared/plugin-driver'
 import { getDragOptions, getHighlightInstance } from './drag'
 import { ANIMATION_DURATION } from './highlight'
@@ -22,7 +21,7 @@ const MAX_SCALE_MULTIPLIER = 2.0
 export const presetZoomablePlugin = definePlugin({
   name: 'treemap:preset-zoomable',
   onLoad(treemap, { stateManager: state, matrix }) {
-    return mixinWithParams(treemap, [
+    return mixin(treemap, [
       {
         name: 'zoom',
         fn: () => (id: string) => {

@@ -13,8 +13,7 @@ export const enum DisplayType {
   Graph = 'Graph',
   Box = 'Box',
   Text = 'Text',
-  RoundRect = 'RoundRect',
-  Bitmap = 'Bitmap'
+  RoundRect = 'RoundRect'
 }
 
 export abstract class Display {

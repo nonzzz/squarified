@@ -1,5 +1,4 @@
 export { Box } from './box'
-export { Bitmap } from './image'
 export { RoundRect } from './rect'
 export { Text } from './text'
 export * from './types'

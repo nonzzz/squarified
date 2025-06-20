@@ -3,7 +3,8 @@ import type { ColorMappings } from '../component'
 import { DOMEvent } from '../dom-event'
 import type { DOMEventMetadata, DOMEventType } from '../dom-event'
 import type { BasicTreemapInstance } from '../index'
-import type { LayoutModule } from '../primitives/squarify'
+import type { GraphicLayout } from '../interface'
+import type { LayoutModule, Rect } from '../primitives/squarify'
 import { findRelativeNodeById } from '../primitives/struct'
 
 export interface PluginContext {
@@ -16,6 +17,10 @@ export interface OnModuleInitResult {
   colorMappings?: ColorMappings
 }
 
+export interface OnLayoutCalculatedResult {
+  layoutNodes?: LayoutModule[]
+}
+
 export interface PluginHooks {
   onLoad?: (this: PluginContext, treemapContext: BasicTreemapInstance, domEvent: DOMEvent) => void | Record<string, Any>
   onModuleInit?: (this: PluginContext, modules: LayoutModule[]) => OnModuleInitResult | void
@@ -26,13 +31,19 @@ export interface PluginHooks {
     module: LayoutModule | null,
     domEvent: DOMEvent
   ) => void
+  onLayoutCalculated?: (
+    this: PluginContext,
+    layoutNodes: LayoutModule[],
+    rect: Rect,
+    viewport: Required<GraphicLayout>
+  ) => OnLayoutCalculatedResult | void
   onResize?: (this: PluginContext, domEvent: DOMEvent) => void
   onDispose?: (this: PluginContext) => void
 }
 
 export type BasicPluginHooks = Pick<PluginHooks, 'onLoad' | 'onDOMEventTriggered' | 'onResize' | 'onDispose'>
 
-export type CascadedPluginHooks = Pick<PluginHooks, 'onModuleInit'>
+export type CascadedPluginHooks = Pick<PluginHooks, 'onModuleInit' | 'onLayoutCalculated'>
 
 export interface Plugin<T = string, M = Any> extends PluginHooks {
   name: T
@@ -93,6 +104,7 @@ export class PluginDriver<T extends Component> {
     this.plugins.forEach((plugin) => {
       const hook = plugin[hookName]
       if (hook) {
+        // @ts-expect-error fixme
         const hookResult = hook.call(this.pluginContext, ...args)
         if (hookResult) {
           Object.assign(finalResult, hookResult)

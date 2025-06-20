@@ -592,6 +592,14 @@ async function main() {
 
           const svg = el.getElementsByTagName?.('svg')?.[0]
 
+          // svg.el
+          const foreigon = svg.querySelectorAll('.label foreignObject')
+          if (foreigon.length > 0) {
+            foreigon.forEach((f) => {
+              f.setAttribute('width', '200')
+            })
+          }
+
           if (svg.style) {
             svg.style.backgroundColor = 'transparent'
             svg.style.maxWidth = '750px'

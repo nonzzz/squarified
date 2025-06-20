@@ -35,38 +35,35 @@ export const plugin = definePlugin({
 graph TD
     A[Component Initialization] --> B[onLoad]
     B --> C[Data Loading]
-    C --> D[onModuleInit<br>Process Module Data]
-    D --> E[Rendering Complete]
+    C --> D[onModuleInit - Process Module Data]
+    D --> E[Layout Calculation]
+    E --> F[onLayoutCalculated - Adjust Layout Nodes]
+    F --> G[Rendering Complete]
     
-    E --> F{DOM Event Observer}
-    F -->|wheel event| G[onDOMEventTriggered<br>Handle Interactions]
-    F -->|click event| G
-    F -->|mouse event| G
-    F -->|other DOM events| G
+    G --> H[DOM Event Observer]
+    H --> I[onDOMEventTriggered - Handle Interactions]
     
-    E --> H{Viewport Size Change}
-    H --> I[onResize<br>Update Layout]
+    G --> J[Viewport Size Change]
+    J --> K[onResize - Update Layout]
     
-    E --> J{Component Destruction}
-    J --> K[onDispose<br>Cleanup Resources]
+    G --> L[Component Destruction]
+    L --> M[onDispose - Cleanup Resources]
     
-    %% Define custom styles with better contrast
-    classDef initHook fill:#c2d6ff,stroke:#333,rx:5,ry:5,color:black
-    classDef dataHook fill:#c2f0d5,stroke:#333,rx:5,ry:5,color:black
-    classDef eventHook fill:#ffd599,stroke:#333,rx:5,ry:5,color:black
-    classDef layoutHook fill:#ffcccb,stroke:#333,rx:5,ry:5,color:black
-    classDef cleanupHook fill:#e6c3e6,stroke:#333,rx:5,ry:5,color:black
-    classDef normalNode fill:#f8f9fa,stroke:#333,color:black
-    classDef decisionNode fill:#d8dee9,stroke:#333,rx:8,ry:8,color:black
+    classDef init fill:#e3f2fd,stroke:#1976d2,stroke-width:2px,color:#000,padding:8px 20px
+    classDef data fill:#e8f5e8,stroke:#388e3c,stroke-width:2px,color:#000,padding:8px 20px
+    classDef layout fill:#e1f5fe,stroke:#0277bd,stroke-width:2px,color:#000,padding:8px 20px
+    classDef event fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#000,padding:8px 20px
+    classDef resize fill:#fce4ec,stroke:#c2185b,stroke-width:2px,color:#000,padding:8px 20px
+    classDef cleanup fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000,padding:8px 20px
+    classDef normal fill:#f5f5f5,stroke:#616161,stroke-width:2px,color:#000,padding:8px 20px
     
-    %% Apply styles to specific nodes
-    class B initHook
-    class D dataHook
-    class G eventHook
-    class I layoutHook
-    class K cleanupHook
-    class A,C,E normalNode
-    class F,H,J decisionNode
+    class A,C,E,G normal
+    class B init
+    class D data
+    class F layout
+    class H,I event
+    class J,K resize
+    class L,M cleanup
 ```
 
 ## Preset Color

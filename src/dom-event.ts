@@ -3,7 +3,6 @@ import { Event } from './etoile'
 import type { BindThisParameter } from './etoile'
 import { captureBoxXY } from './etoile/native/dom'
 import { DEFAULT_MATRIX_LOC, Matrix2D } from './etoile/native/matrix'
-import type { TreemapInstanceAPI } from './interface'
 import type { LayoutModule } from './primitives/squarify'
 import { findRelativeNode } from './primitives/struct'
 
@@ -28,10 +27,10 @@ export interface PrimitiveEventMetadata<T extends keyof HTMLElementEventMap> {
 export type ExposedEventCallback<T extends DOMEventType> = (metadata: PrimitiveEventMetadata<T>) => void
 
 export type ExposedEventDefinition = {
-  [K in DOMEventType]: BindThisParameter<ExposedEventCallback<K>, TreemapInstanceAPI>
+  [K in DOMEventType]: BindThisParameter<ExposedEventCallback<K>, AnyObject>
 }
 
-export interface ExposedEventMethods<C = TreemapInstanceAPI, D = ExposedEventDefinition> {
+export interface ExposedEventMethods<C = AnyObject, D = ExposedEventDefinition> {
   on<Evt extends keyof D>(
     evt: Evt,
     handler: BindThisParameter<D[Evt], unknown extends C ? this : C>

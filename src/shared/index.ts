@@ -75,21 +75,6 @@ export function mixin<
   return app as T & MixinHelpWithParamater<M>
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-type Tail<T extends string[]> = T extends readonly [infer _, ...infer Rest] ? Rest : []
-
-type StrJoin<T extends string[], F extends string> = T extends readonly [] ? ''
-  : T extends readonly [infer FF] ? FF
-  : `${F}${StrJoin<Tail<T>, T[0]>}`
-
-export function prettyStrJoin<T extends string[]>(...s: T) {
-  return s.join('') as StrJoin<T, T[0]>
-}
-
-export function isMacOS() {
-  return /Mac OS X/.test(navigator.userAgent)
-}
-
 export function typedForIn<T extends NonNullable<object>>(obj: T, callback: (key: keyof T, value: T[keyof T]) => void) {
   for (const key in obj) {
     if (Object.prototype.hasOwnProperty.call(obj, key)) {

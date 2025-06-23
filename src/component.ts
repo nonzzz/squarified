@@ -75,8 +75,6 @@ export class Component extends Schedule {
       radius: effectiveRadius
     })
 
-    rect.__widget__ = node
-
     this.rectLayer.add(rect)
     for (const child of node.children) {
       this.drawBroundRect(child)

@@ -134,7 +134,7 @@ function determineGestureType(event: WheelEvent, gestureState: GestureState): 'p
     return gestureState.gestureType
   }
 
-  // Magic trackpad
+  // Magic Trackpad or Precision Touchpad
   if (gestureState.eventCount >= 3) {
     const avgDeltaY = gestureState.totalDeltaY / gestureState.eventCount
     const avgDeltaX = gestureState.totalDeltaX / gestureState.eventCount

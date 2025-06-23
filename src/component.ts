@@ -37,6 +37,15 @@ export const DEFAULT_FONT_FAMILY = 'sans-serif'
 
 export const DEFAULT_FONT_COLOR = '#000'
 
+// I don't have enough experience but I think using AABB to optimize font is a good choice.
+
+export interface AABB {
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
 export class Component extends Schedule {
   pluginDriver: PluginDriver<Component>
   data: NativeModule[]
@@ -58,6 +67,81 @@ export class Component extends Schedule {
     this.caches = new DefaultMap(() => 14)
     this.layoutNodes = []
   }
+
+  clearFontCacheInAABB(aabb: AABB) {
+    const affectedModules = this.getModulesInAABB(this.layoutNodes, aabb)
+    for (const module of affectedModules) {
+      this.caches.delete(module.node.id)
+    }
+  }
+
+  private getModulesInAABB(modules: LayoutModule[], aabb: AABB): LayoutModule[] {
+    const result: LayoutModule[] = []
+
+    for (const module of modules) {
+      const [x, y, w, h] = module.layout
+      const moduleAABB: AABB = { x, y, width: w, height: h }
+      if (this.isAABBIntersecting(moduleAABB, aabb)) {
+        result.push(module)
+        if (module.children && module.children.length > 0) {
+          result.push(...this.getModulesInAABB(module.children, aabb))
+        }
+      }
+    }
+    return result
+  }
+
+  getViewportAABB(matrixE: number, matrixF: number, scale: number): AABB {
+    const { width, height } = this.render.options
+
+    const worldX = -matrixE / scale
+    const worldY = -matrixF / scale
+    const worldWidth = width / scale
+    const worldHeight = height / scale
+
+    return {
+      x: worldX,
+      y: worldY,
+      width: worldWidth,
+      height: worldHeight
+    }
+  }
+
+  private getAABBUnion(a: AABB, b: AABB): AABB {
+    const minX = Math.min(a.x, b.x)
+    const minY = Math.min(a.y, b.y)
+    const maxX = Math.max(a.x + a.width, b.x + b.width)
+    const maxY = Math.max(a.y + a.height, b.y + b.height)
+
+    return {
+      x: minX,
+      y: minY,
+      width: maxX - minX,
+      height: maxY - minY
+    }
+  }
+
+  handleTransformCacheInvalidation(
+    oldMatrix: { e: number, f: number, a: number },
+    newMatrix: { e: number, f: number, a: number }
+  ) {
+    const oldViewportAABB = this.getViewportAABB(oldMatrix.e, oldMatrix.f, oldMatrix.a)
+    const newViewportAABB = this.getViewportAABB(newMatrix.e, newMatrix.f, newMatrix.a)
+
+    const affectedAABB = this.getAABBUnion(oldViewportAABB, newViewportAABB)
+
+    this.clearFontCacheInAABB(affectedAABB)
+  }
+
+  private isAABBIntersecting(a: AABB, b: AABB): boolean {
+    return !(
+      a.x + a.width < b.x ||
+      b.x + b.width < a.x ||
+      a.y + a.height < b.y ||
+      b.y + b.height < a.y
+    )
+  }
+
   private drawBroundRect(node: LayoutModule) {
     const [x, y, w, h] = node.layout
     const { rectRadius } = node.config

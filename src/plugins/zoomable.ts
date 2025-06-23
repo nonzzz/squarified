@@ -32,6 +32,8 @@ export const presetZoomablePlugin = definePlugin({
           const targetModule = this.resolveModuleById(id)
           if (!targetModule) { return }
 
+          const oldMatrix = { e: matrix.e, f: matrix.f, a: matrix.a }
+
           meta.previousMatrixState = {
             e: matrix.e,
             f: matrix.f,
@@ -85,6 +87,10 @@ export const presetZoomablePlugin = definePlugin({
             a: matrix.a,
             d: matrix.d
           }
+
+          const finalMatrix = { e: targetE, f: targetF, a: targetScale }
+
+          component.handleTransformCacheInvalidation(oldMatrix, finalMatrix)
 
           smoothFrame((progress) => {
             const easedProgress = easing.cubicInOut(progress)

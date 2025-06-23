@@ -229,10 +229,12 @@ function handleZoom(
   event: DOMEventMetadata<'wheel'>,
   domEvent: DOMEvent
 ) {
-  const { stateManager: state, matrix } = domEvent
+  const { stateManager: state, matrix, component } = domEvent
   const meta = getScaleOptions.call(pluginContext)
   if (!meta) { return }
   const { scale, minScale, maxScale, scaleFactor } = meta.scaleOptions
+
+  const oldMatrix = { e: matrix.e, f: matrix.f, a: matrix.a }
 
   const dynamicScaleFactor = Math.max(scaleFactor, scale * 0.1)
 
@@ -251,6 +253,10 @@ function handleZoom(
 
   matrix.e = mouseX - (mouseX - matrix.e) * scaleDiff
   matrix.f = mouseY - (mouseY - matrix.f) * scaleDiff
+
+  const newMatrix = { e: matrix.e, f: matrix.f, a: matrix.a }
+
+  component.handleTransformCacheInvalidation(oldMatrix, newMatrix)
 
   updateViewport(pluginContext, domEvent, false)
 }

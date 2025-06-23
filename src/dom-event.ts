@@ -31,9 +31,9 @@ export type ExposedEventDefinition = {
 }
 
 export interface ExposedEventMethods<C = AnyObject, D = ExposedEventDefinition> {
-  on<Evt extends keyof D>(
+  on<Evt extends keyof D | (string & {})>(
     evt: Evt,
-    handler: BindThisParameter<D[Evt], unknown extends C ? this : C>
+    handler: BindThisParameter<Evt extends keyof D ? D[Evt] : Any, unknown extends C ? this : C>
   ): void
   off<Evt extends keyof D>(
     evt: keyof D,
@@ -41,11 +41,16 @@ export interface ExposedEventMethods<C = AnyObject, D = ExposedEventDefinition> 
   ): void
 }
 
-export type DOMEVEntDefinition<API = unknown> =
+export type DOMEVEntDefinition =
   & {
-    [K in DOMEventType]: BindThisParameter<DOMEventCallback<K>, API>
+    [K in DOMEventType]: BindThisParameter<DOMEventCallback<K>, unknown>
   }
-  & { __exposed__: (type: DOMEventType, metadata: PrimitiveEventMetadata<DOMEventType>) => void }
+  & {
+    __exposed__: <D extends DOMEventType | (string & {})>(
+      type: D,
+      metadata: D extends DOMEventType ? PrimitiveEventMetadata<D> : Any
+    ) => void
+  }
 
 export const STATE_TRANSITION = {
   IDLE: 'IDLE',

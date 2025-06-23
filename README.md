@@ -2,7 +2,6 @@
 
 A minimal and powerful treemap visualization library for creating interactive hierarchical data visualizations.
 
-
 ## Features
 
 - 🚀 **Lightweight**: Minimal bundle size with maximum performance
@@ -22,11 +21,10 @@ yarn add squarified
 pnpm add squarified
 ```
 
-
 ## Quick Start
 
 ```typescript
-import { createTreemap, c2m, sortChildrenByKey } from 'squarified'
+import { c2m, createTreemap, sortChildrenByKey } from 'squarified'
 
 // Create a treemap instance
 const treemap = createTreemap({
@@ -58,16 +56,16 @@ treemap.setOptions({
 ## Complete Example
 
 ```typescript
-import { 
-  createTreemap, 
-  c2m, 
-  sortChildrenByKey,
+import {
+  c2m,
+  createTreemap,
   presetColorPlugin,
-  presetZoomablePlugin,
-  presetHighlightPlugin,
   presetDragElementPlugin,
+  presetHighlightPlugin,
+  presetMenuPlugin,
   presetScalePlugin,
-  presetMenuPlugin
+  presetZoomablePlugin,
+  sortChildrenByKey
 } from 'squarified'
 
 // Create treemap with plugins
@@ -111,25 +109,25 @@ const treemap = createTreemap({
 async function loadData() {
   const response = await fetch('/api/data')
   const rawData = await response.json()
-  
+
   // Transform data structure
-  const convertedData = rawData.map(item => ({
+  const convertedData = rawData.map((item) => ({
     ...item,
-    groups: item.children?.map(child => convertChildrenToGroups(child))
+    groups: item.children?.map((child) => convertChildrenToGroups(child))
   }))
-  
+
   // Convert to treemap format and sort
   const treemapData = sortChildrenByKey(
-    convertedData.map(item => 
-      c2m(item, 'value', d => ({ 
-        ...d, 
-        id: d.path, 
-        label: d.name 
+    convertedData.map((item) =>
+      c2m(item, 'value', (d) => ({
+        ...d,
+        id: d.path,
+        label: d.name
       }))
     ),
     'weight'
   )
-  
+
   return treemapData
 }
 
@@ -138,7 +136,7 @@ const container = document.querySelector('#app')
 treemap.init(container)
 
 // Load and set data
-loadData().then(data => {
+loadData().then((data) => {
   treemap.setOptions({ data })
 })
 
@@ -170,18 +168,23 @@ interface CreateTreemapOptions {
 ### Instance Methods
 
 #### `init(element: HTMLElement)`
+
 Initialize the treemap with a DOM container.
 
 #### `setOptions(options: TreemapOptions)`
+
 Update treemap configuration and data.
 
 #### `resize()`
+
 Manually trigger a resize recalculation.
 
 #### `on(event: string, handler: Function)`
+
 Subscribe to treemap events.
 
 #### `dispose()`
+
 Clean up the treemap instance.
 
 ### Data Format
@@ -199,9 +202,11 @@ interface TreemapNode {
 ### Utility Functions
 
 #### `c2m(data, weightKey, transform?)`
+
 Convert hierarchical data to treemap format.
 
 #### `sortChildrenByKey(data, key)`
+
 Sort treemap nodes by a specific key.
 
 ## Built-in Plugins
@@ -222,6 +227,7 @@ Sort treemap nodes by a specific key.
 ## Performance
 
 Squarified is optimized for performance with:
+
 - Canvas-based rendering
 - Efficient layout algorithms
 - Smart redraw optimizations
@@ -234,7 +240,6 @@ Contributions are welcome! Please read our [contributing guide](CONTRIBUTING.md)
 ## License
 
 [MIT](./LICENSE)
-
 
 ## Auth
 

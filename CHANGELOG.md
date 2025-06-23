@@ -1,3 +1,7 @@
+## 0.6.0
+
+Add built-in evnt types
+
 ## 0.5.0
 
 Support Magic Trackpad two fingers action. (For Pan/Zoom)

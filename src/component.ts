@@ -242,9 +242,9 @@ export class Component extends Schedule {
   }
   calculateLayoutNodes(data: NativeModule[], rect: Parameters<typeof squarify>[1], scale = 1) {
     const config: Required<GraphicLayout> = {
-      titleAreaHeight: this.config.layout?.titleAreaHeight || DEFAULT_TITLE_AREA_HEIGHT,
-      rectRadius: this.config.layout?.rectRadius || DEFAULT_RECT_BORDER_RADIUS,
-      rectGap: this.config.layout?.rectGap || DEFAULT_RECT_GAP
+      titleAreaHeight: this.config.layout?.titleAreaHeight ?? DEFAULT_TITLE_AREA_HEIGHT,
+      rectRadius: this.config.layout?.rectRadius ?? DEFAULT_RECT_BORDER_RADIUS,
+      rectGap: this.config.layout?.rectGap ?? DEFAULT_RECT_GAP
     }
     const layoutNodes = squarify(data, rect, config, scale)
     const result = this.pluginDriver.cascadeHook('onLayoutCalculated', layoutNodes, rect, config)

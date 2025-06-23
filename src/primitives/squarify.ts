@@ -89,18 +89,20 @@ export function squarify(data: NativeModule[], rect: Rect, config: Required<Grap
   const minRenderableArea = minRenderableSize * minRenderableSize
 
   const scaledGap = config.rectGap * scaleFactor
-
   const scaledRadius = config.rectRadius * scaleFactor
 
   const processedData = processSquarifyData(data, totalArea, minRenderableSize, minRenderableArea)
 
   if (!processedData.length) { return result }
 
-  rect = {
-    x: rect.x + scaledGap / 2,
-    y: rect.y + scaledGap / 2,
-    w: rect.w - scaledGap,
-    h: rect.h - scaledGap
+  let workingRect = rect
+  if (scaledGap > 0) {
+    workingRect = {
+      x: rect.x + scaledGap / 2,
+      y: rect.y + scaledGap / 2,
+      w: Math.max(0, rect.w - scaledGap),
+      h: Math.max(0, rect.h - scaledGap)
+    }
   }
 
   const worst = (start: number, end: number, shortestSide: number, totalWeight: number, aspectRatio: number) => {
@@ -163,23 +165,25 @@ export function squarify(data: NativeModule[], rect: Rect, config: Required<Grap
           h = splited
         }
 
-        const edgeGap = currentGap / 2
+        if (currentGap > 0) {
+          const edgeGap = currentGap / 2
 
-        if (!isFirst) {
-          if (isHorizontalLayout) {
-            y += edgeGap
-            h -= edgeGap
-          } else {
-            x += edgeGap
-            w -= edgeGap
+          if (!isFirst) {
+            if (isHorizontalLayout) {
+              y += edgeGap
+              h = Math.max(0, h - edgeGap)
+            } else {
+              x += edgeGap
+              w = Math.max(0, w - edgeGap)
+            }
           }
-        }
 
-        if (!isLast) {
-          if (isHorizontalLayout) {
-            h -= edgeGap
-          } else {
-            w -= edgeGap
+          if (!isLast) {
+            if (isHorizontalLayout) {
+              h = Math.max(0, h - edgeGap)
+            } else {
+              w = Math.max(0, w - edgeGap)
+            }
           }
         }
 
@@ -188,22 +192,24 @@ export function squarify(data: NativeModule[], rect: Rect, config: Required<Grap
         const diff = titleAreaHeight.max / nodeDepth
         const titleHeight = diff < titleAreaHeight.min ? titleAreaHeight.min : diff
 
-        w = Math.max(2, w)
-        h = Math.max(2, h)
+        w = Math.max(1, w)
+        h = Math.max(1, h)
 
         let childrenLayout: LayoutModule[] = []
 
         const hasValidChildren = children.groups && children.groups.length > 0
 
         if (hasValidChildren) {
+          const childGapOffset = currentGap > 0 ? currentGap : 0
           const childRect = {
-            x: x + currentGap,
+            x: x + childGapOffset,
             y: y + titleHeight,
-            w: Math.max(0, w - currentGap * 2),
-            h: Math.max(0, h - titleHeight - currentGap)
+            w: Math.max(0, w - childGapOffset * 2),
+            h: Math.max(0, h - titleHeight - childGapOffset)
           }
 
-          if (childRect.w > currentRadius * 2 && childRect.h > currentRadius * 2) {
+          const minChildSize = currentRadius > 0 ? currentRadius * 2 : 1
+          if (childRect.w >= minChildSize && childRect.h >= minChildSize) {
             childrenLayout = squarify(
               children.groups || [],
               childRect,
@@ -229,15 +235,17 @@ export function squarify(data: NativeModule[], rect: Rect, config: Required<Grap
 
       start = end
 
+      const rectGapOffset = currentGap > 0 ? currentGap : 0
       if (isHorizontalLayout) {
-        rect.x += splited + currentGap
-        rect.w -= splited + currentGap
+        rect.x += splited + rectGapOffset
+        rect.w = Math.max(0, rect.w - splited - rectGapOffset)
       } else {
-        rect.y += splited + currentGap
-        rect.h -= splited + currentGap
+        rect.y += splited + rectGapOffset
+        rect.h = Math.max(0, rect.h - splited - rectGapOffset)
       }
     }
   }
-  recursion(0, rect)
+
+  recursion(0, workingRect)
   return result
 }

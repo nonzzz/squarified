@@ -17,6 +17,7 @@ interface ZoomableMetadata {
 }
 
 const MAX_SCALE_MULTIPLIER = 2.0
+const ZOOM_PADDING_RATIO = 0.85
 
 export const presetZoomablePlugin = definePlugin({
   name: 'treemap:preset-zoomable',
@@ -29,8 +30,9 @@ export const presetZoomablePlugin = definePlugin({
           if (!meta || state.isInState('ZOOMING')) { return }
 
           const targetModule = this.resolveModuleById(id)
-
           if (!targetModule) { return }
+
+          const oldMatrix = { e: matrix.e, f: matrix.f, a: matrix.a }
 
           meta.previousMatrixState = {
             e: matrix.e,
@@ -40,43 +42,43 @@ export const presetZoomablePlugin = definePlugin({
           }
 
           const component = this.instance
-
           state.transition('ZOOMING')
 
           const [nodeX, nodeY, nodeW, nodeH] = targetModule.layout
           const { width, height } = component.render.options
 
           const currentScale = matrix.a
-          const scaleX = width / nodeW
-          const scaleY = height / nodeH
-          const fullScale = Math.min(scaleX, scaleY) * 0.9
 
-          const targetScale = Math.min(fullScale, currentScale * MAX_SCALE_MULTIPLIER)
+          const scaleX = (width * ZOOM_PADDING_RATIO) / nodeW
+          const scaleY = (height * ZOOM_PADDING_RATIO) / nodeH
+          const idealScale = Math.min(scaleX, scaleY)
 
-          const scale = targetScale
+          const maxAllowedScale = currentScale * MAX_SCALE_MULTIPLIER
+          const targetScale = Math.max(currentScale, Math.min(idealScale, maxAllowedScale))
 
-          const nodeCenterX = nodeX + nodeW / 2
-          const nodeCenterY = nodeY + nodeH / 2
+          const nodeWorldCenterX = nodeX + nodeW / 2
+          const nodeWorldCenterY = nodeY + nodeH / 2
           const viewCenterX = width / 2
           const viewCenterY = height / 2
 
-          const targetE = viewCenterX - nodeCenterX * scale
-          const targetF = viewCenterY - nodeCenterY * scale
+          const targetE = viewCenterX - nodeWorldCenterX * targetScale
+          const targetF = viewCenterY - nodeWorldCenterY * targetScale
 
           const scaleMeta = getScaleOptions.call(this)
           if (scaleMeta) {
-            scaleMeta.scaleOptions.scale = scale
+            scaleMeta.scaleOptions.scale = targetScale
           }
 
           const highlight = getHighlightInstance.call(this)
-
           const dragMeta = getDragOptions.call(this)
 
           if (dragMeta) {
-            dragMeta.dragOptions.x = 0
-            dragMeta.dragOptions.y = 0
-            dragMeta.dragOptions.lastX = 0
-            dragMeta.dragOptions.lastY = 0
+            Object.assign(dragMeta.dragOptions, {
+              x: 0,
+              y: 0,
+              lastX: 0,
+              lastY: 0
+            })
           }
 
           const startMatrix = {
@@ -86,18 +88,18 @@ export const presetZoomablePlugin = definePlugin({
             d: matrix.d
           }
 
+          const finalMatrix = { e: targetE, f: targetF, a: targetScale }
+
+          component.handleTransformCacheInvalidation(oldMatrix, finalMatrix)
+
           smoothFrame((progress) => {
             const easedProgress = easing.cubicInOut(progress)
-            const currentE = startMatrix.e + (targetE - startMatrix.e) * easedProgress
-            const currentF = startMatrix.f + (targetF - startMatrix.f) * easedProgress
-            const currentA = startMatrix.a + (scale - startMatrix.a) * easedProgress
-            const currentD = startMatrix.d + (scale - startMatrix.d) * easedProgress
 
             matrix.create(DEFAULT_MATRIX_LOC)
-            matrix.e = currentE
-            matrix.f = currentF
-            matrix.a = currentA
-            matrix.d = currentD
+            matrix.e = startMatrix.e + (targetE - startMatrix.e) * easedProgress
+            matrix.f = startMatrix.f + (targetF - startMatrix.f) * easedProgress
+            matrix.a = startMatrix.a + (targetScale - startMatrix.a) * easedProgress
+            matrix.d = startMatrix.d + (targetScale - startMatrix.d) * easedProgress
 
             if (highlight?.highlight) {
               highlight.highlight.reset()
@@ -105,10 +107,11 @@ export const presetZoomablePlugin = definePlugin({
             }
 
             component.cleanup()
-
-            const { width, height } = component.render.options
-
-            component.layoutNodes = component.calculateLayoutNodes(component.data, { w: width, h: height, x: 0, y: 0 }, matrix.a)
+            component.layoutNodes = component.calculateLayoutNodes(
+              component.data,
+              { w: width, h: height, x: 0, y: 0 },
+              matrix.a
+            )
 
             component.draw(true, false)
             stackMatrixTransformWithGraphAndLayer(

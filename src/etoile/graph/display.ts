@@ -184,13 +184,11 @@ export abstract class S extends Display {
 export abstract class Graph extends S {
   instruction: ReturnType<typeof createInstruction>
   __options__: Partial<LocOptions>
-  __widget__: Any
   abstract style: GraphStyleSheet
   constructor(options: Partial<GraphOptions> = {}) {
     super(options)
     this.instruction = createInstruction()
     this.__options__ = options
-    this.__widget__ = null
   }
   abstract create(): void
   abstract clone(): Graph

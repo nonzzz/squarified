@@ -267,30 +267,24 @@ export function evaluateOptimalFontSize(
   const { fontSize, family } = config
   let min = fontSize.min
   let max = fontSize.max
-  const cache = new Map<number, { width: number, height: number }>()
 
   while (max - min >= 1) {
     const current = min + (max - min) / 2
-    if (!cache.has(current)) {
-      c.font = `${current}px ${family}`
-      const metrics = c.measureText(text)
-      const width = metrics.width
-      const height = metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent
-      cache.set(current, { width, height })
-    }
+    c.font = `${current}px ${family}`
 
-    const { width, height } = cache.get(current)!
+    const textWidth = c.measureText(text).width
+    const metrics = c.measureText(text)
+    const textHeight = metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent
 
-    if (width > desiredW || height > desiredH) {
-      max = current
-    } else {
+    if (textWidth <= desiredW && textHeight <= desiredH) {
       min = current
+    } else {
+      max = current
     }
   }
 
   return Math.floor(min)
 }
-
 interface TextLayoutResult {
   valid: boolean
   text: string
@@ -299,20 +293,41 @@ interface TextLayoutResult {
 }
 
 export function getTextLayout(c: CanvasRenderingContext2D, text: string, width: number, height: number): TextLayoutResult {
-  const ellipsisWidth = measureTextWidth(c, '...')
-  if (width < ellipsisWidth) {
-    if (height > ellipsisWidth) {
-      return { valid: true, text: '...', direction: 'vertical', width: ellipsisWidth / 3 }
-    }
+  const textWidth = c.measureText(text).width
+  const metrics = c.measureText(text)
+  const textHeight = metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent
+
+  if (textHeight > height) {
     return { valid: false, text: '', direction: 'horizontal', width: 0 }
   }
-  const textWidth = measureTextWidth(c, text)
-  if (textWidth < width) {
+
+  if (textWidth <= width) {
     return { valid: true, text, direction: 'horizontal', width: textWidth }
   }
-  return { valid: true, text: '...', direction: 'horizontal', width: ellipsisWidth }
-}
 
-function measureTextWidth(c: CanvasRenderingContext2D, text: string) {
-  return c.measureText(text).width
+  const ellipsisWidth = c.measureText('...').width
+  if (width <= ellipsisWidth) {
+    return { valid: false, text: '', direction: 'horizontal', width: 0 }
+  }
+
+  let left = 0
+  let right = text.length
+  let bestFit = ''
+
+  while (left <= right) {
+    const mid = Math.floor((left + right) / 2)
+    const substring = text.substring(0, mid)
+    const subWidth = c.measureText(substring).width
+
+    if (subWidth + ellipsisWidth <= width) {
+      bestFit = substring
+      left = mid + 1
+    } else {
+      right = mid - 1
+    }
+  }
+
+  return bestFit.length > 0
+    ? { valid: true, text: bestFit + '...', direction: 'horizontal', width }
+    : { valid: true, text: '...', direction: 'horizontal', width: ellipsisWidth }
 }

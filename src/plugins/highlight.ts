@@ -66,7 +66,7 @@ export const presetHighlightPlugin = definePlugin({
           const mask = createRoundBlock(x, y, w, h, { fill, opacity: HIGH_LIGHT_OPACITY, radius: effectiveRadius, padding: 0 })
           meta.highlight?.add(mask)
           meta.highlight?.setZIndexForHighlight('1')
-          stackMatrixTransform(mask, matrix.e, matrix.f, matrix.a)
+          stackMatrixTransform(mask, matrix.e, matrix.f, 1)
           meta.highlight?.update()
         }, {
           duration: ANIMATION_DURATION

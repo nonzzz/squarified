@@ -59,7 +59,7 @@ export const presetDragElementPlugin = definePlugin({
             meta.dragOptions.lastY = lastY
             component.cleanup()
             component.draw(false, false)
-            stackMatrixTransformWithGraphAndLayer(component.elements, matrix.e, matrix.f, matrix.a)
+            stackMatrixTransformWithGraphAndLayer(component.elements, matrix.e, matrix.f, 1)
             component.update()
             return true
           }, {

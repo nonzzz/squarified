@@ -90,7 +90,7 @@ export const presetZoomablePlugin = definePlugin({
             d: matrix.d
           }
 
-          const finalMatrix = { e: targetE, f: targetF, a: targetScale }
+          const finalMatrix = { e: targetE, f: targetF }
 
           component.handleTransformCacheInvalidation(oldMatrix, finalMatrix)
 

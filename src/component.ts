@@ -91,19 +91,19 @@ export class Component extends Schedule {
     return result
   }
 
-  getViewportAABB(matrixE: number, matrixF: number, scale: number): AABB {
+  getViewportAABB(matrixE: number, matrixF: number): AABB {
     const { width, height } = this.render.options
 
-    const worldX = -matrixE / scale
-    const worldY = -matrixF / scale
-    const worldWidth = width / scale
-    const worldHeight = height / scale
+    const viewportX = -matrixE
+    const viewportY = -matrixF
+    const viewportWidth = width
+    const viewportHeight = height
 
     return {
-      x: worldX,
-      y: worldY,
-      width: worldWidth,
-      height: worldHeight
+      x: viewportX,
+      y: viewportY,
+      width: viewportWidth,
+      height: viewportHeight
     }
   }
 
@@ -122,11 +122,11 @@ export class Component extends Schedule {
   }
 
   handleTransformCacheInvalidation(
-    oldMatrix: { e: number, f: number, a: number },
-    newMatrix: { e: number, f: number, a: number }
+    oldMatrix: { e: number, f: number },
+    newMatrix: { e: number, f: number }
   ) {
-    const oldViewportAABB = this.getViewportAABB(oldMatrix.e, oldMatrix.f, oldMatrix.a)
-    const newViewportAABB = this.getViewportAABB(newMatrix.e, newMatrix.f, newMatrix.a)
+    const oldViewportAABB = this.getViewportAABB(oldMatrix.e, oldMatrix.f)
+    const newViewportAABB = this.getViewportAABB(newMatrix.e, newMatrix.f)
 
     const affectedAABB = this.getAABBUnion(oldViewportAABB, newViewportAABB)
 

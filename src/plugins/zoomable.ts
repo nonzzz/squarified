@@ -1,5 +1,5 @@
+import { DEFAULT_MATRIX_LOC } from 'src/etoile/native/matrix'
 import { easing } from '../etoile'
-import { DEFAULT_MATRIX_LOC } from '../etoile/native/matrix'
 import { mixin, smoothFrame, stackMatrixTransformWithGraphAndLayer } from '../shared'
 import { definePlugin } from '../shared/plugin-driver'
 import { getDragOptions, getHighlightInstance } from './drag'
@@ -49,20 +49,22 @@ export const presetZoomablePlugin = definePlugin({
 
           const currentScale = matrix.a
 
+          // To prevent unlimited scale factor growth.
           const scaleX = (width * ZOOM_PADDING_RATIO) / nodeW
           const scaleY = (height * ZOOM_PADDING_RATIO) / nodeH
-          const idealScale = Math.min(scaleX, scaleY)
-
+          const idleScale = Math.min(scaleX, scaleY)
           const maxAllowedScale = currentScale * MAX_SCALE_MULTIPLIER
-          const targetScale = Math.max(currentScale, Math.min(idealScale, maxAllowedScale))
+          const targetScale = Math.max(currentScale, Math.min(idleScale, maxAllowedScale))
 
-          const nodeWorldCenterX = nodeX + nodeW / 2
-          const nodeWorldCenterY = nodeY + nodeH / 2
-          const viewCenterX = width / 2
-          const viewCenterY = height / 2
+          // Real world args
+          const viewportCenterX = width / 2
+          const viewportCenterY = height / 2
 
-          const targetE = viewCenterX - nodeWorldCenterX * targetScale
-          const targetF = viewCenterY - nodeWorldCenterY * targetScale
+          const originalNodeCenterX = (nodeX + nodeW / 2) / currentScale
+          const originalNodeCenterY = (nodeY + nodeH / 2) / currentScale
+
+          const targetE = viewportCenterX - originalNodeCenterX * targetScale
+          const targetF = viewportCenterY - originalNodeCenterY * targetScale
 
           const scaleMeta = getScaleOptions.call(this)
           if (scaleMeta) {
@@ -100,26 +102,19 @@ export const presetZoomablePlugin = definePlugin({
             matrix.f = startMatrix.f + (targetF - startMatrix.f) * easedProgress
             matrix.a = startMatrix.a + (targetScale - startMatrix.a) * easedProgress
             matrix.d = startMatrix.d + (targetScale - startMatrix.d) * easedProgress
-
             if (highlight?.highlight) {
               highlight.highlight.reset()
               highlight.highlight.setZIndexForHighlight()
             }
-
             component.cleanup()
             component.layoutNodes = component.calculateLayoutNodes(
               component.data,
-              { w: width, h: height, x: 0, y: 0 },
-              matrix.a
+              { w: width * matrix.a, h: height * matrix.d, x: 0, y: 0 },
+              1
             )
 
             component.draw(true, false)
-            stackMatrixTransformWithGraphAndLayer(
-              component.elements,
-              matrix.e,
-              matrix.f,
-              matrix.a
-            )
+            stackMatrixTransformWithGraphAndLayer(component.elements, matrix.e, matrix.f, 1)
             component.update()
           }, {
             duration: ANIMATION_DURATION,

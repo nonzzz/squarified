@@ -31,7 +31,12 @@ function generateStableCombinedNodeId(weight: number, nodes: SquarifiedModule[])
   return Math.abs(hashCode(name)) + '-' + weight
 }
 
-function processSquarifyData(data: SquarifiedModule[], totalArea: number, minNodeSize: number, minNodeArea: number) {
+function processSquarifyData(
+  data: SquarifiedModule[],
+  totalArea: number,
+  minNodeSize: number,
+  minNodeArea: number
+) {
   if (!data || !data.length) { return [] }
 
   const totalWeight = data.reduce((sum, node) => sum + node.weight, 0)
@@ -84,8 +89,12 @@ export function squarify(data: NativeModule[], rect: Rect, config: Required<Grap
   const containerSize = Math.min(rect.w, rect.h)
   const scaleFactor = Math.max(0.5, Math.min(1, containerSize / 800))
 
-  // evaluate minimum renderable size
-  const minRenderableSize = (Math.max(20, containerSize * 0.05)) / scale
+  const baseMinSize = 20
+  const minRenderableSize = Math.max(
+    8,
+    baseMinSize / Math.sqrt(scale)
+  )
+
   const minRenderableArea = minRenderableSize * minRenderableSize
 
   const scaledGap = config.rectGap * scaleFactor

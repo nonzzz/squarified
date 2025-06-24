@@ -193,8 +193,8 @@ function updateViewport(
     const { width, height } = component.render.options
     component.layoutNodes = component.calculateLayoutNodes(
       component.data,
-      { w: width, h: height, x: 0, y: 0 },
-      matrix.a
+      { w: width * matrix.a, h: height * matrix.d, x: 0, y: 0 },
+      1
     )
     component.draw(true, false)
 
@@ -202,7 +202,7 @@ function updateViewport(
       component.elements,
       matrix.e,
       matrix.f,
-      matrix.a
+      1
     )
     component.update()
 

@@ -187,11 +187,10 @@ export class DOMEvent extends Event<DOMEVEntDefinition> {
 
     this.component.pluginDriver.runHook('onDOMEventTriggered', kind, e, node, this)
     this.emit('__exposed__', kind, { native: e.native, module: node })
-    // For MacOS
   }
   findRelativeNode(e: DOMEventMetadata) {
     return findRelativeNode(
-      captureBoxXY(this.el!, e.native, this.matrix.a, this.matrix.d, this.matrix.e, this.matrix.f),
+      captureBoxXY(this.el!, e.native, 1, 1, this.matrix.e, this.matrix.f),
       this.component.layoutNodes
     )
   }

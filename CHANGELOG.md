@@ -1,3 +1,7 @@
+## 0.6.2
+
+Fix AABB bound.
+
 ## 0.6.0
 
 Add built-in evnt types

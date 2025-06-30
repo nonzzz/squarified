@@ -1,3 +1,7 @@
+## 1.0.0
+
+First stable release.
+
 ## 0.6.2
 
 Fix AABB bound.

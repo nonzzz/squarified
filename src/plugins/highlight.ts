@@ -27,6 +27,8 @@ export class Highlight extends Schedule<DOMEVEntDefinition> {
 
 export interface HighlightMeta {
   highlight: Highlight | null
+  // To sync different event handlers
+  highlightSeq?: number
 }
 
 export const ANIMATION_DURATION = 300
@@ -54,13 +56,22 @@ export const presetHighlightPlugin = definePlugin({
           meta.highlight?.reset()
           meta.highlight?.update()
           meta.highlight?.setZIndexForHighlight()
+          meta.highlightSeq = (meta.highlightSeq ?? 0) + 1
           return
         }
 
         const [x, y, w, h] = module.layout
 
         const effectiveRadius = Math.min(module.config.rectRadius, w / 4, h / 4)
+        meta.highlightSeq = (meta.highlightSeq ?? 0) + 1
+        const thisSeq = meta.highlightSeq
+
         smoothFrame((_, cleanup) => {
+          if (meta.highlightSeq !== thisSeq) {
+            meta.highlight?.setZIndexForHighlight()
+            cleanup()
+            return
+          }
           cleanup()
           meta.highlight?.reset()
           const mask = createRoundBlock(x, y, w, h, { fill, opacity: HIGH_LIGHT_OPACITY, radius: effectiveRadius, padding: 0 })
@@ -91,6 +102,7 @@ export const presetHighlightPlugin = definePlugin({
     }
   },
   meta: {
-    highlight: null
+    highlight: null,
+    highlightSeq: 0
   }
 })

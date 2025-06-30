@@ -106,6 +106,10 @@ export const presetZoomablePlugin = definePlugin({
               highlight.highlight.reset()
               highlight.highlight.setZIndexForHighlight()
             }
+            if (highlight) {
+              highlight.highlightSeq = (highlight.highlightSeq ?? 0) + 1
+            }
+
             component.cleanup()
             component.layoutNodes = component.calculateLayoutNodes(
               component.data,

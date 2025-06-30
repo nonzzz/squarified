@@ -188,6 +188,9 @@ function updateViewport(
       highlight.highlight.reset()
       highlight.highlight.setZIndexForHighlight()
     }
+    if (highlight) {
+      highlight.highlightSeq = (highlight.highlightSeq ?? 0) + 1
+    }
 
     component.cleanup()
     const { width, height } = component.render.options
